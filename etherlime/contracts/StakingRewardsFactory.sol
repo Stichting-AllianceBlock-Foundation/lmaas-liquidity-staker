@@ -47,7 +47,8 @@ contract StakingRewardsFactory is Ownable {
 
     ///// permissionless functions
 
-    // call notifyRewardAmount for all staking tokens.
+    // TODO Change this to addRewards
+    // call notifyRewardAmount for all staking tokens. // TODO Change this to addReward
     function notifyRewardAmounts() public {
         require(stakingTokens.length > 0, 'StakingRewardsFactory::notifyRewardAmounts: called before any deploys');
         for (uint i = 0; i < stakingTokens.length; i++) {
@@ -55,6 +56,7 @@ contract StakingRewardsFactory is Ownable {
         }
     }
 
+    // TODO Change this to addReward
     // notify reward amount for an individual staking token.
     // this is a fallback in case the notifyRewardAmounts costs too much gas to call for all contracts
     function notifyRewardAmount(address stakingToken) public {
@@ -71,7 +73,7 @@ contract StakingRewardsFactory is Ownable {
                 IERC20(rewardsToken).transfer(info.stakingRewards, rewardAmount),
                 'StakingRewardsFactory::notifyRewardAmount: transfer failed'
             );
-            StakingRewards(info.stakingRewards).notifyRewardAmount(rewardAmount);
+            StakingRewards(info.stakingRewards).start(rewardAmount);
         }
     }
 }
