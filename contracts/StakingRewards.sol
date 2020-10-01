@@ -22,9 +22,9 @@ contract StakingRewards is IStakingRewards, RewardsDistributionRecipient, Reentr
     uint256 public rewardRate = 0;
     uint256 public rewardsDuration = 60 days;
     uint256 public lastUpdateTime;
-    uint256 public rewardPerTokenStored;
+    uint256 public latestRewardPerTokenSaved;
 
-    mapping(address => uint256) public userRewardPerTokenPaid;
+    mapping(address => uint256) public userRewardPerTokenRecorded;
     mapping(address => uint256) public rewards;
 
     uint256 private _totalSupply;
@@ -56,18 +56,22 @@ contract StakingRewards is IStakingRewards, RewardsDistributionRecipient, Reentr
         return Math.min(block.timestamp, periodFinish);
     }
 
+    // Calculates how many rewards tokens you should get per 1 staked token until last applicable time (in most cases it is now)
     function rewardPerToken() public view returns (uint256) {
         if (_totalSupply == 0) {
-            return rewardPerTokenStored;
+            return latestRewardPerTokenSaved;
         }
-        return
-            rewardPerTokenStored.add(
-                lastTimeRewardApplicable().sub(lastUpdateTime).mul(rewardRate).mul(1e18).div(_totalSupply)
-            );
+
+        uint256 timeSinceLastSave = lastTimeRewardApplicable().sub(lastUpdateTime);
+        uint256 rewardPerTokenSinceLastSave = timeSinceLastSave.mul(rewardRate).mul(1e18).div(_totalSupply);
+        return latestRewardPerTokenSaved.add(rewardPerTokenSinceLastSave);
     }
 
+    // Calculate how much you have earned
     function earned(address account) public view returns (uint256) {
-        return _balances[account].mul(rewardPerToken().sub(userRewardPerTokenPaid[account])).div(1e18).add(rewards[account]);
+        uint256 userRewardPerTokenSinceRecorded = rewardPerToken().sub(userRewardPerTokenRecorded[account]);
+        uint256 newReward = _balances[account].mul(userRewardPerTokenSinceRecorded).div(1e18);
+        return rewards[account].add(newReward);
     }
 
     function getRewardForDuration() external view returns (uint256) {
@@ -120,7 +124,7 @@ contract StakingRewards is IStakingRewards, RewardsDistributionRecipient, Reentr
 
     /* ========== RESTRICTED FUNCTIONS ========== */
 
-    function notifyRewardAmount(uint256 reward) external onlyRewardsDistribution updateReward(address(0)) {
+    function start(uint256 reward) external onlyRewardsDistribution updateReward(address(0)) {
         if (block.timestamp >= periodFinish) {
             rewardRate = reward.div(rewardsDuration);
         } else {
@@ -136,7 +140,7 @@ contract StakingRewards is IStakingRewards, RewardsDistributionRecipient, Reentr
         uint balance = rewardsToken.balanceOf(address(this));
         require(rewardRate <= balance.div(rewardsDuration), "Provided reward too high");
 
-        lastUpdateTime = block.timestamp;
+        lastUpdateTime = block.timestamp; // TODO this restarts the whole staking thing. If we remove it the maths might break
         periodFinish = block.timestamp.add(rewardsDuration);
         emit RewardAdded(reward);
     }
@@ -144,11 +148,11 @@ contract StakingRewards is IStakingRewards, RewardsDistributionRecipient, Reentr
     /* ========== MODIFIERS ========== */
 
     modifier updateReward(address account) {
-        rewardPerTokenStored = rewardPerToken();
-        lastUpdateTime = lastTimeRewardApplicable();
+        latestRewardPerTokenSaved = rewardPerToken(); // Calculate the reward until now
+        lastUpdateTime = lastTimeRewardApplicable(); // Update the last update time to now (or end date) for future calculations
         if (account != address(0)) {
             rewards[account] = earned(account);
-            userRewardPerTokenPaid[account] = rewardPerTokenStored;
+            userRewardPerTokenRecorded[account] = latestRewardPerTokenSaved;
         }
         _;
     }
