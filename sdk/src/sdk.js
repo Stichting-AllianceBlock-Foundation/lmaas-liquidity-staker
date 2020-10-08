@@ -125,31 +125,32 @@ class ALBTStakerSDK {
 	}
 
 	async addBalancerLiquidity(wallet, tokenAddress, tokenAmountIn, poolAddress) {
-		const poolContract = new ethers.Contract(poolAddress, balancerBPoolContractABI, wallet)
+		const poolContract = new ethers.Contract(poolAddress, balancerBPoolContractABI, wallet);
 
-		const tokenAmountInBN = ethers.utils.bigNumberify(tokenAmountIn)
-		const tokenAmountBNSlip = tokenAmountInBN.mul(50).div(10000)
-		const minPoolAmountOutBN = tokenAmountBNSlip.sub(tokenAmountBNSlip)
+		//TODO: This can be discussed if it should be 0.5
+		const tokenAmountInBN = ethers.utils.bigNumberify(tokenAmountIn);
+		const tokenAmountBNSlip = tokenAmountInBN.mul(50).div(10000);
+		const minPoolAmountOutBN = tokenAmountBNSlip.sub(tokenAmountBNSlip);
 
-		let transaction = await poolContract.joinswapExternAmountIn(tokenAddress, tokenAmountInBN, minPoolAmountOutBN)
+		let transaction = await poolContract.joinswapExternAmountIn(tokenAddress, tokenAmountInBN, minPoolAmountOutBN);
 
 		return transaction;
 	}
 
 	async getBPoolBalance(wallet, poolAddress) {
-		const poolContract = new ethers.Contract(poolAddress, balancerBPoolContractABI, wallet)
+		const poolContract = new ethers.Contract(poolAddress, balancerBPoolContractABI, wallet);
 
 		return poolContract.balanceOf(wallet.address)
 	}
 
 	async approveToken(wallet, tokenAddress, poolAddress) {
 
-		const tokenContract = new ethers.Contract(tokenAddress, ERC20ABI, wallet)
+		const tokenContract = new ethers.Contract(tokenAddress, ERC20ABI, wallet);
 		return tokenContract.approve(poolAddress, ethers.constants.MaxUint256)
 	}
 
 	async getBalancerPoolAllowance(wallet,tokenAddress, poolAddress) {
-		const tokenContract = new ethers.Contract(tokenAddress, ERC20ABI, wallet)
+		const tokenContract = new ethers.Contract(tokenAddress, ERC20ABI, wallet);
 		return tokenContract.allowance(wallet.address, poolAddress)
 	}
 
