@@ -30,6 +30,11 @@ const contractsConfig = {
 		"UNI": "0x1f9840a85d5af5bf1d1762f925bdaddc4201f984",
 		"USDC": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"
 	},
+	balancer: {
+		poolContracts: {
+			"DAI-ETH": "0x99e582374015c1d2f3c0f98d0763b4b1145772b7"
+		}
+	}
 }
 
 const run = async () => {
@@ -43,17 +48,18 @@ const run = async () => {
 
 
 	// Set up the provider. With Metamask it would be Web3Provider
-	const mainnetProvider = new ethers.providers.InfuraProvider(1, '40c2813049e44ec79cb4d7e0d18de173')
+	// const mainnetProvider = new ethers.providers.InfuraProvider(1, '40c2813049e44ec79cb4d7e0d18de173')
 	const localProvider = new ethers.providers.JsonRpcProvider('http://localhost:8545') // Using local provider in order not to spend money	
 
 	// Set up the sdk
 	const sdk = new ALBTStakerSDK(localProvider, contractsConfig, true)
 
 	// Set up the user wallet
-	let wallet = new ethers.Wallet(process.env.PRIVATE_KEY, localProvider)
+	// let wallet = new ethers.Wallet(process.env.PRIVATE_KEY, localProvider)
+	let wallet = new ethers.Wallet("e19ecfdfedea4fa693c3d724a98ade0078972321311789f38e349fb2e0ec80bb", localProvider)
 
 	const tokenABalance = await sdk.getBalance(wallet, tokenB);
-	if(tokenABalance.lt(tokenAAmount)) {
+	if (tokenABalance.lt(tokenAAmount)) {
 		throw new Error(`Not enough ${tokenA} for this liquidity provision`)
 	}
 
@@ -66,7 +72,7 @@ const run = async () => {
 
 	// Check if you have enough balance
 	const tokenBBalance = await sdk.getBalance(wallet, tokenB);
-	if(tokenBBalance.lt(tokenBAmount)) {
+	if (tokenBBalance.lt(tokenBAmount)) {
 		throw new Error(`Not enough ${tokenB} for this liquidity provision`)
 	}
 
@@ -80,7 +86,7 @@ const run = async () => {
 	console.log(`${tokenA} Approval`, tokenAApproval.toString(10))
 
 	// Approving if no enough approval for the liquidity provision
-	if(tokenAApproval.lt(tokenAAmount)) {
+	if (tokenAApproval.lt(tokenAAmount)) {
 		console.log(`Not enough approval for ${tokenA}`);
 		const approveTransaction = await sdk.approveUniswapRouterForToken(wallet, tokenA);
 		console.log("Approval Transaction", approveTransaction.hash)
@@ -94,7 +100,7 @@ const run = async () => {
 	console.log(`${tokenB} Approval`, tokenBApproval.toString(10))
 
 	// Approving if no enough approval for the liquidity provision
-	if(tokenBApproval.lt(tokenBAmount)) {
+	if (tokenBApproval.lt(tokenBAmount)) {
 		console.log(`Not enough approval for ${tokenB}`);
 		const approveTransaction = await sdk.approveUniswapRouterForToken(wallet, tokenB);
 		console.log("Approval Transaction", approveTransaction.hash)
@@ -113,6 +119,24 @@ const run = async () => {
 	// Checking the new LP Tokens balance
 	const LPTokensAfter = await sdk.getUniswapPoolTokenBalance(wallet, tokenA, tokenB);
 	console.log("Liqudity Pool Tokens before addition", ethers.utils.formatEther(LPTokensAfter.toString(10)))
+
+	// Providing Balancer DAI Liquidity
+
+	const allowanceTx = await sdk.getBalancerPoolAllowance(wallet,contractsConfig.tokenContracts.DAI, contractsConfig.balancer.poolContracts["DAI-ETH"])
+	console.log("Allowance:" ,allowanceTx.toString())
+
+	const approveTx = await sdk.approveToken(wallet, contractsConfig.tokenContracts.DAI, contractsConfig.balancer.poolContracts["DAI-ETH"])
+	console.log("Approving pool for token. Tx hash: ", approveTx.hash)
+
+	let approveTxReceipt = await approveTx.wait();
+	console.log("Result from approving -", approveTxReceipt.status)
+
+	const addLiquidity = await sdk.addBalancerLiquidity(wallet, contractsConfig.tokenContracts.DAI, tokenAAmount, contractsConfig.balancer.poolContracts["DAI-ETH"])
+
+	console.log("Add Liquidity Tx hash:", addLiquidity.hash)
+
+	const poolBalance = await sdk.getBPoolBalance(wallet, contractsConfig.balancer.poolContracts["DAI-ETH"])
+	console.log("BAL balance: ",poolBalance.toString())
 
 }
 
