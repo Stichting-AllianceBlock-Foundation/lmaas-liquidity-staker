@@ -141,7 +141,7 @@ contract StakingRewards is IStakingRewards, RewardsDistributionRecipient, Reentr
         emit RewardAdded(reward);
     }
 
-    function getPeriodsToExtend(uint256 extendedRewardAmount) external view returns(uint256 periodsToExtend){
+    function getPeriodsToExtend(uint256 extendedRewardAmount) public view returns(uint256 periodsToExtend){
         require(extendedRewardAmount > 0, "Rewards should be greater than zero");
         require(rewardRate > 0, "Staking is not yet started");
 
@@ -151,7 +151,7 @@ contract StakingRewards is IStakingRewards, RewardsDistributionRecipient, Reentr
 
     function addRewards(uint256 rewardAmount) external onlyRewardsDistribution {
         rewardsToken.transferFrom(msg.sender, address(this),rewardAmount);
-        uint256 periodToExtend = rewardAmount.div(rewardRate);
+        uint256 periodToExtend = getPeriodsToExtend(extendedRewardAmount);
         periodFinish.add(periodToExtend);
         rewardsDuration.add(periodToExtend);
         emit RewardExtended(rewardAmount, now, periodToExtend);
