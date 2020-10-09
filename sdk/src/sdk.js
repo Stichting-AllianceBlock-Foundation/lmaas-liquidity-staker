@@ -10,9 +10,9 @@ const {
 	Percent
 } = require('@uniswap/sdk')
 const uniswapRouterABI = require('./UniswapRouterABI.json');
-const uniswapLiquidityPoolTokenABI = require('./UniswapLiquidityPoolTokenABI.json')
 const balancerBPoolContractABI = require('./BalancerBPoolABI.json')
 const ERC20ABI = require('./ERC20.json')
+const BALANCE_BUFFER = 0.01;
 
 const uniswapV2RouterAddress = '0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D'
 
@@ -53,7 +53,7 @@ class ALBTStakerSDK {
 			return ethers.constants.MaxUint256
 		}
 		const token = await this._getUniswapTokenByName(tokenName);
-		const tokenContract = new ethers.Contract(token.address, uniswapLiquidityPoolTokenABI, wallet);
+		const tokenContract = new ethers.Contract(token.address, ERC20ABI, wallet);
 		return tokenContract.allowance(wallet.address, uniswapV2RouterAddress)
 	}
 
@@ -62,7 +62,7 @@ class ALBTStakerSDK {
 			throw new Error("No need to approve for ETH")
 		}
 		const token = await this._getUniswapTokenByName(tokenName);
-		const tokenContract = new ethers.Contract(token.address, uniswapLiquidityPoolTokenABI, wallet);
+		const tokenContract = new ethers.Contract(token.address, ERC20ABI, wallet);
 		return tokenContract.approve(uniswapV2RouterAddress, ethers.constants.MaxUint256)
 	}
 
@@ -108,7 +108,7 @@ class ALBTStakerSDK {
 		}
 
 		const token = await this._getUniswapTokenByName(tokenName);
-		const tokenContract = new ethers.Contract(token.address, uniswapLiquidityPoolTokenABI, wallet)
+		const tokenContract = new ethers.Contract(token.address, ERC20ABI, wallet)
 
 		const walletAddress = await wallet.getAddress();
 
@@ -117,7 +117,7 @@ class ALBTStakerSDK {
 
 	async getUniswapPoolTokenBalance(wallet, tokenAName, tokenBName) {
 		const poolTokenAddress = this._getUniswapPairPoolToken(tokenAName, tokenBName);
-		const tokenContract = new ethers.Contract(poolTokenAddress, uniswapLiquidityPoolTokenABI, wallet)
+		const tokenContract = new ethers.Contract(poolTokenAddress, ERC20ABI, wallet)
 
 		const walletAddress = await wallet.getAddress();
 
@@ -127,15 +127,17 @@ class ALBTStakerSDK {
 	async addBalancerLiquidity(wallet, tokenAddress, tokenAmountIn, poolAddress) {
 		const poolContract = new ethers.Contract(poolAddress, balancerBPoolContractABI, wallet);
 
-		//TODO: This can be discussed if it should be 0.5
+		
 		const tokenAmountInBN = ethers.utils.bigNumberify(tokenAmountIn);
 		const tokenAmountBNSlip = tokenAmountInBN.mul(50).div(10000);
+		//TODO: Update this with the _calculateMinAmountOut function
 		const minPoolAmountOutBN = tokenAmountBNSlip.sub(tokenAmountBNSlip);
 
 		let transaction = await poolContract.joinswapExternAmountIn(tokenAddress, tokenAmountInBN, minPoolAmountOutBN);
 
 		return transaction;
 	}
+
 
 	async getBPoolBalance(wallet, poolAddress) {
 		const poolContract = new ethers.Contract(poolAddress, balancerBPoolContractABI, wallet);
@@ -190,6 +192,14 @@ class ALBTStakerSDK {
 		}
 
 		throw new Error('No such pair found')
+	}
+
+	//TODO: Add function to properly calculate the pool tokens
+	_calculateMinAmountOut(poolTokens) {
+
+		let multiplier = (1 - BALANCE_BUFFER);
+		let amountOut = pooltokens.mul(multiplier);
+		return amountOut
 	}
 
 
