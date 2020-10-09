@@ -47,33 +47,49 @@ contract StakingRewardsFactory is Ownable {
 
     ///// permissionless functions
 
-    // TODO Change this to addRewards
-    // call notifyRewardAmount for all staking tokens. // TODO Change this to addReward
-    function notifyRewardAmounts() public {
+    // call startStakings for all staking tokens. 
+    function startStakings() public {
         require(stakingTokens.length > 0, 'StakingRewardsFactory::notifyRewardAmounts: called before any deploys');
         for (uint i = 0; i < stakingTokens.length; i++) {
-            notifyRewardAmount(stakingTokens[i]);
+            startStaking(stakingTokens[i]);
         }
     }
 
-    // TODO Change this to addReward
-    // notify reward amount for an individual staking token.
-    // this is a fallback in case the notifyRewardAmounts costs too much gas to call for all contracts
-    function notifyRewardAmount(address stakingToken) public {
+    function isStakingStarted(address stakingToken) public view returns (bool _isStakignStared) {
+       uint256 stakingStarted = StakingRewards(stakingToken).periodFinish();
+       if(stakingStarted > 0) {
+           return true;
+       }
+       return false;
+    }
+    // startsstaking for an individual staking token.
+    // this is a fallback in case the startsStakings() costs too much gas to call for all contracts
+    function startStaking(address stakingToken ) public {
         require(block.timestamp >= stakingRewardsGenesis, 'StakingRewardsFactory::notifyRewardAmount: not ready');
 
         StakingRewardsInfo storage info = stakingRewardsInfoByStakingToken[stakingToken];
         require(info.stakingRewards != address(0), 'StakingRewardsFactory::notifyRewardAmount: not deployed');
+        require(info.rewardAmount > 0 , "Reward must be greater than zero");
+        require(!isStakingStarted(stakingToken), 'Staking has started');
 
-        if (info.rewardAmount > 0) {
-            uint rewardAmount = info.rewardAmount;
-            info.rewardAmount = 0;
+        uint rewardAmount = info.rewardAmount;
+        require(
+            IERC20(rewardsToken).transfer(info.stakingRewards, rewardAmount),
+            'StakingRewardsFactory::notifyRewardAmount: transfer failed'
+        );
+            StakingRewards(info.stakingRewards).start(rewardAmount);
+    }
 
-            require(
-                IERC20(rewardsToken).transfer(info.stakingRewards, rewardAmount),
+    function extendRewardPeriod(address stakingToken, uint256 rewardsAmount) public {
+        require(rewardsAmount > 0, "Reward amount should be greater than zero");
+        StakingRewardsInfo storage info = stakingRewardsInfoByStakingToken[stakingToken];
+        require(info.stakingRewards != address(0), 'StakingRewardsFactory::notifyRewardAmount: not deployed');
+        require(!isStakingStarted(stakingToken), 'Staking has started');
+
+        require(
+                IERC20(rewardsToken).approve(info.stakingRewards, rewardsAmount),
                 'StakingRewardsFactory::notifyRewardAmount: transfer failed'
             );
-            StakingRewards(info.stakingRewards).start(rewardAmount);
-        }
+        StakingRewards(info.stakingRewards).addRewards(rewardsAmount);
     }
 }

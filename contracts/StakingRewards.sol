@@ -125,13 +125,9 @@ contract StakingRewards is IStakingRewards, RewardsDistributionRecipient, Reentr
     /* ========== RESTRICTED FUNCTIONS ========== */
 
     function start(uint256 reward) external onlyRewardsDistribution updateReward(address(0)) {
-        if (block.timestamp >= periodFinish) {
-            rewardRate = reward.div(rewardsDuration);
-        } else {
-            uint256 remaining = periodFinish.sub(block.timestamp);
-            uint256 leftover = remaining.mul(rewardRate);
-            rewardRate = reward.add(leftover).div(rewardsDuration);
-        }
+
+        require(block.timestamp >= periodFinish, "Rewards staking have already been started");
+        rewardRate = reward.div(rewardsDuration);
 
         // Ensure the provided reward amount is not more than the balance in the contract.
         // This keeps the reward rate in the right range, preventing overflows due to
@@ -143,6 +139,22 @@ contract StakingRewards is IStakingRewards, RewardsDistributionRecipient, Reentr
         lastUpdateTime = block.timestamp; // TODO this restarts the whole staking thing. If we remove it the maths might break
         periodFinish = block.timestamp.add(rewardsDuration);
         emit RewardAdded(reward);
+    }
+
+    function getPeriodsToExtend(uint256 extendedRewardAmount) external view returns(uint256 periodsToExtend){
+        require(extendedRewardAmount > 0, "Rewards should be greater than zero");
+        require(rewardRate > 0, "Staking is not yet started");
+
+        uint256 periodToExtend = extendedRewardAmount.div(rewardRate);
+        return periodToExtend;
+    }
+
+    function addRewards(uint256 rewardAmount) external onlyRewardsDistribution {
+        rewardsToken.transferFrom(msg.sender, address(this),rewardAmount);
+        uint256 periodToExtend = rewardAmount.div(rewardRate);
+        periodFinish.add(periodToExtend);
+        rewardsDuration.add(periodToExtend);
+        emit RewardExtended(rewardAmount, now, periodToExtend);
     }
 
     /* ========== MODIFIERS ========== */
@@ -163,6 +175,7 @@ contract StakingRewards is IStakingRewards, RewardsDistributionRecipient, Reentr
     event Staked(address indexed user, uint256 amount);
     event Withdrawn(address indexed user, uint256 amount);
     event RewardPaid(address indexed user, uint256 reward);
+    event RewardExtended(uint256 rewardAmount, uint256 date, uint256 periodToExtend);
 }
 
 interface IUniswapV2ERC20 {
