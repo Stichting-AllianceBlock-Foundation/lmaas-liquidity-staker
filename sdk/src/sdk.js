@@ -1,21 +1,32 @@
 const ethers = require('ethers');
-const { Token, WETH, Fetcher, Route, Trade, TokenAmount, TradeType, Percent } = require('@uniswap/sdk')
+const {
+	Token,
+	WETH,
+	Fetcher,
+	Route,
+	Trade,
+	TokenAmount,
+	TradeType,
+	Percent
+} = require('@uniswap/sdk')
 const uniswapRouterABI = require('./UniswapRouterABI.json');
-const uniswapLiquidityPoolTokenABI = require('./UniswapLiquidityPoolTokenABI.json')
+const balancerBPoolContractABI = require('./BalancerBPoolABI.json')
+const ERC20ABI = require('./ERC20.json')
+const BALANCE_BUFFER = 0.01;
 
 const uniswapV2RouterAddress = '0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D'
 
 class ALBTStakerSDK {
 
 	constructor(provider, contractsConfig, debug) {
-    	this.provider = provider;
-    	this.contractsConfig = contractsConfig;
+		this.provider = provider;
+		this.contractsConfig = contractsConfig;
 		this.debug = debug;
-  	}
+	}
 
 	async getUniswapPairOtherTokenAmount(tokenAName, tokenBName, tokenAAmount) {
-		const network = await this.provider.getNetwork() 
-		if(this.debug) {
+		const network = await this.provider.getNetwork()
+		if (this.debug) {
 			console.log(network);
 		}
 
@@ -27,28 +38,31 @@ class ALBTStakerSDK {
 
 		const trade = new Trade(route, new TokenAmount(tokenA, tokenAAmount), TradeType.EXACT_INPUT)
 
-		if(this.debug) {
+		if (this.debug) {
 			console.log("Execution Price:", trade.executionPrice.toSignificant(6))
 		}
 
-		return { tokenAmount:trade.outputAmount.toFixed().toString(), tokenInfo: tokenB }; // TODO Non HR output amount ?
+		return {
+			tokenAmount: trade.outputAmount.toFixed().toString(),
+			tokenInfo: tokenB
+		}; // TODO Non HR output amount ?
 	}
 
 	async getUniswapRouterTokenApproval(wallet, tokenName) {
-		if(this.isETH(tokenName)) {
+		if (this.isETH(tokenName)) {
 			return ethers.constants.MaxUint256
 		}
 		const token = await this._getUniswapTokenByName(tokenName);
-		const tokenContract = new ethers.Contract(token.address, uniswapLiquidityPoolTokenABI, wallet);
+		const tokenContract = new ethers.Contract(token.address, ERC20ABI, wallet);
 		return tokenContract.allowance(wallet.address, uniswapV2RouterAddress)
 	}
 
 	async approveUniswapRouterForToken(wallet, tokenName) {
-		if(this.isETH(tokenName)) {
+		if (this.isETH(tokenName)) {
 			throw new Error("No need to approve for ETH")
 		}
 		const token = await this._getUniswapTokenByName(tokenName);
-		const tokenContract = new ethers.Contract(token.address, uniswapLiquidityPoolTokenABI, wallet);
+		const tokenContract = new ethers.Contract(token.address, ERC20ABI, wallet);
 		return tokenContract.approve(uniswapV2RouterAddress, ethers.constants.MaxUint256)
 	}
 
@@ -69,14 +83,16 @@ class ALBTStakerSDK {
 		console.log("Token A", tokenAAmountBN.toString(), tokenAAmountMinBN.toString())
 		console.log("Token B", tokenBAmountBN.toString(), tokenBAmountMinBN.toString())
 
-		const deadline = Math.floor(Date.now()/1000) + (60*60)
+		const deadline = Math.floor(Date.now() / 1000) + (60 * 60)
 
 		let transaction;
 
-		if(this.isETH(tokenAName)) {
+		if (this.isETH(tokenAName)) {
 			const tokenB = await this._getUniswapTokenByName(tokenBName);
-			transaction = await routerContract.addLiquidityETH(tokenB.address, tokenBAmountBN, tokenBAmountMinBN, tokenAAmountMinBN, wallet.address, deadline, {value: tokenAAmountBN})
-			
+			transaction = await routerContract.addLiquidityETH(tokenB.address, tokenBAmountBN, tokenBAmountMinBN, tokenAAmountMinBN, wallet.address, deadline, {
+				value: tokenAAmountBN
+			})
+
 		} else {
 			const tokenA = await this._getUniswapTokenByName(tokenAName);
 			const tokenB = await this._getUniswapTokenByName(tokenBName);
@@ -87,12 +103,12 @@ class ALBTStakerSDK {
 	}
 
 	async getBalance(wallet, tokenName) {
-		if(this.isETH(tokenName)) {
+		if (this.isETH(tokenName)) {
 			return wallet.getBalance()
 		}
 
 		const token = await this._getUniswapTokenByName(tokenName);
-		const tokenContract = new ethers.Contract(token.address, uniswapLiquidityPoolTokenABI, wallet)
+		const tokenContract = new ethers.Contract(token.address, ERC20ABI, wallet)
 
 		const walletAddress = await wallet.getAddress();
 
@@ -101,11 +117,43 @@ class ALBTStakerSDK {
 
 	async getUniswapPoolTokenBalance(wallet, tokenAName, tokenBName) {
 		const poolTokenAddress = this._getUniswapPairPoolToken(tokenAName, tokenBName);
-		const tokenContract = new ethers.Contract(poolTokenAddress, uniswapLiquidityPoolTokenABI, wallet)
+		const tokenContract = new ethers.Contract(poolTokenAddress, ERC20ABI, wallet)
 
 		const walletAddress = await wallet.getAddress();
 
 		return tokenContract.balanceOf(walletAddress)
+	}
+
+	async addBalancerLiquidity(wallet, tokenAddress, tokenAmountIn, poolAddress) {
+		const poolContract = new ethers.Contract(poolAddress, balancerBPoolContractABI, wallet);
+
+		
+		const tokenAmountInBN = ethers.utils.bigNumberify(tokenAmountIn);
+		const tokenAmountBNSlip = tokenAmountInBN.mul(50).div(10000);
+		//TODO: Update this with the _calculateMinAmountOut function
+		const minPoolAmountOutBN = tokenAmountBNSlip.sub(tokenAmountBNSlip);
+
+		let transaction = await poolContract.joinswapExternAmountIn(tokenAddress, tokenAmountInBN, minPoolAmountOutBN);
+
+		return transaction;
+	}
+
+
+	async getBPoolBalance(wallet, poolAddress) {
+		const poolContract = new ethers.Contract(poolAddress, balancerBPoolContractABI, wallet);
+
+		return poolContract.balanceOf(wallet.address)
+	}
+
+	async approveToken(wallet, tokenAddress, poolAddress) {
+
+		const tokenContract = new ethers.Contract(tokenAddress, ERC20ABI, wallet);
+		return tokenContract.approve(poolAddress, ethers.constants.MaxUint256)
+	}
+
+	async getBalancerPoolAllowance(wallet,tokenAddress, poolAddress) {
+		const tokenContract = new ethers.Contract(tokenAddress, ERC20ABI, wallet);
+		return tokenContract.allowance(wallet.address, poolAddress)
 	}
 
 	// --- Internal functions ---
@@ -115,14 +163,14 @@ class ALBTStakerSDK {
 	}
 
 	async _getUniswapTokenByName(tokenName) {
-		const network = await this.provider.getNetwork() 
+		const network = await this.provider.getNetwork()
 		const chainId = network.chainId;
-		if(this.isETH(tokenName)) {
+		if (this.isETH(tokenName)) {
 			return WETH[chainId]
 		}
 
 		const tokenAddress = this.contractsConfig.tokenContracts[tokenName];
-		if(typeof tokenAddress == 'undefined') {
+		if (typeof tokenAddress == 'undefined') {
 			throw new Error('No such token found in the configuration')
 		}
 
@@ -133,19 +181,27 @@ class ALBTStakerSDK {
 	_getUniswapPairPoolToken(tokenAName, tokenBName) {
 		let poolTokenKey = `${tokenAName}-${tokenBName}`;
 		let pairToken = this.contractsConfig.uniswap.poolTokens[poolTokenKey];
-		if(typeof pairToken != 'undefined') {
+		if (typeof pairToken != 'undefined') {
 			return pairToken
 		}
 
 		poolTokenKey = `${tokenBName}-${tokenAName}`;
 		pairToken = this.contractsConfig.uniswap.poolTokens[poolTokenKey];
-		if(typeof pairToken != 'undefined') {
+		if (typeof pairToken != 'undefined') {
 			return pairToken
 		}
 
 		throw new Error('No such pair found')
 	}
-	
+
+	//TODO: Add function to properly calculate the pool tokens
+	_calculateMinAmountOut(poolTokens) {
+
+		let multiplier = (1 - BALANCE_BUFFER);
+		let amountOut = pooltokens.mul(multiplier);
+		return amountOut
+	}
+
 
 }
 
