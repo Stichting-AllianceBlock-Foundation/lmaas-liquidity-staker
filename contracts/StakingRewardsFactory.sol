@@ -56,11 +56,7 @@ contract StakingRewardsFactory is Ownable {
     }
 
     function hasStakingStarted(address stakingToken) public view returns (bool _isStakignStared) {
-       uint256 stakingStarted = StakingRewards(stakingToken).periodFinish();
-       if(stakingStarted > 0) {
-           return true;
-       }
-       return false;
+       return (StakingRewards(stakingToken).periodFinish() > 0 );
     }
     // startsstaking for an individual staking token.
     // this is a fallback in case the startsStakings() costs too much gas to call for all contracts
@@ -84,7 +80,7 @@ contract StakingRewardsFactory is Ownable {
         require(rewardsAmount > 0, "Reward amount should be greater than zero");
         StakingRewardsInfo storage info = stakingRewardsInfoByStakingToken[stakingToken];
         require(info.stakingRewards != address(0), 'StakingRewardsFactory::extendRewardPeriod: not deployed');
-        require(!hasStakingStarted(stakingToken), 'Staking has started');
+        require(hasStakingStarted(stakingToken), 'Staking has not started');
 
         
         IERC20(rewardsToken).approve(info.stakingRewards, rewardsAmount);
