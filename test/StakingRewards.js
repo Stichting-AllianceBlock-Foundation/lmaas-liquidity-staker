@@ -206,6 +206,34 @@ describe('StakingRewards', () => {
                 })
             })
 
+            describe('Extending Rewards', async function() {
+                it("Should fail directly calling add rewards with zero amount", async() => {
+                    let distributionAddress = await stakingRewardsInstance.rewardsDistribution();
+                    await assert.revertWith(stakingRewardsInstance.from(distributionAddress).addRewards(0), "Rewards should be greater than zero")
+                })
+                it("Should fail directly calling add rewards if the staking has not started", async() => {
+                    let distributionAddress = await stakingRewardsInstance.rewardsDistribution();
+                    let secondStakingRewardsInstance = await deployer.deploy(StakingRewards, {}, aliceAccount.signer.address, rewardTokenInstance.contractAddress, stakingTokenInstance.contractAddress);
+                    await assert.revertWith(secondStakingRewardsInstance.from(distributionAddress).addRewards(rewardAmount), "Staking is not yet started")
+                })
+                it("Should fail directly calling add rewards with zero amount", async() => {
+                    let secondStakingRewardsInstance = await deployer.deploy(StakingRewards, {}, aliceAccount.signer.address, rewardTokenInstance.contractAddress, stakingTokenInstance.contractAddress);
+                    await assert.revert(secondStakingRewardsInstance.addRewards(rewardAmount))
+                })
+
+                it("Should not change the reward rate after extending the reward", async() => { 
+                    let distributionAddress = await stakingRewardsInstance.rewardsDistribution();
+                    let initialRewardsRate = await stakingRewardsInstance.rewardRate();
+
+                    await rewardTokenInstance.mint(aliceAccount.signer.address,rewardAmount)
+                    await rewardTokenInstance.transfer(distributionAddress, rewardAmount);
+                    await rewardTokenInstance.from(distributionAddress).approve(stakingRewardsInstance.contractAddress, rewardAmount);
+
+                    let finalRewardsRate = await stakingRewardsInstance.rewardRate();
+                    assert(initialRewardsRate.eq(finalRewardsRate, "Rewards rate was changed"))
+                })
+            })
+
         })
 
     })

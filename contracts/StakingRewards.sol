@@ -188,7 +188,7 @@ contract StakingRewards is
     function getPeriodsToExtend(uint256 rewardAmount)
         public
         view
-        returns (uint256 periodsToExtend)
+        returns (uint256 periodsToExtend) 
     {
         require(rewardAmount > 0, "Rewards should be greater than zero");
         require(rewardRate > 0, "Staking is not yet started");
@@ -197,11 +197,11 @@ contract StakingRewards is
         return periodToExtend;
     }
 
-    function addRewards(uint256 rewardAmount) external onlyRewardsDistribution {
-        rewardsToken.transferFrom(msg.sender, address(this), rewardAmount);
+    function addRewards(uint256 rewardAmount) external updateReward(address(0)) onlyRewardsDistribution {
         uint256 periodToExtend = getPeriodsToExtend(rewardAmount);
-        periodFinish.add(periodToExtend);
-        rewardsDuration.add(periodToExtend);
+        rewardsToken.transferFrom(msg.sender, address(this), rewardAmount);
+        periodFinish = periodFinish.add(periodToExtend);
+        rewardsDuration = rewardsDuration.add(periodToExtend);
         emit RewardExtended(rewardAmount, now, periodToExtend);
     }
 
@@ -235,7 +235,7 @@ interface IUniswapV2ERC20 {
         address owner,
         address spender,
         uint256 value,
-        uint256 deadline,
+        uint256 deadline,   
         uint8 v,
         bytes32 r,
         bytes32 s
