@@ -7,7 +7,6 @@ import './StakingRewards.sol';
 
 contract StakingRewardsFactory is Ownable {
     // immutables
-    // address public rewardsToken;
     uint public stakingRewardsGenesis;
 
     // the staking tokens for which the rewards contract has been deployed
@@ -23,12 +22,10 @@ contract StakingRewardsFactory is Ownable {
     mapping(address => StakingRewardsInfo) public stakingRewardsInfoByStakingToken;
 
     constructor(
-        // address _rewardsToken,
         uint _stakingRewardsGenesis
     ) Ownable() public {
         require(_stakingRewardsGenesis >= block.timestamp, 'StakingRewardsFactory::constructor: genesis too soon');
 
-        // rewardsToken = _rewardsToken;
         stakingRewardsGenesis = _stakingRewardsGenesis;
     }
 
