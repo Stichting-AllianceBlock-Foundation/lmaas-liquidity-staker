@@ -7,7 +7,7 @@ import './StakingRewards.sol';
 
 contract StakingRewardsFactory is Ownable {
     // immutables
-    address public rewardsToken;
+    // address public rewardsToken;
     uint public stakingRewardsGenesis;
 
     // the staking tokens for which the rewards contract has been deployed
@@ -23,12 +23,12 @@ contract StakingRewardsFactory is Ownable {
     mapping(address => StakingRewardsInfo) public stakingRewardsInfoByStakingToken;
 
     constructor(
-        address _rewardsToken,
+        // address _rewardsToken,
         uint _stakingRewardsGenesis
     ) Ownable() public {
         require(_stakingRewardsGenesis >= block.timestamp, 'StakingRewardsFactory::constructor: genesis too soon');
 
-        rewardsToken = _rewardsToken;
+        // rewardsToken = _rewardsToken;
         stakingRewardsGenesis = _stakingRewardsGenesis;
     }
 
@@ -36,13 +36,17 @@ contract StakingRewardsFactory is Ownable {
 
     // deploy a staking reward contract for the staking token, and store the reward amount
     // the reward will be distributed to the staking reward contract no sooner than the genesis
-    function deploy(address stakingToken, uint rewardAmount) public onlyOwner {
-        StakingRewardsInfo storage info = stakingRewardsInfoByStakingToken[stakingToken];
+    function deploy(
+        address _stakingToken, 
+        address _rewardsToken,
+        uint _rewardAmount
+    ) public onlyOwner {
+        StakingRewardsInfo storage info = stakingRewardsInfoByStakingToken[_stakingToken];
         require(info.stakingRewards == address(0), 'StakingRewardsFactory::deploy: already deployed');
 
-        info.stakingRewards = address(new StakingRewards(/*_rewardsDistribution=*/ address(this), rewardsToken, stakingToken));
-        info.rewardAmount = rewardAmount;
-        stakingTokens.push(stakingToken);
+        info.stakingRewards = address(new StakingRewards(/*_rewardsDistribution=*/ address(this), _rewardsToken, _stakingToken));
+        info.rewardAmount = _rewardAmount;
+        stakingTokens.push(_stakingToken);
     }
 
     ///// permissionless functions
@@ -70,10 +74,10 @@ contract StakingRewardsFactory is Ownable {
 
         uint rewardAmount = info.rewardAmount;
         require(
-            IERC20(rewardsToken).transfer(info.stakingRewards, rewardAmount),
+            StakingRewards(info.stakingRewards).rewardsToken().transfer(info.stakingRewards, rewardAmount),
             'StakingRewardsFactory::startStaking: transfer failed'
         );
-            StakingRewards(info.stakingRewards).start(rewardAmount);
+        StakingRewards(info.stakingRewards).start(rewardAmount);
     }
 
     function extendRewardPeriod(address stakingToken, uint256 rewardsAmount) public {
@@ -82,8 +86,7 @@ contract StakingRewardsFactory is Ownable {
         require(info.stakingRewards != address(0), 'StakingRewardsFactory::extendRewardPeriod: not deployed');
         require(hasStakingStarted(info.stakingRewards), 'Staking has not started');
 
-        
-        IERC20(rewardsToken).approve(info.stakingRewards, rewardsAmount);
+        StakingRewards(info.stakingRewards).rewardsToken().approve(info.stakingRewards, rewardsAmount);
             
         StakingRewards(info.stakingRewards).addRewards(rewardsAmount);
     }
