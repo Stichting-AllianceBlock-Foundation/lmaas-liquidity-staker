@@ -35,7 +35,11 @@ contract StakingRewards is
     mapping(address => uint256) private _balances;
 
     /* ========== CONSTRUCTOR ========== */
-
+    /** @dev Function called once on deployment time
+    * @param _rewardsDistribution The address of the factory that have deployed the contract and will have permissions for some of the functions
+    * @param _rewardsToken The address of the token in which the rewards will be paid
+    * @param _stakingToken The address of the token which should be staked
+     */
     constructor(
         address _rewardsDistribution,
         address _rewardsToken,
@@ -55,12 +59,15 @@ contract StakingRewards is
     function balanceOf(address account) external view returns (uint256) {
         return _balances[account];
     }
-
+    
+    /** @dev Calculates which timestamp is first in order to make proper rewards calculations.
+     */
     function lastTimeRewardApplicable() public view returns (uint256) {
         return Math.min(block.timestamp, periodFinish);
     }
 
-    // Calculates how many rewards tokens you should get per 1 staked token until last applicable time (in most cases it is now)
+    /** @dev Calculates how many rewards tokens you should get per 1 staked token until last applicable time (in most cases it is now).
+     */
     function rewardPerToken() public view returns (uint256) {
         if (_totalSupply == 0) {
             return latestRewardPerTokenSaved;
@@ -76,7 +83,8 @@ contract StakingRewards is
         return latestRewardPerTokenSaved.add(rewardPerTokenSinceLastSave);
     }
 
-    // Calculate how much you have earned
+    /** @dev Calculates how much rewards a user has earned.
+     */
     function earned(address account) public view returns (uint256) {
         uint256 userRewardPerTokenSinceRecorded = rewardPerToken().sub(
             userRewardPerTokenRecorded[account]
@@ -86,39 +94,33 @@ contract StakingRewards is
             .div(1e18);
         return rewards[account].add(newReward);
     }
-
+     /** @dev Calculates the rewards for this distribution.
+     */
     function getRewardForDuration() external view returns (uint256) {
         return rewardRate.mul(rewardsDuration);
     }
 
-    /* ========== MUTATIVE FUNCTIONS ========== */
+    /** @dev Calculates with what time should the period be extended based on the reward amount.
+     * @param rewardAmount The amount with which the rewards will be increased
+     */
+    function getPeriodsToExtend(uint256 rewardAmount)
+        public
+        view
+        returns (uint256 periodsToExtend)
+    {
+        require(rewardAmount > 0, "Rewards should be greater than zero");
+        require(rewardRate > 0, "Staking is not yet started");
 
-    function stakeWithPermit(
-        uint256 amount,
-        uint256 deadline,
-        uint8 v,
-        bytes32 r,
-        bytes32 s
-    ) external nonReentrant updateReward(msg.sender) {
-        require(amount > 0, "Cannot stake 0");
-        _totalSupply = _totalSupply.add(amount);
-        _balances[msg.sender] = _balances[msg.sender].add(amount);
-
-        // permit
-        IUniswapV2ERC20(address(stakingToken)).permit(
-            msg.sender,
-            address(this),
-            amount,
-            deadline,
-            v,
-            r,
-            s
-        );
-
-        stakingToken.safeTransferFrom(msg.sender, address(this), amount);
-        emit Staked(msg.sender, amount);
+        uint256 periodToExtend = rewardAmount.div(rewardRate);
+        return periodToExtend;
     }
 
+    /* ========== MUTATIVE FUNCTIONS ========== */
+
+
+    /** @dev Providing LP tokens to stake, start calculating rewards for user.
+     * @param amount The amount that will be staked.
+     */
     function stake(uint256 amount)
         external
         nonReentrant
@@ -131,6 +133,9 @@ contract StakingRewards is
         emit Staked(msg.sender, amount);
     }
 
+    /** @dev Withdrawing/removing the staked tokens back to the user's wallet
+     * @param amount The amount that the user will withdraw.
+     */
     function withdraw(uint256 amount)
         public
         nonReentrant
@@ -143,6 +148,8 @@ contract StakingRewards is
         emit Withdrawn(msg.sender, amount);
     }
 
+    /** @dev Claiming earned rewards up to now
+     */
     function getReward() public nonReentrant updateReward(msg.sender) {
         uint256 reward = rewards[msg.sender];
         if (reward > 0) {
@@ -152,6 +159,8 @@ contract StakingRewards is
         }
     }
 
+    /** @dev Withdrawing the stake and claiming the rewards for the user
+     */
     function exit() external {
         withdraw(_balances[msg.sender]);
         getReward();
@@ -159,6 +168,9 @@ contract StakingRewards is
 
     /* ========== RESTRICTED FUNCTIONS ========== */
 
+    /** @dev Makes the needed calculations and starts the starking/rewarding.
+     * @param reward The total amount of reward that would be distributed.
+     */
     function start(uint256 reward)
         external
         onlyRewardsDistribution
@@ -180,24 +192,19 @@ contract StakingRewards is
             "Provided reward too high"
         );
 
-        lastUpdateTime = block.timestamp; // TODO this restarts the whole staking thing. If we remove it the maths might break
+        lastUpdateTime = block.timestamp;
         periodFinish = block.timestamp.add(rewardsDuration);
         emit RewardAdded(reward);
     }
 
-    function getPeriodsToExtend(uint256 rewardAmount)
-        public
-        view
-        returns (uint256 periodsToExtend) 
+    /** @dev Add's more rewards and updates the duration of the rewards distribution.
+     * @param rewardAmount The amount with which the rewards will be increased.
+     */
+    function addRewards(uint256 rewardAmount)
+        external
+        updateReward(address(0))
+        onlyRewardsDistribution
     {
-        require(rewardAmount > 0, "Rewards should be greater than zero");
-        require(rewardRate > 0, "Staking is not yet started");
-
-        uint256 periodToExtend = rewardAmount.div(rewardRate);
-        return periodToExtend;
-    }
-
-    function addRewards(uint256 rewardAmount) external updateReward(address(0)) onlyRewardsDistribution {
         uint256 periodToExtend = getPeriodsToExtend(rewardAmount);
         rewardsToken.transferFrom(msg.sender, address(this), rewardAmount);
         periodFinish = periodFinish.add(periodToExtend);
@@ -207,6 +214,8 @@ contract StakingRewards is
 
     /* ========== MODIFIERS ========== */
 
+    /** @dev Modifier that re-calculates the rewards per user on user action.
+     */
     modifier updateReward(address account) {
         latestRewardPerTokenSaved = rewardPerToken(); // Calculate the reward until now
         lastUpdateTime = lastTimeRewardApplicable(); // Update the last update time to now (or end date) for future calculations
@@ -228,16 +237,4 @@ contract StakingRewards is
         uint256 date,
         uint256 periodToExtend
     );
-}
-
-interface IUniswapV2ERC20 {
-    function permit(
-        address owner,
-        address spender,
-        uint256 value,
-        uint256 deadline,   
-        uint8 v,
-        bytes32 r,
-        bytes32 s
-    ) external;
 }
