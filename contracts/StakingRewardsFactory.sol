@@ -46,8 +46,6 @@ contract StakingRewardsFactory is Ownable {
 
     /* ========== Permissioned FUNCTIONS ========== */
 
-    // deploy a staking reward contract for the staking token, and store the reward amount
-    // the reward will be distributed to the staking reward contract no sooner than the genesis
     /** @dev Deploy a staking reward contract for the staking token, and store the reward amount,the reward will be distributed to the staking reward contract no sooner than the genesis
      * @param stakingToken The address of the token which should be staked
      * @param rewardAmount The amount of rewards that will be distributed
@@ -76,6 +74,33 @@ contract StakingRewardsFactory is Ownable {
         stakingTokens.push(stakingToken);
     }
 
+    /** @dev Function that will extend the rewards period, but not change the reward rate, for a given staking contract.
+     * @param stakingToken The address of the token which should be staked
+     * @param rewardsAmount The amount with which the rewards should be extended
+     */
+    function extendRewardPeriod(address stakingToken, uint256 rewardsAmount)
+        public
+        onlyOwner
+    {
+        require(rewardsAmount > 0, "Reward amount should be greater than zero");
+
+
+            StakingRewardsInfo storage info
+         = stakingRewardsInfoByStakingToken[stakingToken];
+        require(
+            info.stakingRewards != address(0),
+            "StakingRewardsFactory::extendRewardPeriod: not deployed"
+        );
+        require(
+            hasStakingStarted(info.stakingRewards),
+            "Staking has not started"
+        );
+
+        IERC20(rewardsToken).approve(info.stakingRewards, rewardsAmount);
+
+        StakingRewards(info.stakingRewards).addRewards(rewardsAmount);
+    }
+
     /* ========== Permissionless FUNCTIONS ========== */
 
     /** @dev Calls startStakings for all staking tokens.
@@ -90,7 +115,7 @@ contract StakingRewardsFactory is Ownable {
         }
     }
 
-    /** @dev Function to determine whether the starking and rewards distribution has stared for a given staking rewards contract
+    /** @dev Function to determine whether the staking and rewards distribution has stared for a given StakingRewards contract
      * @param stakingRewards The address of the staking rewards contract
      */
     function hasStakingStarted(address stakingRewards)
@@ -126,30 +151,5 @@ contract StakingRewardsFactory is Ownable {
             "StakingRewardsFactory::startStaking: transfer failed"
         );
         StakingRewards(info.stakingRewards).start(rewardAmount);
-    }
-    /** @dev Function that will extend the rewards period, but not change the reward rate, for a given staking contract. 
-     * @param stakingToken The address of the token which should be staked
-     * @param rewardsAmount The amount with which the rewards should be extended
-     */
-    function extendRewardPeriod(address stakingToken, uint256 rewardsAmount)
-        public
-    {
-        require(rewardsAmount > 0, "Reward amount should be greater than zero");
-
-
-            StakingRewardsInfo storage info
-         = stakingRewardsInfoByStakingToken[stakingToken];
-        require(
-            info.stakingRewards != address(0),
-            "StakingRewardsFactory::extendRewardPeriod: not deployed"
-        );
-        require(
-            hasStakingStarted(info.stakingRewards),
-            "Staking has not started"
-        );
-
-        IERC20(rewardsToken).approve(info.stakingRewards, rewardsAmount);
-
-        StakingRewards(info.stakingRewards).addRewards(rewardsAmount);
     }
 }
