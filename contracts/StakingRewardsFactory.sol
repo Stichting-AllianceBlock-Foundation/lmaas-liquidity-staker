@@ -41,17 +41,19 @@ contract StakingRewardsFactory is Ownable {
      * @param _stakingToken The address of the token being staked
      * @param _rewardsToken The address of the token the rewards will be paid in
      * @param _rewardAmount The reward amount
+     * @param _rewardsDuration Rewards duration in seconds
      */
   
     function deploy(
         address _stakingToken, 
         address _rewardsToken,
-        uint _rewardAmount
+        uint _rewardAmount,
+        uint _rewardsDuration
     ) public onlyOwner {
         StakingRewardsInfo storage info = stakingRewardsInfoByStakingToken[_stakingToken];
         require(info.stakingRewards == address(0), 'StakingRewardsFactory::deploy: already deployed');
-
-        info.stakingRewards = address(new StakingRewards(/*_rewardsDistribution=*/ address(this), _rewardsToken, _stakingToken));
+        require(_rewardsDuration > 0, 'The Duration should be greater than zero');
+        info.stakingRewards = address(new StakingRewards(/*_rewardsDistribution=*/ address(this), _rewardsToken, _stakingToken, _rewardsDuration));
         info.rewardAmount = _rewardAmount;
         stakingTokens.push(_stakingToken);
     }

@@ -21,7 +21,7 @@ describe('StakingRewardsFactory', () => {
         } = await deployer.provider.getBlock('latest')
         genesisTime = now + 60 * 60
         rewardTokenInstance = await deployer.deploy(TestERC20, {}, ethers.utils.parseEther("200000"));
-        
+
         stakingRewardsFactoryInstance = await deployer.deploy(StakingRewardsFactory, {}, genesisTime);
     });
 
@@ -43,17 +43,21 @@ describe('StakingRewardsFactory', () => {
         });
 
         it('Should deploy staking rewards successfully', async () => {
-            await stakingRewardsFactoryInstance.deploy(stakingTokenAddress, rewardTokenInstance.contractAddress, rewardAmount);
+            await stakingRewardsFactoryInstance.deploy(stakingTokenAddress, rewardTokenInstance.contractAddress, rewardAmount, duration);
             const firstToken = await stakingRewardsFactoryInstance.stakingTokens(0);
+
             assert.strictEqual(stakingTokenAddress.toLowerCase(), firstToken.toLowerCase(), "The saved staking token was not the same as the inputted one");
 
             const info = await stakingRewardsFactoryInstance.stakingRewardsInfoByStakingToken(stakingTokenAddress);
+            const stakingRewardsContract = await etherlime.ContractAt(StakingRewards, info.stakingRewards)
+            const rewardsDuration = await stakingRewardsContract.rewardsDuration();
             assert(info.rewardAmount.eq(rewardAmount), "The saved reward amount was not the same");
             assert.isAddress(info.stakingRewards, "The staking reward contract was not deployed");
+            assert.equal(rewardsDuration.toString(), duration, "Rewards Duration was not set properly")
         })
 
         it('Should deploy correct reward token', async function () {
-            await stakingRewardsFactoryInstance.deploy(stakingTokenAddress, rewardTokenInstance.contractAddress, rewardAmount);
+            await stakingRewardsFactoryInstance.deploy(stakingTokenAddress, rewardTokenInstance.contractAddress, rewardAmount, duration);
             let info = await stakingRewardsFactoryInstance.stakingRewardsInfoByStakingToken(stakingTokenAddress);
             const stakingRewardsContract = await etherlime.ContractAt(StakingRewards, info.stakingRewards)
             const savedRewardTokenAddress = await stakingRewardsContract.rewardsToken();
@@ -62,18 +66,21 @@ describe('StakingRewardsFactory', () => {
         });
 
         it('Should fail on deploying the same token again', async () => {
-            await stakingRewardsFactoryInstance.deploy(stakingTokenAddress, rewardTokenInstance.contractAddress, rewardAmount);
-            await assert.revert(stakingRewardsFactoryInstance.deploy(stakingTokenAddress, rewardTokenInstance.contractAddress, rewardAmount));
+            await stakingRewardsFactoryInstance.deploy(stakingTokenAddress, rewardTokenInstance.contractAddress, rewardAmount, duration);
+            await assert.revert(stakingRewardsFactoryInstance.deploy(stakingTokenAddress, rewardTokenInstance.contractAddress, rewardAmount, duration));
         })
 
         it('Should fail on deploying not from owner', async () => {
-            await assert.revert(stakingRewardsFactoryInstance.from(bobAccount).deploy(stakingTokenAddress, rewardTokenInstance.contractAddress, rewardAmount));
+            await assert.revert(stakingRewardsFactoryInstance.from(bobAccount).deploy(stakingTokenAddress, rewardTokenInstance.contractAddress, rewardAmount, duration));
+        })
+        it('Should fail on deploying with zero duration', async () => {
+            await assert.revertWith(stakingRewardsFactoryInstance.deploy(stakingTokenAddress, rewardTokenInstance.contractAddress, rewardAmount, 0), "The Duration should be greater than zero");
         })
 
         describe('Adding Reward', async function () {
 
             beforeEach(async () => {
-                await stakingRewardsFactoryInstance.deploy(stakingTokenAddress, rewardTokenInstance.contractAddress, rewardAmount);
+                await stakingRewardsFactoryInstance.deploy(stakingTokenAddress, rewardTokenInstance.contractAddress, rewardAmount, duration);
             });
 
             it('Should fail on starting the staking reward prior the genesis time', async () => {
@@ -117,7 +124,7 @@ describe('StakingRewardsFactory', () => {
 
                 it('Should fail if the reward amount is not greater than zero', async () => {
                     let secondStakingTokenInstance = await deployer.deploy(TestERC20, {}, ethers.utils.parseEther("300000"));
-                    await stakingRewardsFactoryInstance.deploy(secondStakingTokenInstance.contractAddress, rewardTokenInstance.contractAddress, 0);
+                    await stakingRewardsFactoryInstance.deploy(secondStakingTokenInstance.contractAddress, rewardTokenInstance.contractAddress, 0, duration);
                     await assert.revertWith(stakingRewardsFactoryInstance.startStaking(secondStakingTokenInstance.contractAddress), 'Reward must be greater than zero')
                 })
 
@@ -169,7 +176,7 @@ describe('StakingRewardsFactory', () => {
                     await assert.revertWith(stakingRewardsFactoryInstance.extendRewardPeriod(randomAddress, rewardAmount), 'StakingRewardsFactory::extendRewardPeriod: not deployed')
                 })
 
-                it("Should fail if the staking has not yet started", async() => {
+                it("Should fail if the staking has not yet started", async () => {
                     await assert.revertWith(stakingRewardsFactoryInstance.extendRewardPeriod(stakingTokenAddress, rewardAmount), 'Staking has not started')
                 })
 

@@ -25,7 +25,7 @@ contract StakingRewards is
     IERC20 public stakingToken;
     uint256 public periodFinish = 0;
     uint256 public rewardRate = 0;
-    uint256 public rewardsDuration = 60 days;
+    uint256 public rewardsDuration;
     uint256 public lastUpdateTime;
     uint256 public latestRewardPerTokenSaved;
 
@@ -40,15 +40,18 @@ contract StakingRewards is
     * @param _rewardsDistribution The address of the factory that have deployed the contract and will have permissions for some of the functions
     * @param _rewardsToken The address of the token the rewards will be paid in
     * @param _stakingToken The address of the token being staked
+    * @param _rewardsDuration Rewards duration in seconds
      */
     constructor(
         address _rewardsDistribution,
         address _rewardsToken,
-        address _stakingToken
+        address _stakingToken,
+        uint256 _rewardsDuration
     ) public {
         rewardsToken = IERC20(_rewardsToken);
         stakingToken = IERC20(_stakingToken);
         rewardsDistribution = _rewardsDistribution;
+        rewardsDuration = _rewardsDuration;
     }
 
     /* ========== VIEWS ========== */
