@@ -1,5 +1,7 @@
-<h2 align="center">ALBT Liqudity Staker</h2>
+ALBT Liqudity Staker
 Forked from @uniswap/liquidity-staker
+
+
 
 ## Project Overview
 
@@ -16,6 +18,9 @@ Factory contract handling the deployment of StakingRewards. The factory, also ha
 ## RewardsDistributionRecipient.sol
 
 Helper contract with only one modifier, checking whether a caller is eligible of making changes to the StakingRewards contract.
+
+## sdk directory
+*Please do not audit this one, not used in the project*
 
 ## Usage
 ```
