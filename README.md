@@ -7,7 +7,7 @@ AllianceBlock Liquidity Staker project aims to provide to the users easy way to 
 
 ## StakingRewards.sol
 
-Smart contract handling staking of tokens and rewards distribution. The smart contract exposes functionalities for staking tokens, claiming rewards and withdrawing the stake.  Rewards can be extend with providing additional token amount to rewards. 
+Smart contract handling staking of tokens and rewards distribution. The smart contract exposes functionalities for staking tokens, claiming rewards and withdrawing the stake.  Rewards can be extended by providing additional token amount to rewards. 
 
 ## StakingRewardsFactory.sol
 
@@ -32,5 +32,4 @@ etherlime compile
 etherlime ganache
 
 # Run unit tests
-etherlime test
-```
+etherlime test```
