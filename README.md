@@ -18,7 +18,7 @@ Factory contract handling the deployment of StakingRewards. The factory, also ha
 Helper contract with only one modifier, checking whether a caller is eligible of making changes to the StakingRewards contract.
 
 ## Usage
-```bash
+```
 # Requirements:
 node v10.17
 
@@ -32,4 +32,5 @@ etherlime compile
 etherlime ganache
 
 # Run unit tests
-etherlime test```
+etherlime test
+```
