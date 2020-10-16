@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.5.16;
 
 import "openzeppelin-solidity-2.3.0/contracts/token/ERC20/IERC20.sol";
@@ -78,7 +79,7 @@ contract StakingRewardsFactory is Ownable {
     /** @dev Calls startStakings for all staking tokens.
      */
     function startStakings() public {
-        
+
         require(stakingTokens.length > 0, 'StakingRewardsFactory::startStakings: called before any deploys');
         for (uint i = 0; i < stakingTokens.length; i++) {
             startStaking(stakingTokens[i]);
