@@ -52,6 +52,15 @@ describe('StakingRewardsFactory', () => {
             assert.isAddress(info.stakingRewards, "The staking reward contract was not deployed");
         })
 
+        it('Should deploy correct reward token', async function () {
+            await stakingRewardsFactoryInstance.deploy(stakingTokenAddress, rewardTokenInstance.contractAddress, rewardAmount);
+            let info = await stakingRewardsFactoryInstance.stakingRewardsInfoByStakingToken(stakingTokenAddress);
+            const stakingRewardsContract = await etherlime.ContractAt(StakingRewards, info.stakingRewards)
+            const savedRewardTokenAddress = await stakingRewardsContract.rewardsToken();
+
+            assert.strictEqual(rewardTokenInstance.contractAddress.toLowerCase(), savedRewardTokenAddress.toLowerCase(), "The saved reward token was not the same as the inputted one");
+        });
+
         it('Should fail on deploying the same token again', async () => {
             await stakingRewardsFactoryInstance.deploy(stakingTokenAddress, rewardTokenInstance.contractAddress, rewardAmount);
             await assert.revert(stakingRewardsFactoryInstance.deploy(stakingTokenAddress, rewardTokenInstance.contractAddress, rewardAmount));
@@ -129,7 +138,7 @@ describe('StakingRewardsFactory', () => {
                 it("Should extend the rewards period successfully", async () => {
                     let info = await stakingRewardsFactoryInstance.stakingRewardsInfoByStakingToken(stakingTokenAddress);
                     const stakingRewardsContract = await etherlime.ContractAt(StakingRewards, info.stakingRewards)
-                    let amountToTransfer = await rewardAmount.mul(2)
+                    let amountToTransfer = rewardAmount.mul(2)
 
                     await rewardTokenInstance.transfer(stakingRewardsFactoryInstance.contractAddress, amountToTransfer);
                     await stakingRewardsFactoryInstance.startStaking(stakingTokenAddress);
