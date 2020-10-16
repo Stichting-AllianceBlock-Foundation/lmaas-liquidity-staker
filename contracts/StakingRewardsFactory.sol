@@ -28,7 +28,7 @@ contract StakingRewardsFactory is Ownable {
     //TODO this would change with latest changes for single configurable rewards
     /* ========== CONSTRUCTOR ========== */
     /** @dev Function called once on deployment time
-     * @param _rewardsToken The address of the token in which the rewards will be paid
+     * @param _rewardsToken The address of the token the rewards will be paid in
      * @param _stakingRewardsGenesis Timestamp after which the staking can start
      */
     constructor(address _rewardsToken, uint256 _stakingRewardsGenesis)
@@ -47,8 +47,8 @@ contract StakingRewardsFactory is Ownable {
     /* ========== Permissioned FUNCTIONS ========== */
 
     /** @dev Deploy a staking reward contract for the staking token, and store the reward amount,the reward will be distributed to the staking reward contract no sooner than the genesis
-     * @param stakingToken The address of the token which should be staked
-     * @param rewardAmount The amount of rewards that will be distributed
+     * @param stakingToken The address of the token being staked
+     * @param rewardAmount The reward amount
      */
     function deploy(address stakingToken, uint256 rewardAmount)
         public
@@ -75,8 +75,8 @@ contract StakingRewardsFactory is Ownable {
     }
 
     /** @dev Function that will extend the rewards period, but not change the reward rate, for a given staking contract.
-     * @param stakingToken The address of the token which should be staked
-     * @param rewardsAmount The amount with which the rewards should be extended
+     * @param stakingToken The address of the token being staked
+     * @param rewardsAmount The additional reward amount
      */
     function extendRewardPeriod(address stakingToken, uint256 rewardsAmount)
         public
@@ -127,7 +127,7 @@ contract StakingRewardsFactory is Ownable {
     }
 
     /** @dev Starts the staking and rewards distribution for a given staking token. This is a fallback in case the startsStakings() costs too much gas to call for all contracts
-     * @param stakingToken The address of the token which should be staked
+     * @param stakingToken The address of the token being staked
      */
     function startStaking(address stakingToken) public {
         require(

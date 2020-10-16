@@ -37,8 +37,8 @@ contract StakingRewards is
     /* ========== CONSTRUCTOR ========== */
     /** @dev Function called once on deployment time
     * @param _rewardsDistribution The address of the factory that have deployed the contract and will have permissions for some of the functions
-    * @param _rewardsToken The address of the token in which the rewards will be paid
-    * @param _stakingToken The address of the token which should be staked
+    * @param _rewardsToken The address of the token the rewards will be paid in
+    * @param _stakingToken The address of the token being staked
      */
     constructor(
         address _rewardsDistribution,
@@ -60,7 +60,7 @@ contract StakingRewards is
         return _balances[account];
     }
     
-    /** @dev Calculates which timestamp is first in order to make proper rewards calculations.
+    /** @dev Calculates the last time reward could be paid up until this moment.
      */
     function lastTimeRewardApplicable() public view returns (uint256) {
         return Math.min(block.timestamp, periodFinish);
@@ -100,8 +100,8 @@ contract StakingRewards is
         return rewardRate.mul(rewardsDuration);
     }
 
-    /** @dev Calculates with what time should the period be extended based on the reward amount.
-     * @param rewardAmount The amount with which the rewards will be increased
+    /** @dev Calculates the finish period extension based on the new reward amount added
+     * @param rewardAmount The additional reward amount
      */
     function getPeriodsToExtend(uint256 rewardAmount)
         public
@@ -119,7 +119,7 @@ contract StakingRewards is
 
 
     /** @dev Providing LP tokens to stake, start calculating rewards for user.
-     * @param amount The amount that will be staked.
+     * @param amount The amount to be staked
      */
     function stake(uint256 amount)
         external
@@ -134,7 +134,7 @@ contract StakingRewards is
     }
 
     /** @dev Withdrawing/removing the staked tokens back to the user's wallet
-     * @param amount The amount that the user will withdraw.
+     * @param amount The amount to be withdrawn
      */
     function withdraw(uint256 amount)
         public
@@ -198,7 +198,7 @@ contract StakingRewards is
     }
 
     /** @dev Add's more rewards and updates the duration of the rewards distribution.
-     * @param rewardAmount The amount with which the rewards will be increased.
+     * @param rewardAmount The additional reward amount
      */
     function addRewards(uint256 rewardAmount)
         external
