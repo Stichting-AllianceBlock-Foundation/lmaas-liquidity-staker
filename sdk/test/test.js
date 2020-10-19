@@ -22,7 +22,10 @@ const contractsConfig = {
 			"WETH-UNI": "0xd3d2e2692501a5c9ca623199d38826e513033a17",
 			"UNI-DAI": "0xf00e80f0de9aea0b33aa229a4014572777e422ee",
 			"UNI-USDC": "0xebfb684dd2b01e698ca6c14f10e4f289934a54d6"
-		}
+		},
+		rewardContracts: {
+			"ETH-DAI": "0xa1484C3aa22a66C62b77E0AE78E15258bd0cB711"
+		},
 	},
 	tokenContracts: {
 		"WETH": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
@@ -41,11 +44,10 @@ const run = async () => {
 
 	// Setting up the test
 	// This is the pair tokens that we are going to pool
-	const tokenA = 'UNI'
+	const tokenA = 'ETH'
 	const tokenB = 'DAI'
 
-	const tokenAAmount = ethers.utils.parseEther('1').toString(10) // We only know one of the amounts we want to pool and the other one will be calculated
-
+	const tokenAAmount = ethers.utils.parseEther('0.01').toString(10) // We only know one of the amounts we want to pool and the other one will be calculated
 
 	// Set up the provider. With Metamask it would be Web3Provider
 	// const mainnetProvider = new ethers.providers.InfuraProvider(1, '40c2813049e44ec79cb4d7e0d18de173')
@@ -57,67 +59,121 @@ const run = async () => {
 	// Set up the user wallet
 	let wallet = new ethers.Wallet(process.env.PRIVATE_KEY, localProvider)
 
-	const tokenABalance = await sdk.getBalance(wallet, tokenB);
-	if (tokenABalance.lt(tokenAAmount)) {
-		throw new Error(`Not enough ${tokenA} for this liquidity provision`)
-	}
+	// const tokenABalance = await sdk.getBalance(wallet, tokenA);
+	// console.log(tokenABalance.toString())
+	// if (tokenABalance.lt(tokenAAmount)) {
+	// 	throw new Error(`Not enough ${tokenA} for this liquidity provision`)
+	// }
 
-	// Get the amount of token B based on how much you input for token A
-	const tokenBAmountInfo = await sdk.getUniswapPairOtherTokenAmount(tokenA, tokenB, tokenAAmount)
-	console.log("Counter token info", tokenBAmountInfo)
+	// // Get the amount of token B based on how much you input for token A
+	// const tokenBAmountInfo = await sdk.getUniswapPairOtherTokenAmount(tokenA, tokenB, tokenAAmount)
+	// console.log("Counter token info", tokenBAmountInfo)
 
-	// Parse it into "wei"
-	const tokenBAmount = ethers.utils.parseUnits(tokenBAmountInfo.tokenAmount, tokenBAmountInfo.tokenInfo.decimals).toString()
+	// // Parse it into "wei"
+	// const tokenBAmount = ethers.utils.parseUnits(tokenBAmountInfo.tokenAmount, tokenBAmountInfo.tokenInfo.decimals).toString()
 
-	// Check if you have enough balance
-	const tokenBBalance = await sdk.getBalance(wallet, tokenB);
-	if (tokenBBalance.lt(tokenBAmount)) {
-		throw new Error(`Not enough ${tokenB} for this liquidity provision`)
-	}
+	// // Check if you have enough balance
+	// const tokenBBalance = await sdk.getBalance(wallet, tokenB);
+	// if (tokenBBalance.lt(tokenBAmount)) {
+	// 	throw new Error(`Not enough ${tokenB} for this liquidity provision`)
+	// }
 
-	// Get how many Liquidity pool tokens do you have now
-	const LPTokensBefore = await sdk.getUniswapPoolTokenBalance(wallet, tokenA, tokenB);
-	console.log("Liqudity Pool Tokens before addition", ethers.utils.formatEther(LPTokensBefore.toString(10)))
+	// // Get how many Liquidity pool tokens do you have now
+	// const LPTokensBefore = await sdk.getUniswapPoolTokenBalance(wallet, tokenA, tokenB);
+	// console.log("Liqudity Pool Tokens before addition", ethers.utils.formatEther(LPTokensBefore.toString(10)))
 
-	// Check if you have enough approval for tokenA
-	const tokenAApproval = await sdk.getUniswapRouterTokenApproval(wallet, tokenA);
+	// // Check if you have enough approval for tokenA
+	// const tokenAApproval = await sdk.getUniswapRouterTokenApproval(wallet, tokenA);
 
-	console.log(`${tokenA} Approval`, tokenAApproval.toString(10))
+	// console.log(`${tokenA} Approval`, tokenAApproval.toString(10))
 
-	// Approving if no enough approval for the liquidity provision
-	if (tokenAApproval.lt(tokenAAmount)) {
-		console.log(`Not enough approval for ${tokenA}`);
-		const approveTransaction = await sdk.approveUniswapRouterForToken(wallet, tokenA);
-		console.log("Approval Transaction", approveTransaction.hash)
-		const approveReceipt = await approveTransaction.wait();
-		console.log("Approval transaction status", approveReceipt.status); // should be 1
-	}
+	// // Approving if no enough approval for the liquidity provision
+	// if (tokenAApproval.lt(tokenAAmount)) {
+	// 	console.log(`Not enough approval for ${tokenA}`);
+	// 	const approveTransaction = await sdk.approveUniswapRouterForToken(wallet, tokenA);
+	// 	console.log("Approval Transaction", approveTransaction.hash)
+	// 	const approveReceipt = await approveTransaction.wait();
+	// 	console.log("Approval transaction status", approveReceipt.status); // should be 1
+	// }
 
-	// Check if you have enough approval for tokenB
-	const tokenBApproval = await sdk.getUniswapRouterTokenApproval(wallet, tokenB);
+	// // Check if you have enough approval for tokenB
+	// const tokenBApproval = await sdk.getUniswapRouterTokenApproval(wallet, tokenB);
 
-	console.log(`${tokenB} Approval`, tokenBApproval.toString(10))
+	// console.log(`${tokenB} Approval`, tokenBApproval.toString(10))
 
-	// Approving if no enough approval for the liquidity provision
-	if (tokenBApproval.lt(tokenBAmount)) {
-		console.log(`Not enough approval for ${tokenB}`);
-		const approveTransaction = await sdk.approveUniswapRouterForToken(wallet, tokenB);
-		console.log("Approval Transaction", approveTransaction.hash)
-		const approveReceipt = await approveTransaction.wait();
-		console.log("Approval transaction status", approveReceipt.status); // should be 1
-	}
+	// // Approving if no enough approval for the liquidity provision
+	// if (tokenBApproval.lt(tokenBAmount)) {
+	// 	console.log(`Not enough approval for ${tokenB}`);
+	// 	const approveTransaction = await sdk.approveUniswapRouterForToken(wallet, tokenB);
+	// 	console.log("Approval Transaction", approveTransaction.hash)
+	// 	const approveReceipt = await approveTransaction.wait();
+	// 	console.log("Approval transaction status", approveReceipt.status); // should be 1
+	// }
 
-	// Providing Uniswap Liquidity
-	const transaction = await sdk.addUniswapLiquidity(wallet, tokenA, tokenB, tokenAAmount, tokenBAmount)
+	// // Providing Uniswap Liquidity
+	// const transaction = await sdk.addUniswapLiquidity(wallet, tokenA, tokenB, tokenAAmount, tokenBAmount)
 
-	console.log("Add liqudity transaction", transaction.hash)
+	// console.log("Add liqudity transaction", transaction.hash)
 
-	const receipt = await transaction.wait();
-	console.log("Add liquidity transaction status", receipt.status); // should be 1
+	// const receipt = await transaction.wait();
+	// console.log("Add liquidity transaction status", receipt.status); // should be 1
 
-	// Checking the new LP Tokens balance
-	const LPTokensAfter = await sdk.getUniswapPoolTokenBalance(wallet, tokenA, tokenB);
-	console.log("Liqudity Pool Tokens after addition", ethers.utils.formatEther(LPTokensAfter.toString(10)))
+	// // Checking the new LP Tokens balance
+	// const LPTokensAfter = await sdk.getUniswapPoolTokenBalance(wallet, tokenA, tokenB);
+	// console.log("Liqudity Pool Tokens after addition", ethers.utils.formatEther(LPTokensAfter.toString(10)))
+
+	//Staking LP Tokens
+	// const stakeTokenA = "ETH"
+	// const stakeTokenB = "DAI"
+	// const stakingPool = `${stakeTokenA}-${stakeTokenB}`
+
+	// const amountToStake = ethers.utils.parseEther('0.1')
+
+	// const stake = await sdk.stake(wallet, contractsConfig.uniswap.rewardContracts[stakingPool], amountToStake, "0xA478c2975Ab1Ea89e8196811F51A7B7Ade33eB11")
+	// console.log('Stake transaction', stake.hash)
+
+	// //Getting Pool reward
+	// const rewardRate = await sdk.getPoolRate(wallet, contractsConfig.uniswap.rewardContracts[stakingPool])
+	// console.log("The Pool reward rate", ethers.utils.formatEther(rewardRate.toString()))
+
+	// const currentReward = await sdk.getCurrentReward(wallet, contractsConfig.uniswap.rewardContracts[stakingPool])
+	// // const currentRewardBN = ethers.utils.bigNumberify(currentReward);
+	// const currentRewardBN = ethers.utils.parseEther(currentReward)
+	// console.log("Current Rewards of user", currentReward);
+
+	// //Claim rewards
+	// let balanceBeforeClaim = await sdk.getStakingTokensBalance(wallet, contractsConfig.tokenContracts["UNI"]);
+	// let balanceBeforeClaimBN = ethers.utils.parseEther(balanceBeforeClaim)
+	// console.log("Balance before Claim", balanceBeforeClaim)
+
+	// const claimReward = await sdk.claimRewards(wallet, contractsConfig.uniswap.rewardContracts[stakingPool])
+	// console.log("Claim rewards transaction", claimReward.hash)
+	// claimReward.wait();
+
+	// let balanceAfterClaim = await sdk.getStakingTokensBalance(wallet, contractsConfig.tokenContracts["UNI"]);
+	// let balanceAfterClaimBN = ethers.utils.parseEther(balanceAfterClaim)
+	// console.log("Balance after Claim", balanceAfterClaim.toString())
+
+	// if (!balanceAfterClaimBN.gt(balanceBeforeClaimBN)) {
+	// 	console.log("Usuccessful Claim")
+	// }
+	
+	// //Withdraw
+	// balanceBeforeClaim = await sdk.getStakingTokensBalance(wallet, contractsConfig.tokenContracts["UNI"]);
+	// balanceBeforeClaimBN = ethers.utils.parseEther(balanceBeforeClaim)
+
+	// let withdraw = await sdk.withdraw(wallet,contractsConfig.uniswap.rewardContracts[stakingPool])
+	// console.log("Withdraw transaction", withdraw.hash)
+	// withdraw.wait();
+
+	
+
+	// balanceAfterClaim = await sdk.getStakingTokensBalance(wallet, contractsConfig.tokenContracts["UNI"]);
+	// balanceAfterClaimBN = ethers.utils.parseEther(balanceAfterClaim)
+
+	// if (!balanceAfterClaimBN.gt(balanceBeforeClaimBN)) {
+	// 	console.log("Usuccessful withdraw")
+	// }
 
 	// Providing Balancer DAI Liquidity
 
