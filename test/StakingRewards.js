@@ -11,7 +11,7 @@ describe('StakingRewards', () => {
     let stakingRewardsInstance;
     let rewardTokenInstance;
     let stakingTokenAddress;
-    const duration = 60*24*60*60;
+    const duration = 60 * 24 * 60 * 60;
 
     let rewardAmount = ethers.utils.parseEther("5184000");
 
@@ -19,7 +19,7 @@ describe('StakingRewards', () => {
         deployer = new etherlime.EtherlimeGanacheDeployer(aliceAccount.secretKey);
         rewardTokenInstance = await deployer.deploy(TestERC20, {}, rewardAmount);
         stakingTokenInstance = await deployer.deploy(TestERC20, {}, rewardAmount);
-        stakingRewardsInstance = await deployer.deploy(StakingRewards, {}, aliceAccount.signer.address, rewardTokenInstance.contractAddress, stakingTokenInstance.contractAddress);
+        stakingRewardsInstance = await deployer.deploy(StakingRewards, {}, aliceAccount.signer.address, rewardTokenInstance.contractAddress, stakingTokenInstance.contractAddress, duration);
     });
 
     it('should deploy valid staking rewards contract', async () => {
@@ -50,7 +50,7 @@ describe('StakingRewards', () => {
 
     })
 
-    describe('Starting', async function() {
+    describe('Starting', async function () {
 
         beforeEach(async () => {
             await rewardTokenInstance.transfer(stakingRewardsInstance.contractAddress, rewardAmount);
@@ -59,7 +59,9 @@ describe('StakingRewards', () => {
         it('Should successfully start the staking', async () => {
             await stakingRewardsInstance.start(rewardAmount);
 
-            const { timestamp: now } = await deployer.provider.getBlock('latest')
+            const {
+                timestamp: now
+            } = await deployer.provider.getBlock('latest')
             const savedPeriodFinish = await stakingRewardsInstance.periodFinish();
             const savedRewardRate = await stakingRewardsInstance.rewardRate();
             const savedLastUpdateTime = await stakingRewardsInstance.lastUpdateTime();
@@ -80,7 +82,7 @@ describe('StakingRewards', () => {
         })
     })
 
-    describe('Staking', async function() {
+    describe('Staking', async function () {
 
         const standardStakingAmount = ethers.utils.parseEther('10') // 10 tokens
 
@@ -95,7 +97,9 @@ describe('StakingRewards', () => {
             await stakingTokenInstance.approve(stakingRewardsInstance.contractAddress, standardStakingAmount);
             await stakingRewardsInstance.stake(standardStakingAmount);
 
-            const { timestamp: after } = await deployer.provider.getBlock('latest')
+            const {
+                timestamp: after
+            } = await deployer.provider.getBlock('latest')
             let savedLastUpdateTime = await stakingRewardsInstance.lastUpdateTime();
             let savedRewardPerToken = await stakingRewardsInstance.rewardPerToken();
             let userRewardPerTokenRecorded = await stakingRewardsInstance.userRewardPerTokenRecorded(aliceAccount.signer.address)
@@ -128,14 +132,14 @@ describe('StakingRewards', () => {
             await assert.revert(stakingRewardsInstance.stake(standardStakingAmount));
         })
 
-        describe('Rewards and withdraws', async function() {
+        describe('Rewards and withdraws', async function () {
             beforeEach(async () => {
                 await stakingTokenInstance.approve(stakingRewardsInstance.contractAddress, standardStakingAmount);
                 await stakingRewardsInstance.stake(standardStakingAmount);
                 await utils.timeTravel(deployer.provider, 10000)
             })
 
-            describe('Withdrawing', async function() {
+            describe('Withdrawing', async function () {
 
                 it('Should not get new earnings after withdraw', async () => {
                     const savedLastUpdateTime = await stakingRewardsInstance.lastUpdateTime();
@@ -166,7 +170,7 @@ describe('StakingRewards', () => {
                 })
             })
 
-            describe('Getting Reward', async function() {
+            describe('Getting Reward', async function () {
 
                 it('Should get the correct reward', async () => {
                     const savedLastUpdateTime = await stakingRewardsInstance.lastUpdateTime();
@@ -184,7 +188,7 @@ describe('StakingRewards', () => {
                 })
             })
 
-            describe('Exitting', async function() {
+            describe('Exitting', async function () {
 
                 it('Should get the correct reward and stake', async () => {
                     const savedLastUpdateTime = await stakingRewardsInstance.lastUpdateTime();
@@ -206,9 +210,37 @@ describe('StakingRewards', () => {
                 })
             })
 
+            describe('Extending Rewards', async function () {
+                it("Should fail directly calling add rewards with zero amount", async () => {
+                    let distributionAddress = await stakingRewardsInstance.rewardsDistribution();
+                    await assert.revertWith(stakingRewardsInstance.from(distributionAddress).addRewards(0), "Rewards should be greater than zero")
+                })
+                it("Should fail directly calling add rewards if the staking has not started", async () => {
+                    let distributionAddress = await stakingRewardsInstance.rewardsDistribution();
+                    let secondStakingRewardsInstance = await deployer.deploy(StakingRewards, {}, aliceAccount.signer.address, rewardTokenInstance.contractAddress, stakingTokenInstance.contractAddress, duration);
+                    await assert.revertWith(secondStakingRewardsInstance.from(distributionAddress).addRewards(rewardAmount), "Staking is not yet started")
+                })
+                it("Should fail directly calling add rewards with zero amount", async () => {
+                    let secondStakingRewardsInstance = await deployer.deploy(StakingRewards, {}, aliceAccount.signer.address, rewardTokenInstance.contractAddress, stakingTokenInstance.contractAddress, duration);
+                    await assert.revert(secondStakingRewardsInstance.addRewards(rewardAmount))
+                })
+
+                it("Should not change the reward rate after extending the reward", async () => {
+                    let distributionAddress = await stakingRewardsInstance.rewardsDistribution();
+                    let initialRewardsRate = await stakingRewardsInstance.rewardRate();
+
+                    await rewardTokenInstance.mint(aliceAccount.signer.address, rewardAmount)
+                    await rewardTokenInstance.transfer(distributionAddress, rewardAmount);
+                    await rewardTokenInstance.from(distributionAddress).approve(stakingRewardsInstance.contractAddress, rewardAmount);
+
+                    let finalRewardsRate = await stakingRewardsInstance.rewardRate();
+                    assert(initialRewardsRate.eq(finalRewardsRate, "Rewards rate was changed"))
+                })
+            })
+
         })
 
     })
-    
+
 
 });
