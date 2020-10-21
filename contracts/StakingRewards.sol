@@ -154,12 +154,13 @@ contract StakingRewards is
         view
         returns (bool)
     {
-        bool hpf = false;
+        // TODO: check this code in utests
         for (uint i = 0; i < rewardsTokensArr.length; i++) {
-            hpf = hpf || (block.timestamp >= rewardsTokensMap[rewardsTokensArr[i]].periodFinish);
+            if (block.timestamp < rewardsTokensMap[rewardsTokensArr[i]].periodFinish) {
+                return true;
+            }
         }
-
-        return hpf;
+        return false;
     }
 
     /* ========== MUTATIVE FUNCTIONS ========== */
