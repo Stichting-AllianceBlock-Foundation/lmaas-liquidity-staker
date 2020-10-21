@@ -86,9 +86,11 @@ class ALBTStakerSDK {
 		const tokenBAmountBNSlip = tokenBAmountBN.mul(50).div(10000)
 		const tokenBAmountMinBN = tokenBAmountBN.sub(tokenBAmountBNSlip)
 
-
-		console.log("Token A", tokenAAmountBN.toString(), tokenAAmountMinBN.toString())
-		console.log("Token B", tokenBAmountBN.toString(), tokenBAmountMinBN.toString())
+		if (this.debug) {
+			console.log("Token A", tokenAAmountBN.toString(), tokenAAmountMinBN.toString())
+			console.log("Token B", tokenBAmountBN.toString(), tokenBAmountMinBN.toString())
+		}
+		
 
 		const deadline = Math.floor(Date.now() / 1000) + (60 * 60)
 
@@ -97,8 +99,6 @@ class ALBTStakerSDK {
 		if (this.isETH(tokenAName)) {
 
 			const tokenB = await this._getUniswapTokenByName(tokenBName);
-			console.log(tokenB)
-			console.log(tokenBAmountBN.toString())
 			transaction = await routerContract.addLiquidityETH(tokenB.address, tokenBAmountBN, tokenBAmountMinBN, tokenAAmountMinBN, wallet.address, deadline, {
 				value: tokenAAmountBN
 			})
@@ -149,7 +149,6 @@ class ALBTStakerSDK {
 		const poolTokens = await this._calculatePoolTokens(tokenAmountIn, tokenAddress, wallet, poolAddress)
 		let minPoolAMountOut = this._calculatePoolAmount(poolTokens);
 		minPoolAMountOut = minPoolAMountOut.integerValue(BigNumber.ROUND_UP)
-		console.log(minPoolAMountOut.toString(),"min pool amount")
 		let transaction = await poolContract.joinswapExternAmountIn(tokenAddress, tokenAmountInBN, minPoolAMountOut.toString());
 
 		return transaction;
@@ -174,23 +173,25 @@ class ALBTStakerSDK {
 		return poolContract.balanceOf(wallet.address)
 	}
 
-	async approveToken(wallet, tokenAddress, poolAddress) {
+	async approveToken(wallet, tokenAddress, spenderAddress) {
 
 		const tokenContract = new ethers.Contract(tokenAddress, ERC20ABI, wallet);
-		return tokenContract.approve(poolAddress, ethers.constants.MaxUint256)
+		return tokenContract.approve(spenderAddress, ethers.constants.MaxUint256)
 	}
 
-	async getBalancerPoolAllowance(wallet, tokenAddress, poolAddress) {
+	async getAllowance(wallet, tokenAddress, spenderAddress) {
 		const tokenContract = new ethers.Contract(tokenAddress, ERC20ABI, wallet);
-		return tokenContract.allowance(wallet.address, poolAddress)
+		return tokenContract.allowance(wallet.address, spenderAddress)
 	}
 
-	async stake(wallet, rewardsContractAddress, amountToStake, tokenAddress) {
+	// async aporoveBeforeStake(wallet, rewardsContractAddress,tokenAddress) {
+	// 	const tokenContract = new ethers.Contract(tokenAddress, ERC20ABI, wallet);
+	// 	return await tokenContract.approve(rewardsContractAddress, ethers.constants.MaxUint256);
+	// }
+
+	async stake(wallet, rewardsContractAddress, amountToStake, ) {
 		const stakingRewardsContract = new ethers.Contract(rewardsContractAddress, stakingRewaradsContractABI, wallet);
-		const tokenContract = new ethers.Contract(tokenAddress, ERC20ABI, wallet);
-
-		let approve = await tokenContract.approve(rewardsContractAddress, amountToStake);
-		console.log("Approve before staking", approve.hash)
+		
 		const amountToStakeBN = new ethers.utils.bigNumberify(amountToStake);
 		let transaction = await stakingRewardsContract.stake(amountToStakeBN);
 		return transaction;
@@ -303,7 +304,6 @@ class ALBTStakerSDK {
 		const newPoolSupply = math.bmul(poolRatio, poolSupply);
 		const poolAmountOut = newPoolSupply.minus(poolSupply);
 
-		console.log(poolAmountOut.toString())
 		return poolAmountOut;
 	}
 
