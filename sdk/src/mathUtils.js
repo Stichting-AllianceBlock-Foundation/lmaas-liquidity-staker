@@ -1,6 +1,7 @@
 const BigNumber = require('bignumber.js');
-let BONE = new BigNumber(10).pow(18);
+const BONE = new BigNumber(10).pow(18);
 const BPOW_PRECISION = BONE.idiv(new BigNumber(10).pow(10));
+const EXIT_FEE = new BigNumber(0);
 
 function btoi(a) {
 	return a.idiv(BONE);
@@ -70,9 +71,9 @@ function bpowApprox(
 		bool: xneg
 	} = bsubSign(base, BONE);
 	let term = BONE;
+
 	let sum = term;
 	let negative = false;
-
 	for (let i = 1; term.gte(precision); i++) {
 		const bigK = new BigNumber(i).times(BONE);
 		const {
@@ -91,25 +92,18 @@ function bpowApprox(
 			sum = sum.plus(term);
 		}
 	}
-
 	return sum;
 }
 
 function bpow(base, exp) {
-	console.log("1")
 	const whole = bfloor(exp);
-	console.log("2")
 	const remain = exp.minus(whole);
-	console.log("3")
 	const wholePow = bpowi(base, btoi(whole));
-	console.log("4")
 	if (remain.eq(new BigNumber(0))) {
-		console.log("5")
 		return wholePow;
 	}
-	console.log("6")
+
 	const partialResult = bpowApprox(base, remain, BPOW_PRECISION);
-	console.log("7")
 	return bmul(wholePow, partialResult);
 }
 
@@ -117,5 +111,6 @@ module.exports = {
 	bpow,
 	bdiv,
 	bmul,
-	BONE
+	BONE,
+	EXIT_FEE
 }

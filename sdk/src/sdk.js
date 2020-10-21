@@ -15,7 +15,11 @@ const uniswapRouterABI = require('./UniswapRouterABI.json');
 const balancerBPoolContractABI = require('./BalancerBPoolABI.json')
 const ERC20ABI = require('./ERC20.json')
 const stakingRewaradsContractABI = require('./StakingRewards.json');
+const { EXIT_FEE } = require('./mathUtils.js');
 const BALANCE_BUFFER = 0.01;
+const multiplier = (1 - BALANCE_BUFFER);
+const bigTen = new BigNumber(10);
+const power = bigTen.pow(18);
 
 const uniswapV2RouterAddress = '0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D'
 
@@ -143,19 +147,23 @@ class ALBTStakerSDK {
 		const tokenAmountBNSlip = tokenAmountInBN.mul(50).div(10000);
 
 		const poolTokens = await this._calculatePoolTokens(tokenAmountIn, tokenAddress, wallet, poolAddress)
-		const minPoolAMountOut = this._calculateMinAmountOut(poolTokens);
-		let transaction = await poolContract.joinswapExternAmountIn(tokenAddress, tokenAmountInBN, minPoolAMountOut);
+		let minPoolAMountOut = this._calculatePoolAmount(poolTokens);
+		minPoolAMountOut = minPoolAMountOut.integerValue(BigNumber.ROUND_UP)
+		console.log(minPoolAMountOut.toString(),"min pool amount")
+		let transaction = await poolContract.joinswapExternAmountIn(tokenAddress, tokenAmountInBN, minPoolAMountOut.toString());
 
 		return transaction;
 	}
 
-	//TODO add max pool amount it
-	async removeBalancerLiquidity(wallet, tokenAddress, tokenAmountOut, maxPoolAmountIn) {
+	async removeBalancerLiquidity(wallet, tokenAddress, tokenAmountOut, poolAddress) {
 
 		const poolContract = new ethers.Contract(poolAddress, balancerBPoolContractABI, wallet);
 		const tokenAmountOutBN = ethers.utils.bigNumberify(tokenAmountOut);
 
-		let transaction = await poolContract.exitswapExternAmountOut(tokenAddress, tokenAmountOutBN, maxPoolAmountIn);
+		const tokenAmount = await this._calculateTokenAmountOut(tokenAmountOut,tokenAddress,wallet,poolAddress);
+		let poolAMountOut = await this._calculatePoolAmount(tokenAmount);
+		poolAMountOut = poolAMountOut.integerValue(BigNumber.ROUND_UP)
+		let transaction = await poolContract.exitswapPoolAmountIn(tokenAddress, tokenAmountOutBN, poolAMountOut.toString());
 		return transaction
 	}
 
@@ -222,8 +230,12 @@ class ALBTStakerSDK {
 		let balance = await stakingRewardsContract.balanceOf(wallet.address);
 		return ethers.utils.formatEther(balance.toString());
 	}
-
+	//TODO
 	async calculateCustomerWeeklyReward(wallet, tokenAddress) {
+
+	}
+	//TODO
+	async calculateWeeklyAPY() {
 
 	}
 
@@ -269,66 +281,74 @@ class ALBTStakerSDK {
 		throw new Error('No such pair found')
 	}
 
-	_calculateMinAmountOut(poolTokens) {
+	_calculatePoolAmount(tokenAmount) {
 
-		let multiplier = (1 - BALANCE_BUFFER);
-		let amountOut = poolTokens.mul(multiplier);
-		return amountOut
+		return tokenAmount.times(multiplier);
 	}
-
+ 
 	async _calculatePoolTokens(tokenAmountIn, tokenAddress, wallet, poolAddress) {
-		const tokenContract = new ethers.Contract(tokenAddress, ERC20ABI, wallet);
-		const poolContract = new ethers.Contract(poolAddress, balancerBPoolContractABI, wallet);
 
 		//Getting necessary values
-		let tokenBalanceIn = await tokenContract.balanceOf(poolAddress);
-		let tokenWeightIn = await poolContract.getDenormalizedWeight(tokenAddress);
-		let poolSupply = await poolContract.totalSupply();
-		let totalWeight = await poolContract.getTotalDenormalizedWeight();
-		let swapFee = await poolContract.getSwapFee();
-		let tokenAmounInBN = new BigNumber(tokenAmountIn)
-
-		tokenWeightIn = new BigNumber(tokenWeightIn.toString())
-		totalWeight = new BigNumber(totalWeight.toString())
-		tokenBalanceIn = new BigNumber(tokenBalanceIn.toString())
-		poolSupply = new BigNumber(poolSupply.toString())
-		swapFee = new BigNumber(swapFee.toString())
-		console.log(tokenAmountIn, "token in")
-
+		let {tokenBalance,tokenWeight,poolSupply,totalWeight,swapFee,tokenAmountBN} = await this.getPoolContractInfo(tokenAmountIn, tokenAddress, wallet, poolAddress)
 
 		//Calculating the poolTokens	
-
-		const normalizedWeight = math.bdiv(tokenWeightIn, totalWeight);
-		console.log("test")
+		const normalizedWeight = math.bdiv(tokenWeight, totalWeight);
 		const tempWeight = math.BONE.minus(normalizedWeight);
-		console.log("test")
 		const zaz = math.bmul(tempWeight, swapFee);
-
-		console.log("test")
 		const multiplier = math.BONE.minus(zaz);
-		console.log("test")
-		const tokenAmountInAfterFee = math.bmul(tokenAmounInBN, multiplier);
-		console.log("test")
-		const newTokenBalanceIn = tokenBalanceIn.plus(tokenAmountInAfterFee);
-		console.log("test")
-		const tokenInRatio = math.bmul(newTokenBalanceIn, tokenBalanceIn);
-		console.log("test4")
-		console.log(tokenInRatio.toString())
-		console.log(normalizedWeight.toString())
+		const tokenAmountInAfterFee = math.bmul(tokenAmountBN, multiplier);
+		const newTokenBalanceIn = tokenBalance.plus(tokenAmountInAfterFee);
+		const tokenInRatio = math.bdiv(newTokenBalanceIn, tokenBalance);
 		const poolRatio = math.bpow(tokenInRatio, normalizedWeight);
-		console.log("test3")
 		const newPoolSupply = math.bmul(poolRatio, poolSupply);
-		console.log("test2")
 		const poolAmountOut = newPoolSupply.minus(poolSupply);
-		console.log("test")
 
 		console.log(poolAmountOut.toString())
 		return poolAmountOut;
 	}
 
+	async _calculateTokenAmountOut(tokenAmount, tokenAddress, wallet, poolAddress) {
+	
 
+		let {tokenBalance,tokenWeight,poolSupply,totalWeight,swapFee,tokenAmountBN} = await this.getPoolContractInfo(tokenAmount, tokenAddress, wallet, poolAddress)
+		const normalizedWeight = math.bdiv(tokenWeight, totalWeight);
+		const multiplier = math.BONE.minus(EXIT_FEE);
+		const poolAmountInAfterExitFee = math.bmul(tokenAmountBN,multiplier);
+		const newPoolSupply = poolSupply.minus(poolAmountInAfterExitFee);
+		const poolRatio = math.bdiv(newPoolSupply,poolSupply);
 
+		const tempWeight = math.bdiv(math.BONE, normalizedWeight);
+		const tokenOutRatio = math.bpow(poolRatio,tempWeight);
+		const newTokenBalanceOut = math.bmul(tokenOutRatio,tokenBalance);
 
+		const tokenAmountOutBeforeSwapFee = tokenBalance.minus(newTokenBalanceOut);
+		const tokenMultiplier = math.BONE.minus(normalizedWeight);
+		const zaz = math.bmul(tokenMultiplier,swapFee);
+		const newZaz = math.BONE.minus(zaz);
+		const tokenAmountOut = math.bmul(tokenAmountOutBeforeSwapFee,newZaz);
+		return tokenAmountOut;
+	}
+
+	async getPoolContractInfo(tokenAmount, tokenAddress,wallet,poolAddress) {
+
+		const tokenContract = new ethers.Contract(tokenAddress, ERC20ABI, wallet);
+		const poolContract = new ethers.Contract(poolAddress, balancerBPoolContractABI, wallet);
+
+		let tokenBalance = await tokenContract.balanceOf(poolAddress);
+		let tokenWeight = await poolContract.getDenormalizedWeight(tokenAddress);
+		let poolSupply = await poolContract.totalSupply();
+		let totalWeight = await poolContract.getTotalDenormalizedWeight();
+		let swapFee = await poolContract.getSwapFee();
+		let tokenAmountBN = new BigNumber(tokenAmount)
+
+		tokenWeight = new BigNumber(tokenWeight.toString())
+		totalWeight = new BigNumber(totalWeight.toString())
+		tokenBalance = new BigNumber(tokenBalance.toString())
+		poolSupply = new BigNumber(poolSupply.toString())
+		swapFee = new BigNumber(swapFee.toString())
+	
+		return {tokenBalance,tokenWeight,poolSupply,totalWeight,swapFee,tokenAmountBN}
+	}
 
 }
 
