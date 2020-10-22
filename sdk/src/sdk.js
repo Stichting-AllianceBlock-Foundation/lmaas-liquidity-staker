@@ -172,7 +172,6 @@ class ALBTStakerSDK {
 
 	async getUniswapCardData(wallet, pair) {
 		let cardData = []
-		console.log(pair)
 		for (let i = 0; i < pair.length; i++) {
 			
 			const currentPair = pair[i];
