@@ -74,6 +74,28 @@ class ALBTStakerSDK {
 		return tokenContract.approve(uniswapV2RouterAddress, ethers.constants.MaxUint256)
 	}
 
+	async getUniswapRouterPairTokenApproval(wallet, tokenAName, tokenBName) {
+		const tokenA = await this._getUniswapTokenByName(tokenAName);
+		const tokenB = await this._getUniswapTokenByName(tokenBName);
+
+		const pair = await Fetcher.fetchPairData(tokenB, tokenA)
+		const token = pair.liquidityToken;
+
+		const tokenContract = new ethers.Contract(token.address, ERC20ABI, wallet);
+		return tokenContract.allowance(wallet.address, uniswapV2RouterAddress)
+	}
+
+	async approveUniswapRouterForPairToken(wallet, tokenAName, tokenBName) {
+		const tokenA = await this._getUniswapTokenByName(tokenAName);
+		const tokenB = await this._getUniswapTokenByName(tokenBName);
+
+		const pair = await Fetcher.fetchPairData(tokenB, tokenA)
+		const token = pair.liquidityToken;
+
+		const tokenContract = new ethers.Contract(token.address, ERC20ABI, wallet);
+		return tokenContract.approve(uniswapV2RouterAddress, ethers.constants.MaxUint256)
+	}
+
 	async addUniswapLiquidity(wallet, tokenAName, tokenBName, tokenAAmount, tokenBAmount) {
 
 		const routerContract = new ethers.Contract(uniswapV2RouterAddress, uniswapRouterABI, wallet)
@@ -105,25 +127,48 @@ class ALBTStakerSDK {
 		return transaction;
 	}
 
-	async removeUniswapLiquidity(wallet,tokenAName, tokenBName, tokenAAmount, tokenBAmount, liquidity ) {
+	//TODO
+	async removeUniswapLiquidity(wallet, tokenAName, tokenBName, liqudityAmount) {
+		const network = await this.provider.getNetwork()
+
 		const routerContract = new ethers.Contract(uniswapV2RouterAddress, uniswapRouterABI, wallet)
 
-			// Default Slippage is 0.5%
-		const tokenAAmountMinBN = this._calculateUniswapSlippage(tokenAAmount)
-		const tokenBAmountMinBN = this._calculateUniswapSlippage(tokenBAmount)
-		const liquidityBN = ethers.utils.bigNumberify(liquidity);
+		const tokenA = await this._getUniswapTokenByName(tokenAName);
+		const tokenB = await this._getUniswapTokenByName(tokenBName);
+
+		const pair = await Fetcher.fetchPairData(tokenB, tokenA)
+		const token = pair.liquidityToken;
+
+		const tokenContract = new ethers.Contract(token.address, ERC20ABI, wallet)
+		const totalSupply = await tokenContract.totalSupply();
+
+		const totalSupplyAmount = new TokenAmount(token, totalSupply.toString(10));
+		const liquidityAmount = new TokenAmount(token, liqudityAmount.toString(10));
+
+		const liquidityValueA = pair.getLiquidityValue(tokenA, totalSupplyAmount, liquidityAmount)
+		const liquidityValueB = pair.getLiquidityValue(tokenB, totalSupplyAmount, liquidityAmount)
+
+		const amountOutA = ethers.utils.parseUnits(liquidityValueA.toFixed().toString(), tokenA.decimals)
+		const amountOutB = ethers.utils.parseUnits(liquidityValueB.toFixed().toString(), tokenB.decimals)
+
+		const minAmountOutASlip = amountOutA.mul(50).div(10000)
+		const minAmountOutA = amountOutA.sub(minAmountOutASlip)
+
+		const minAmountOutBSlip = amountOutB.mul(50).div(10000)
+		const minAmountOutB = amountOutB.sub(minAmountOutBSlip)
+
+		const deadline = Math.floor(Date.now() / 1000) + (60 * 60)
+
+		let transaction
 
 		if (this.isETH(tokenAName)) {
-
-			const tokenB = await this._getUniswapTokenByName(tokenBName);
-			transaction = await routerContract.removeLiquidityETH(tokenB.address, liquidityBN, tokenBAmountMinBN, tokenAAmountMinBN, wallet.address, deadline)
-
+			transaction = await routerContract.removeLiquidityETH(tokenB.address, liqudityAmount, minAmountOutB, minAmountOutA, wallet.address, deadline)
 		} else {
-			const tokenA = await this._getUniswapTokenByName(tokenAName);
-			const tokenB = await this._getUniswapTokenByName(tokenBName);
-			transaction = await routerContract.removeLiquidity(tokenA.address, tokenB.address,liquidityBN, tokenAAmountMinBN, tokenBAmountMinBN, wallet.address, deadline);
+			transaction = await routerContract.removeLiquidity(tokenA.address, tokenB.address, liqudityAmount, minAmountOutA, minAmountOutB, wallet.address, deadline);
 		}
-		return transaction;
+
+		return transaction
+
 	}
 
 	async getBalance(wallet, tokenName) {
