@@ -15,11 +15,12 @@ const uniswapRouterABI = require('./UniswapRouterABI.json');
 const balancerBPoolContractABI = require('./BalancerBPoolABI.json')
 const ERC20ABI = require('./ERC20.json')
 const stakingRewaradsContractABI = require('./StakingRewards.json');
-const { EXIT_FEE } = require('./mathUtils.js');
+const { EXIT_FEE, BONE } = require('./mathUtils.js');
 const BALANCE_BUFFER = 0.01;
 const multiplier = (1 - BALANCE_BUFFER);
 const bigTen = new BigNumber(10);
-const power = bigTen.pow(18);
+const deadline = Math.floor(Date.now() / 1000) + (60 * 60)
+const week = 60 * 60 * 24 * 7
 
 const uniswapV2RouterAddress = '0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D'
 
@@ -100,21 +101,13 @@ class ALBTStakerSDK {
 		const routerContract = new ethers.Contract(uniswapV2RouterAddress, uniswapRouterABI, wallet)
 
 		// Default Slippage is 0.5%
-		const tokenAAmountBN = ethers.utils.bigNumberify(tokenAAmount);
-		const tokenAAmountBNSlip = tokenAAmountBN.mul(50).div(10000)
-		const tokenAAmountMinBN = tokenAAmountBN.sub(tokenAAmountBNSlip)
-
-		const tokenBAmountBN = ethers.utils.bigNumberify(tokenBAmount);
-		const tokenBAmountBNSlip = tokenBAmountBN.mul(50).div(10000)
-		const tokenBAmountMinBN = tokenBAmountBN.sub(tokenBAmountBNSlip)
+		const tokenAAmountMinBN = this._calculateUniswapSlippage(tokenAAmount)
+		const tokenBAmountMinBN = this._calculateUniswapSlippage(tokenBAmount)
 
 		if (this.debug) {
 			console.log("Token A", tokenAAmountBN.toString(), tokenAAmountMinBN.toString())
 			console.log("Token B", tokenBAmountBN.toString(), tokenBAmountMinBN.toString())
 		}
-		
-
-		const deadline = Math.floor(Date.now() / 1000) + (60 * 60)
 
 		let transaction;
 
@@ -136,7 +129,6 @@ class ALBTStakerSDK {
 
 	//TODO
 	async removeUniswapLiquidity(wallet, tokenAName, tokenBName, liqudityAmount) {
-		const network = await this.provider.getNetwork()
 
 		const routerContract = new ethers.Contract(uniswapV2RouterAddress, uniswapRouterABI, wallet)
 
@@ -177,6 +169,38 @@ class ALBTStakerSDK {
 		return transaction
 
 	}
+
+	async getUniswapCardData(wallet, pair) {
+		let cardData = []
+		for (let i = 0; i < pair.length; i++) {
+			
+			const currentPair = pair[i];
+			const tokenA = currentPair[0]
+			const tokenB = currentPair[1]
+			const contractPair = `${tokenA}-${tokenB}`
+
+
+			const assetA = await (await this.getUniswapPairOtherTokenAmount(tokenA,tokenB,math.BONE)).tokenAmount
+			const assetB = await (await this.getUniswapPairOtherTokenAmount(tokenB,tokenA,math.BONE)).tokenAmount
+			const poolTokenBalance = await this.getUniswapPoolTokenBalance(wallet, tokenA,tokenB)
+			const weeklyRewards = await this.calculateCustomerWeeklyReward(wallet,this.contractsConfig.uniswap.rewardContracts[contractPair])
+			const earnedReward = await this.getCurrentReward(wallet, this.contractsConfig.uniswap.rewardContracts[contractPair])
+			const stakedTokens = await this.getStakingTokensBalance(wallet, this.contractsConfig.uniswap.rewardContracts[contractPair])
+			const poolShare = await this.calculateUniswapPoolPercentage(wallet, this.contractsConfig.uniswap.poolTokens[contractPair])
+			let tempPair = {
+				pair : [tokenA,tokenB],
+				assetA: assetA,
+				assetB: assetB,
+				LPTokens: poolTokenBalance.toString(),
+				LPShare: poolShare.toString(),
+				rewards: earnedReward.toString(), 
+				weeklyRewards: weeklyRewards.toString(),
+				stakedTokens: stakedTokens.toString(),
+			  }
+			  cardData.push(tempPair);	
+		}
+		return cardData;
+	}	
 
 	async getBalance(wallet, tokenName) {
 		if (this.isETH(tokenName)) {
@@ -227,6 +251,18 @@ class ALBTStakerSDK {
 		return transaction
 	}
 
+	async calculateUniswapPoolPercentage(wallet, poolAddress) {
+		const poolContract = new ethers.Contract(poolAddress,ERC20ABI, wallet);
+
+		let userBalance = await poolContract.balanceOf(wallet.address);
+		let totalSupply = await poolContract.totalSupply();
+		
+		userBalance = new BigNumber(userBalance.toString())
+		totalSupply = new BigNumber(totalSupply.toString())
+		const poolShare = math.bdiv(userBalance,totalSupply);
+		return ethers.utils.formatEther(poolShare.toString());
+	}
+
 
 	async getBPoolBalance(wallet, poolAddress) {
 		const poolContract = new ethers.Contract(poolAddress, balancerBPoolContractABI, wallet);
@@ -244,11 +280,6 @@ class ALBTStakerSDK {
 		const tokenContract = new ethers.Contract(tokenAddress, ERC20ABI, wallet);
 		return tokenContract.allowance(wallet.address, spenderAddress)
 	}
-
-	// async aporoveBeforeStake(wallet, rewardsContractAddress,tokenAddress) {
-	// 	const tokenContract = new ethers.Contract(tokenAddress, ERC20ABI, wallet);
-	// 	return await tokenContract.approve(rewardsContractAddress, ethers.constants.MaxUint256);
-	// }
 
 	async stake(wallet, rewardsContractAddress, amountToStake, ) {
 		const stakingRewardsContract = new ethers.Contract(rewardsContractAddress, stakingRewaradsContractABI, wallet);
@@ -294,6 +325,15 @@ class ALBTStakerSDK {
 	}
 	//TODO
 	async calculateCustomerWeeklyReward(wallet, tokenAddress) {
+	const stakingRewardsContract = new ethers.Contract(tokenAddress, stakingRewaradsContractABI, wallet);
+	const rewardRate = await stakingRewardsContract.rewardRate();
+	const stakedAmount = await stakingRewardsContract.balanceOf(wallet.address);
+	const totalStakedAmount = await stakingRewardsContract.totalSupply();
+
+	const multiplier = stakedAmount.mul(rewardRate)
+	const individualRewardRate = multiplier.div(totalStakedAmount)
+
+	return individualRewardRate.mul(week);
 
 	}
 	//TODO
@@ -351,7 +391,7 @@ class ALBTStakerSDK {
 	async _calculatePoolTokens(tokenAmountIn, tokenAddress, wallet, poolAddress) {
 
 		//Getting necessary values
-		let {tokenBalance,tokenWeight,poolSupply,totalWeight,swapFee,tokenAmountBN} = await this.getPoolContractInfo(tokenAmountIn, tokenAddress, wallet, poolAddress)
+		let {tokenBalance,tokenWeight,poolSupply,totalWeight,swapFee,tokenAmountBN} = await this._getPoolContractInfo(tokenAmountIn, tokenAddress, wallet, poolAddress)
 
 		//Calculating the poolTokens	
 		const normalizedWeight = math.bdiv(tokenWeight, totalWeight);
@@ -371,7 +411,7 @@ class ALBTStakerSDK {
 	async _calculateTokenAmountOut(tokenAmount, tokenAddress, wallet, poolAddress) {
 	
 
-		let {tokenBalance,tokenWeight,poolSupply,totalWeight,swapFee,tokenAmountBN} = await this.getPoolContractInfo(tokenAmount, tokenAddress, wallet, poolAddress)
+		let {tokenBalance,tokenWeight,poolSupply,totalWeight,swapFee,tokenAmountBN} = await this._getPoolContractInfo(tokenAmount, tokenAddress, wallet, poolAddress)
 		const normalizedWeight = math.bdiv(tokenWeight, totalWeight);
 		const multiplier = math.BONE.minus(EXIT_FEE);
 		const poolAmountInAfterExitFee = math.bmul(tokenAmountBN,multiplier);
@@ -390,7 +430,7 @@ class ALBTStakerSDK {
 		return tokenAmountOut;
 	}
 
-	async getPoolContractInfo(tokenAmount, tokenAddress,wallet,poolAddress) {
+	async _getPoolContractInfo(tokenAmount, tokenAddress,wallet,poolAddress) {
 
 		const tokenContract = new ethers.Contract(tokenAddress, ERC20ABI, wallet);
 		const poolContract = new ethers.Contract(poolAddress, balancerBPoolContractABI, wallet);
@@ -409,6 +449,15 @@ class ALBTStakerSDK {
 		swapFee = new BigNumber(swapFee.toString())
 	
 		return {tokenBalance,tokenWeight,poolSupply,totalWeight,swapFee,tokenAmountBN}
+	}
+	// Default Slippage is 0.5%
+	_calculateUniswapSlippage(tokenAmount) {
+
+		const tokenAmountBN = ethers.utils.bigNumberify(tokenAmount);
+		const tokenAmountBNSlip = tokenAmountBN.mul(50).div(10000)
+		const tokenAmountMinBN = tokenAmountBN.sub(tokenAmountBNSlip)
+
+		return tokenAmountMinBN;
 	}
 
 }

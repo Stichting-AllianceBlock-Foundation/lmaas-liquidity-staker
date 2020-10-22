@@ -95,6 +95,7 @@ describe('StakingRewardsFactory', () => {
 
                 it('Should start the staking reward completely', async () => {
                     let info = await stakingRewardsFactoryInstance.stakingRewardsInfoByStakingToken(stakingTokenAddress);
+                    console.log(info)
                     const stakingRewardsContract = await etherlime.ContractAt(StakingRewards, info.stakingRewards)
                     const lastUpdateTimeBefore = await stakingRewardsContract.lastUpdateTime();
                     const balanceBefore = await rewardTokenInstance.balanceOf(info.stakingRewards)
