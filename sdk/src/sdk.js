@@ -15,7 +15,7 @@ const uniswapRouterABI = require('./UniswapRouterABI.json');
 const balancerBPoolContractABI = require('./BalancerBPoolABI.json')
 const ERC20ABI = require('./ERC20.json')
 const stakingRewaradsContractABI = require('./StakingRewards.json');
-const { EXIT_FEE } = require('./mathUtils.js');
+const { EXIT_FEE, BONE } = require('./mathUtils.js');
 const BALANCE_BUFFER = 0.01;
 const multiplier = (1 - BALANCE_BUFFER);
 const bigTen = new BigNumber(10);
@@ -129,7 +129,6 @@ class ALBTStakerSDK {
 
 	//TODO
 	async removeUniswapLiquidity(wallet, tokenAName, tokenBName, liqudityAmount) {
-		const network = await this.provider.getNetwork()
 
 		const routerContract = new ethers.Contract(uniswapV2RouterAddress, uniswapRouterABI, wallet)
 
@@ -170,6 +169,39 @@ class ALBTStakerSDK {
 		return transaction
 
 	}
+
+	async getUniswapCardData(wallet, pair) {
+		let cardData = []
+		console.log(pair)
+		for (let i = 0; i < pair.length; i++) {
+			
+			const currentPair = pair[i];
+			const tokenA = currentPair[0]
+			const tokenB = currentPair[1]
+			const contractPair = `${tokenA}-${tokenB}`
+
+
+			const assetA = await (await this.getUniswapPairOtherTokenAmount(tokenA,tokenB,math.BONE)).tokenAmount
+			const assetB = await (await this.getUniswapPairOtherTokenAmount(tokenB,tokenA,math.BONE)).tokenAmount
+			const poolTokenBalance = await this.getUniswapPoolTokenBalance(wallet, tokenA,tokenB)
+			const weeklyRewards = await this.calculateCustomerWeeklyReward(wallet,this.contractsConfig.uniswap.rewardContracts[contractPair])
+			const earnedReward = await this.getCurrentReward(wallet, this.contractsConfig.uniswap.rewardContracts[contractPair])
+			const stakedTokens = await this.getStakingTokensBalance(wallet, this.contractsConfig.uniswap.rewardContracts[contractPair])
+			const poolShare = await this.calculateUniswapPoolPercentage(wallet, this.contractsConfig.uniswap.poolTokens[contractPair])
+			let tempPair = {
+				pair : [tokenA,tokenB],
+				assetA: assetA,
+				assetB: assetB,
+				LPTokens: poolTokenBalance.toString(),
+				LPShare: poolShare.toString(),
+				rewards: earnedReward.toString(), 
+				weeklyRewards: weeklyRewards.toString(),
+				stakedTokens: stakedTokens.toString(),
+			  }
+			  cardData.push(tempPair);	
+		}
+		return cardData;
+	}	
 
 	async getBalance(wallet, tokenName) {
 		if (this.isETH(tokenName)) {
@@ -218,6 +250,18 @@ class ALBTStakerSDK {
 		poolAMountOut = poolAMountOut.integerValue(BigNumber.ROUND_UP)
 		let transaction = await poolContract.exitswapPoolAmountIn(tokenAddress, tokenAmountOutBN, poolAMountOut.toString());
 		return transaction
+	}
+
+	async calculateUniswapPoolPercentage(wallet, poolAddress) {
+		const poolContract = new ethers.Contract(poolAddress,ERC20ABI, wallet);
+
+		let userBalance = await poolContract.balanceOf(wallet.address);
+		let totalSupply = await poolContract.totalSupply();
+		
+		userBalance = new BigNumber(userBalance.toString())
+		totalSupply = new BigNumber(totalSupply.toString())
+		const poolShare = math.bdiv(userBalance,totalSupply);
+		return ethers.utils.formatEther(poolShare.toString());
 	}
 
 

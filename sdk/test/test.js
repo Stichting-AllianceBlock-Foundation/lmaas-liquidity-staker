@@ -248,6 +248,10 @@ const run = async () => {
 	poolBalance = await sdk.getBPoolBalance(wallet, contractsConfig.balancer.poolContracts[balancerPool])
 	console.log("BAL balance: ", poolBalance.toString())
 
+
+	let pairs =[['ETH','DAI'], ['ETH',"DAI"]]
+	let cardData = await sdk.getUniswapCardData(wallet,pairs)
+	console.log(cardData)
 }
 
 run()
