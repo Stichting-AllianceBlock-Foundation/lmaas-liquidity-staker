@@ -143,7 +143,8 @@ const run = async () => {
 		console.log("Approve before stake status - ",approveStakeReceipt.status )
 
 	}
-
+	const getCustomerRewardRate = await sdk.calculateCustomerWeeklyReward(wallet,contractsConfig.uniswap.rewardContracts[stakingPool]);
+	console.log(getCustomerRewardRate.toString(), "Customer weekly reward");
 
 	const stake = await sdk.stake(wallet, contractsConfig.uniswap.rewardContracts[stakingPool], amountToStake, contractsConfig.uniswap.poolTokens[stakingPool])
 	console.log('Stake transaction', stake.hash)
@@ -156,6 +157,7 @@ const run = async () => {
 	// const currentRewardBN = ethers.utils.bigNumberify(currentReward);
 	const currentRewardBN = ethers.utils.parseEther(currentReward)
 	console.log("Current Rewards of user", currentReward);
+
 
 	//Claim rewards
 	let balanceBeforeClaim = await sdk.getStakingTokensBalance(wallet, contractsConfig.tokenContracts["UNI"]);
