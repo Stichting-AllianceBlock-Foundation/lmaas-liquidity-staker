@@ -123,6 +123,28 @@ const run = async () => {
 	const LPTokensAfter = await sdk.getUniswapPoolTokenBalance(wallet, tokenA, tokenB);
 	console.log("Liqudity Pool Tokens after addition", ethers.utils.formatEther(LPTokensAfter.toString(10)))
 
+	// Check if you have enough approval for removing liqudity
+	const lpTokenApproval = await sdk.getUniswapRouterPairTokenApproval(wallet, tokenA, tokenB);
+
+	console.log(`${tokenA}-${tokenB} Approval`, lpTokenApproval.toString(10))
+
+	// Approving if no enough approval for the liquidity removal
+	if (lpTokenApproval.lt(LPTokensAfter)) {
+		console.log(`Not enough approval for ${tokenA}-${tokenB}`);
+		const approveTransaction = await sdk.approveUniswapRouterForPairToken(wallet, tokenA, tokenB);
+		console.log("Approval Transaction", approveTransaction.hash)
+		const approveReceipt = await approveTransaction.wait();
+		console.log("Approval transaction status", approveReceipt.status); // should be 1
+	}
+
+	const removeTransaction = await sdk.removeUniswapLiquidity(wallet, tokenA, tokenB, LPTokensAfter)
+
+	console.log("Remove liqudity transaction", removeTransaction.hash)
+
+	const removeReceipt = await removeTransaction.wait();
+	console.log("Remove liquidity transaction status", removeReceipt.status); // should be 1
+
+
 	// Staking LP Tokens
 	const stakeTokenA = "ETH"
 	const stakeTokenB = "DAI"
