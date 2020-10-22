@@ -145,106 +145,106 @@ const run = async () => {
 	console.log("Remove liquidity transaction status", removeReceipt.status); // should be 1
 
 
-	// // Staking LP Tokens
-	// const stakeTokenA = "ETH"
-	// const stakeTokenB = "DAI"
-	// const stakingPool = `${stakeTokenA}-${stakeTokenB}`
+	// Staking LP Tokens
+	const stakeTokenA = "ETH"
+	const stakeTokenB = "DAI"
+	const stakingPool = `${stakeTokenA}-${stakeTokenB}`
 
-	// const amountToStake = ethers.utils.parseEther('0.1')
+	const amountToStake = ethers.utils.parseEther('0.1')
 
-	// const allowanceStakeTx = await sdk.getAllowance(wallet, contractsConfig.uniswap.poolTokens[stakingPool], contractsConfig.uniswap.rewardContracts[stakingPool])
+	const allowanceStakeTx = await sdk.getAllowance(wallet, contractsConfig.uniswap.poolTokens[stakingPool], contractsConfig.uniswap.rewardContracts[stakingPool])
 
-	// console.log("Allowance for staking:", allowanceStakeTx.toString())
-	// let tokenAmountBN = ethers.utils.bigNumberify(amountToStake)
+	console.log("Allowance for staking:", allowanceStakeTx.toString())
+	let tokenAmountBN = ethers.utils.bigNumberify(amountToStake)
 
-	// if (allowanceStakeTx.lt(tokenAmountBN)) {
+	if (allowanceStakeTx.lt(tokenAmountBN)) {
 
-	// 	const approveStake = await sdk.approveToken(wallet, contractsConfig.uniswap.poolTokens[stakingPool], contractsConfig.uniswap.rewardContracts[stakingPool])
-	// 	console.log('Approve before stake tx hash', approveStake.hash)
-	// 	const approveStakeReceipt = await approveStake.wait();
-	// 	console.log("Approve before stake status - ",approveStakeReceipt.status )
+		const approveStake = await sdk.approveToken(wallet, contractsConfig.uniswap.poolTokens[stakingPool], contractsConfig.uniswap.rewardContracts[stakingPool])
+		console.log('Approve before stake tx hash', approveStake.hash)
+		const approveStakeReceipt = await approveStake.wait();
+		console.log("Approve before stake status - ",approveStakeReceipt.status )
 
-	// }
+	}
 
 
-	// const stake = await sdk.stake(wallet, contractsConfig.uniswap.rewardContracts[stakingPool], amountToStake, contractsConfig.uniswap.poolTokens[stakingPool])
-	// console.log('Stake transaction', stake.hash)
+	const stake = await sdk.stake(wallet, contractsConfig.uniswap.rewardContracts[stakingPool], amountToStake, contractsConfig.uniswap.poolTokens[stakingPool])
+	console.log('Stake transaction', stake.hash)
 
-	// //Getting Pool reward
-	// const rewardRate = await sdk.getPoolRate(wallet, contractsConfig.uniswap.rewardContracts[stakingPool])
-	// console.log("The Pool reward rate", ethers.utils.formatEther(rewardRate.toString()))
+	//Getting Pool reward
+	const rewardRate = await sdk.getPoolRate(wallet, contractsConfig.uniswap.rewardContracts[stakingPool])
+	console.log("The Pool reward rate", ethers.utils.formatEther(rewardRate.toString()))
 
-	// const currentReward = await sdk.getCurrentReward(wallet, contractsConfig.uniswap.rewardContracts[stakingPool])
-	// // const currentRewardBN = ethers.utils.bigNumberify(currentReward);
-	// const currentRewardBN = ethers.utils.parseEther(currentReward)
-	// console.log("Current Rewards of user", currentReward);
+	const currentReward = await sdk.getCurrentReward(wallet, contractsConfig.uniswap.rewardContracts[stakingPool])
+	// const currentRewardBN = ethers.utils.bigNumberify(currentReward);
+	const currentRewardBN = ethers.utils.parseEther(currentReward)
+	console.log("Current Rewards of user", currentReward);
 
-	// //Claim rewards
-	// let balanceBeforeClaim = await sdk.getStakingTokensBalance(wallet, contractsConfig.tokenContracts["UNI"]);
-	// let balanceBeforeClaimBN = ethers.utils.parseEther(balanceBeforeClaim)
-	// console.log("Balance before Claim", balanceBeforeClaim)
+	//Claim rewards
+	let balanceBeforeClaim = await sdk.getStakingTokensBalance(wallet, contractsConfig.tokenContracts["UNI"]);
+	let balanceBeforeClaimBN = ethers.utils.parseEther(balanceBeforeClaim)
+	console.log("Balance before Claim", balanceBeforeClaim)
 
-	// const claimReward = await sdk.claimRewards(wallet, contractsConfig.uniswap.rewardContracts[stakingPool])
-	// console.log("Claim rewards transaction", claimReward.hash)
-	// claimReward.wait();
+	const claimReward = await sdk.claimRewards(wallet, contractsConfig.uniswap.rewardContracts[stakingPool])
+	console.log("Claim rewards transaction", claimReward.hash)
+	claimReward.wait();
 
-	// let balanceAfterClaim = await sdk.getStakingTokensBalance(wallet, contractsConfig.tokenContracts["UNI"]);
-	// let balanceAfterClaimBN = ethers.utils.parseEther(balanceAfterClaim)
-	// console.log("Balance after Claim", balanceAfterClaim.toString())
+	let balanceAfterClaim = await sdk.getStakingTokensBalance(wallet, contractsConfig.tokenContracts["UNI"]);
+	let balanceAfterClaimBN = ethers.utils.parseEther(balanceAfterClaim)
+	console.log("Balance after Claim", balanceAfterClaim.toString())
 
-	// if (!balanceAfterClaimBN.gt(balanceBeforeClaimBN)) {
-	// 	console.log("Usuccessful Claim")
-	// }
+	if (!balanceAfterClaimBN.gt(balanceBeforeClaimBN)) {
+		console.log("Usuccessful Claim")
+	}
 	
-	// //Withdraw
-	// balanceBeforeClaim = await sdk.getStakingTokensBalance(wallet, contractsConfig.tokenContracts["UNI"]);
-	// balanceBeforeClaimBN = ethers.utils.parseEther(balanceBeforeClaim)
+	//Withdraw
+	balanceBeforeClaim = await sdk.getStakingTokensBalance(wallet, contractsConfig.tokenContracts["UNI"]);
+	balanceBeforeClaimBN = ethers.utils.parseEther(balanceBeforeClaim)
 
-	// let withdraw = await sdk.withdraw(wallet,contractsConfig.uniswap.rewardContracts[stakingPool])
-	// console.log("Withdraw transaction", withdraw.hash)
-	// withdraw.wait();
-
-	
-
-	// balanceAfterClaim = await sdk.getStakingTokensBalance(wallet, contractsConfig.tokenContracts["UNI"]);
-	// balanceAfterClaimBN = ethers.utils.parseEther(balanceAfterClaim)
-
-	// if (!balanceAfterClaimBN.gt(balanceBeforeClaimBN)) {
-	// 	console.log("Usuccessful withdraw")
-	// }
-
-	// // Providing Balancer DAI Liquidity
-
-	// const balancerTokenA = "DAI"
-	// const balancerTokenB = "ETH"
-	// const balancerPool = `${balancerTokenA}-${balancerTokenB}`
-
-	// const allowanceTx = await sdk.getAllowance(wallet, contractsConfig.tokenContracts.DAI, contractsConfig.balancer.poolContracts[balancerPool])
-	// console.log("Allowance:", allowanceTx.toString())
-	// let tokenAmounBN = ethers.utils.bigNumberify(tokenAAmount)
-
-	// if (allowanceTx.lt(tokenAmounBN)) {
-
-	// 	const approveTx = await sdk.approveToken(wallet, contractsConfig.tokenContracts.DAI, contractsConfig.balancer.poolContracts[balancerPool])
-	// 	console.log("Approving pool for token. Tx hash: ", approveTx.hash)
-
-	// 	let approveTxReceipt = await approveTx.wait();
-	// 	console.log("Result from approving -", approveTxReceipt.status)
-
-	// }
-
-	// const addLiquidity = await sdk.addBalancerLiquidity(wallet, contractsConfig.tokenContracts.DAI, tokenAAmount, contractsConfig.balancer.poolContracts[balancerPool])
-	// console.log("Add Liquidity Tx hash:", addLiquidity.hash)
-
-	// let poolBalance = await sdk.getBPoolBalance(wallet, contractsConfig.balancer.poolContracts[balancerPool])
-	// console.log("BAL balance: ", poolBalance.toString())
+	let withdraw = await sdk.withdraw(wallet,contractsConfig.uniswap.rewardContracts[stakingPool])
+	console.log("Withdraw transaction", withdraw.hash)
+	withdraw.wait();
 
 	
-	// const removeLiquidity = await sdk.removeBalancerLiquidity(wallet,contractsConfig.tokenContracts.DAI,tokenAAmount,contractsConfig.balancer.poolContracts[balancerPool] )
-	// console.log("Remove Liquidity Tx hash:", removeLiquidity.hash)
 
-	// poolBalance = await sdk.getBPoolBalance(wallet, contractsConfig.balancer.poolContracts[balancerPool])
-	// console.log("BAL balance: ", poolBalance.toString())
+	balanceAfterClaim = await sdk.getStakingTokensBalance(wallet, contractsConfig.tokenContracts["UNI"]);
+	balanceAfterClaimBN = ethers.utils.parseEther(balanceAfterClaim)
+
+	if (!balanceAfterClaimBN.gt(balanceBeforeClaimBN)) {
+		console.log("Usuccessful withdraw")
+	}
+
+	// Providing Balancer DAI Liquidity
+
+	const balancerTokenA = "DAI"
+	const balancerTokenB = "ETH"
+	const balancerPool = `${balancerTokenA}-${balancerTokenB}`
+
+	const allowanceTx = await sdk.getAllowance(wallet, contractsConfig.tokenContracts.DAI, contractsConfig.balancer.poolContracts[balancerPool])
+	console.log("Allowance:", allowanceTx.toString())
+	let tokenAmounBN = ethers.utils.bigNumberify(tokenAAmount)
+
+	if (allowanceTx.lt(tokenAmounBN)) {
+
+		const approveTx = await sdk.approveToken(wallet, contractsConfig.tokenContracts.DAI, contractsConfig.balancer.poolContracts[balancerPool])
+		console.log("Approving pool for token. Tx hash: ", approveTx.hash)
+
+		let approveTxReceipt = await approveTx.wait();
+		console.log("Result from approving -", approveTxReceipt.status)
+
+	}
+
+	const addLiquidity = await sdk.addBalancerLiquidity(wallet, contractsConfig.tokenContracts.DAI, tokenAAmount, contractsConfig.balancer.poolContracts[balancerPool])
+	console.log("Add Liquidity Tx hash:", addLiquidity.hash)
+
+	let poolBalance = await sdk.getBPoolBalance(wallet, contractsConfig.balancer.poolContracts[balancerPool])
+	console.log("BAL balance: ", poolBalance.toString())
+
+	
+	const removeLiquidity = await sdk.removeBalancerLiquidity(wallet,contractsConfig.tokenContracts.DAI,tokenAAmount,contractsConfig.balancer.poolContracts[balancerPool] )
+	console.log("Remove Liquidity Tx hash:", removeLiquidity.hash)
+
+	poolBalance = await sdk.getBPoolBalance(wallet, contractsConfig.balancer.poolContracts[balancerPool])
+	console.log("BAL balance: ", poolBalance.toString())
 
 }
 
