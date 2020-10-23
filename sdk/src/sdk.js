@@ -178,10 +178,7 @@ class ALBTStakerSDK {
 			const tokenA = currentPair[0]
 			const tokenB = currentPair[1]
 			const contractPair = `${tokenA}-${tokenB}`
-
-
-			const assetA = await (await this.getUniswapPairOtherTokenAmount(tokenA,tokenB,math.BONE)).tokenAmount
-			const assetB = await (await this.getUniswapPairOtherTokenAmount(tokenB,tokenA,math.BONE)).tokenAmount
+			
 			const poolTokenBalance = await this.getUniswapPoolTokenBalance(wallet, tokenA,tokenB)
 			const weeklyRewards = await this.calculateCustomerWeeklyReward(wallet,this.contractsConfig.uniswap.rewardContracts[contractPair])
 			const earnedReward = await this.getCurrentReward(wallet, this.contractsConfig.uniswap.rewardContracts[contractPair])
@@ -189,8 +186,6 @@ class ALBTStakerSDK {
 			const poolShare = await this.calculateUniswapPoolPercentage(wallet, this.contractsConfig.uniswap.poolTokens[contractPair])
 			let tempPair = {
 				pair : [tokenA,tokenB],
-				assetA: assetA,
-				assetB: assetB,
 				LPTokens: poolTokenBalance.toString(),
 				LPShare: poolShare.toString(),
 				rewards: earnedReward.toString(), 
@@ -201,6 +196,26 @@ class ALBTStakerSDK {
 		}
 		return cardData;
 	}	
+
+	async getUniswapPricesForPair(pair) {
+		let pairPrices = []
+			for (let i = 0; i < pair.length; i++) {
+				const currentPair = pair[i];
+				const tokenA = currentPair[0]
+				const tokenB = currentPair[1]
+
+				const assetA = await (await this.getUniswapPairOtherTokenAmount(tokenA,tokenB,math.BONE)).tokenAmount
+				const assetB = await (await this.getUniswapPairOtherTokenAmount(tokenB,tokenA,math.BONE)).tokenAmount
+				
+				let tempPair = {
+					pair: [tokenA,tokenB],
+					assetA: assetA,
+					assetB: assetB,
+				}
+				pairPrices.push(tempPair)
+			}
+			return pairPrices;
+	}
 
 	async getBalance(wallet, tokenName) {
 		if (this.isETH(tokenName)) {
@@ -270,7 +285,7 @@ class ALBTStakerSDK {
 		return poolContract.balanceOf(wallet.address)
 	}
 
-	async approveToken(wallet, tokenAddress, spenderAddress) {
+	async approveToken(wallet, tokenAddress, spenderAddress) {	
 
 		const tokenContract = new ethers.Contract(tokenAddress, ERC20ABI, wallet);
 		return tokenContract.approve(spenderAddress, ethers.constants.MaxUint256)
