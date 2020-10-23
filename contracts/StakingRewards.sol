@@ -50,6 +50,22 @@ contract StakingRewards is
         return rewardsTokensArr.length;
     }
 
+    function getUserRewardPerTokenRecorded(address rewardToken, address user)
+        public
+        view
+        returns (uint256)
+    {
+        return rewardsTokensMap[rewardToken].userRewardPerTokenRecorded[user];
+    }
+
+    function getUserReward(address rewardToken, address user)
+        public
+        view
+        returns (uint256)
+    {
+        return rewardsTokensMap[rewardToken].rewards[user];
+    }
+
     // timings
     // uint256 public periodFinish;
     uint256 public rewardsDuration;
@@ -162,7 +178,7 @@ contract StakingRewards is
         returns (bool)
     {
         for (uint i = 0; i < rewardsTokensArr.length; i++) {
-            if (0 > rewardsTokensMap[rewardsTokensArr[i]].periodFinish) {
+            if (0 < rewardsTokensMap[rewardsTokensArr[i]].periodFinish) {
                 return true;
             }
         }
