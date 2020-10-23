@@ -203,9 +203,9 @@ class ALBTStakerSDK {
 				const currentPair = pair[i];
 				const tokenA = currentPair[0]
 				const tokenB = currentPair[1]
-
-				const assetA = await (await this.getUniswapPairOtherTokenAmount(tokenA,tokenB,math.BONE)).tokenAmount
-				const assetB = await (await this.getUniswapPairOtherTokenAmount(tokenB,tokenA,math.BONE)).tokenAmount
+				
+				const assetA = await (await this.getUniswapPairOtherTokenAmount(tokenA,tokenB,math.BONE)).tokenAmount.toString(6)
+				const assetB = await (await this.getUniswapPairOtherTokenAmount(tokenB,tokenA,math.BONE)).tokenAmount.toString(6)
 				
 				let tempPair = {
 					pair: [tokenA,tokenB],
