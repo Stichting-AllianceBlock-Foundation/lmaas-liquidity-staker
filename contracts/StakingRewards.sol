@@ -40,7 +40,15 @@ contract StakingRewards is
     }
 
     mapping(address => RewardInfo) public rewardsTokensMap; // structure for fast access to token's data
-    address[] rewardsTokensArr; // structure to iterate over
+    address[] public rewardsTokensArr; // structure to iterate over
+
+    function getRewardsTokensCount()
+        public
+        view
+        returns (uint)
+    {
+        return rewardsTokensArr.length;
+    }
 
     // timings
     // uint256 public periodFinish;
@@ -146,6 +154,22 @@ contract StakingRewards is
         return periodToExtend;
     }
 
+    /** @dev Checks if staking period has been started.
+     */
+    function hasPeriodStarted()
+        public
+        view
+        returns (bool)
+    {
+        for (uint i = 0; i < rewardsTokensArr.length; i++) {
+            if (0 > rewardsTokensMap[rewardsTokensArr[i]].periodFinish) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     /** @dev Checks if staking period for every reward token has expired.
      * Returns true if atleast one reward token has not yet finished
      */
@@ -154,13 +178,14 @@ contract StakingRewards is
         view
         returns (bool)
     {
-        // TODO: check this code in utests
         for (uint i = 0; i < rewardsTokensArr.length; i++) {
-            if (block.timestamp < rewardsTokensMap[rewardsTokensArr[i]].periodFinish) {
-                return true;
+            // on first token which period has not been expired return false
+            if (block.timestamp >= rewardsTokensMap[rewardsTokensArr[i]].periodFinish) {
+                return false;
             }
         }
-        return false;
+
+        return true;
     }
 
     /* ========== MUTATIVE FUNCTIONS ========== */
@@ -230,9 +255,8 @@ contract StakingRewards is
         onlyRewardsDistribution
         updateReward(address(0))
     {
-        // TODO: test this part carefully
         require(
-            hasPeriodFinished(),
+            !hasPeriodStarted(),
             "Rewards staking have already been started"
         );
 

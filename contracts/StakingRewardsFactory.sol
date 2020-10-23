@@ -3,32 +3,40 @@ pragma solidity ^0.5.16;
 
 import "openzeppelin-solidity-2.3.0/contracts/token/ERC20/IERC20.sol";
 import "openzeppelin-solidity-2.3.0/contracts/ownership/Ownable.sol";
-
 import "./StakingRewards.sol";
 
 contract StakingRewardsFactory is Ownable {
-    address public rewardsToken;
     uint256 public stakingRewardsGenesis;
 
     /** @dev the staking tokens for which the rewards contract has been deployed
      */
     address[] public stakingTokens;
 
-    /** @dev Structure holding information about a particular Staking Rewards
+    /** @dev Mapping holding information about a particular Staking Rewards Contract Address by Staking Token
      */
-    struct StakingRewardsInfo {
-        address stakingRewards; // address of staking contract
+    mapping(address => address) public stakingRewardsByStakingToken;
 
-        address[] rewardsTokens; // addresses of all reward tokens
-        uint256[] rewardsAmounts; // reward amounts for all tokens
+    /** @dev Mapping holding information about a particular Rewards Tokens by Staking Token
+     */
+    mapping(address => address[]) public rewardsTokensByStakingToken;
+
+    /** @dev Mapping holding information about a particular Rewards Amounts by Staking Token
+     */
+    mapping(address => uint256[]) public rewardsAmountsByStakingToken;
+
+    function getRewardsTokensCount(address stakingToken)
+        public
+        view
+        returns (uint)
+    {
+        return rewardsTokensByStakingToken[stakingToken].length;
     }
 
-     /* ========== CONSTRUCTOR ========== */
+    /* ========== CONSTRUCTOR ========== */
+
     /** @dev Function called once on deployment time
      * @param _stakingRewardsGenesis Timestamp after which the staking can start
      */
-    mapping(address => StakingRewardsInfo) public stakingRewardsInfoByStakingToken;
-
     constructor(
         uint _stakingRewardsGenesis
     ) Ownable() public {
@@ -45,22 +53,22 @@ contract StakingRewardsFactory is Ownable {
      * @param _rewardsAmounts The reward amounts
      * @param _rewardsDuration Rewards duration in seconds
      */
-
     function deploy(
         address          _stakingToken,
         address[] memory _rewardsTokens,
         uint[]    memory _rewardsAmounts,
         uint             _rewardsDuration
     ) public onlyOwner {
-        StakingRewardsInfo storage info = stakingRewardsInfoByStakingToken[_stakingToken];
-
-        require(info.stakingRewards == address(0), 'StakingRewardsFactory::deploy: already deployed');
+        require(stakingRewardsByStakingToken[_stakingToken] == address(0), 'StakingRewardsFactory::deploy: already deployed');
         require(_rewardsDuration > 0, 'StakingRewardsFactory::deploy:The Duration should be greater than zero');
+        require(_rewardsTokens.length > 0 && _rewardsAmounts.length > 0, 'StakingRewardsFactory::deploy: RewardsTokens and RewardsAmounts arrays could not be empty');
         require(_rewardsTokens.length == _rewardsAmounts.length, 'StakingRewardsFactory::deploy: RewardsTokens and RewardsAmounts should have a matching sizes');
 
-        info.stakingRewards = address(new StakingRewards(/*_rewardsDistribution=*/ address(this), _rewardsTokens, _stakingToken, _rewardsDuration));
-        info.rewardsTokens = _rewardsTokens;
-        info.rewardsAmounts = _rewardsAmounts;
+        // TODO: check validity of _rewardsTokens and _rewardsAmounts != address(0) , > 0
+
+        stakingRewardsByStakingToken[_stakingToken] = address(new StakingRewards(/*_rewardsDistribution=*/ address(this), _rewardsTokens, _stakingToken, _rewardsDuration));
+        rewardsTokensByStakingToken[_stakingToken] = _rewardsTokens;
+        rewardsAmountsByStakingToken[_stakingToken] = _rewardsAmounts;
 
         stakingTokens.push(_stakingToken);
     }
@@ -70,23 +78,27 @@ contract StakingRewardsFactory is Ownable {
      * @param extendRewardToken The address of the token the rewards will be paid in
      * @param extendRewardAmount The additional reward amount
      */
-    function extendRewardPeriod(address stakingToken, address extendRewardToken, uint256 extendRewardAmount)
+    function extendRewardPeriod(
+        address stakingToken,
+        address extendRewardToken,
+        uint256 extendRewardAmount
+    )
         public
         onlyOwner
     {
         require(extendRewardAmount > 0, 'StakingRewardsFactory::extendRewardPeriod: Reward must be greater than zero');
 
-        StakingRewardsInfo storage info = stakingRewardsInfoByStakingToken[stakingToken];
+        address sr = stakingRewardsByStakingToken[stakingToken]; // StakingRewards
 
-        require(info.stakingRewards != address(0), 'StakingRewardsFactory::extendRewardPeriod: not deployed');
-        require(hasStakingStarted(info.stakingRewards), 'StakingRewardsFactory::extendRewardPeriod: Staking has not started');
+        require(sr != address(0), 'StakingRewardsFactory::extendRewardPeriod: not deployed');
+        require(hasStakingStarted(sr), 'StakingRewardsFactory::extendRewardPeriod: Staking has not started');
 
-        (IERC20 tkn, uint256 rate, , , ) = StakingRewards(info.stakingRewards).rewardsTokensMap(extendRewardToken);
-        // its expected that valid token should have a valid rate
-        require(rate > 0, 'StakingRewardsFactory::extendRewardPeriod: Token for extending reward is not known');
-        tkn.approve(info.stakingRewards, extendRewardAmount);
+        (IERC20 tkn, uint256 rate, , , ) = StakingRewards(sr).rewardsTokensMap(extendRewardToken);
 
-        StakingRewards(info.stakingRewards).addRewards(extendRewardToken, extendRewardAmount);
+        require(rate > 0, 'StakingRewardsFactory::extendRewardPeriod: Token for extending reward is not known'); // its expected that valid token should have a valid rate
+
+        tkn.approve(sr, extendRewardAmount);
+        StakingRewards(sr).addRewards(extendRewardToken, extendRewardAmount);
     }
 
     /* ========== Permissionless FUNCTIONS ========== */
@@ -107,9 +119,9 @@ contract StakingRewardsFactory is Ownable {
     function hasStakingStarted(address stakingRewards)
         public
         view
-        returns (bool _isStakignStared)
+        returns (bool)
     {
-        return (StakingRewards(stakingRewards).hasPeriodFinished());
+        return StakingRewards(stakingRewards).hasPeriodStarted();
     }
 
     /** @dev Starts the staking and rewards distribution for a given staking token. This is a fallback in case the startsStakings() costs too much gas to call for all contracts
@@ -118,20 +130,22 @@ contract StakingRewardsFactory is Ownable {
     function startStaking(address stakingToken) public {
         require(block.timestamp >= stakingRewardsGenesis, 'StakingRewardsFactory::startStaking: not ready');
 
-        StakingRewardsInfo storage info = stakingRewardsInfoByStakingToken[stakingToken];
-        require(info.stakingRewards != address(0), 'StakingRewardsFactory::startStaking: not deployed');
-        require(!hasStakingStarted(info.stakingRewards), 'StakingRewardsFactory::startStaking: Staking has started');
+        address sr = stakingRewardsByStakingToken[stakingToken]; // StakingRewards
+        address[] storage rts = rewardsTokensByStakingToken[stakingToken]; // RewardTokenS
+        uint256[] storage ras = rewardsAmountsByStakingToken[stakingToken]; // RewardAmountS
 
-        for (uint i = 0; i < info.rewardsTokens.length; i++) {
-            require(info.rewardsAmounts[i] > 0 , 'StakingRewardsFactory::startStaking: Reward must be greater than zero');
+        require(sr != address(0), 'StakingRewardsFactory::startStaking: not deployed');
+        require(!hasStakingStarted(sr), 'StakingRewardsFactory::startStaking: Staking has started');
+
+        for (uint i = 0; i < rts.length; i++) {
+            require(ras[i] > 0, 'StakingRewardsFactory::startStaking: Reward must be greater than zero');
 
             require(
-                IERC20(info.rewardsTokens[i]).transfer(info.stakingRewards, info.rewardsAmounts[i]),
+                IERC20(rts[i]).transfer(sr, ras[i]),
                 'StakingRewardsFactory::startStaking: transfer failed'
             );
         }
 
-        // TODO: can I drop the reward tokens array in order to optimize?
-        StakingRewards(info.stakingRewards).start(info.rewardsTokens, info.rewardsAmounts);
+        StakingRewards(sr).start(rts, ras);
     }
 }
