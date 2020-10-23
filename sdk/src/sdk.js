@@ -203,14 +203,12 @@ class ALBTStakerSDK {
 				const currentPair = pair[i];
 				const tokenA = currentPair[0]
 				const tokenB = currentPair[1]
-				
-				const assetA = await (await this.getUniswapPairOtherTokenAmount(tokenA,tokenB,math.BONE)).tokenAmount.toString(6)
-				const assetB = await (await this.getUniswapPairOtherTokenAmount(tokenB,tokenA,math.BONE)).tokenAmount.toString(6)
+				const prices = await this._getUinswapPriceForTokens(tokenA,tokenB,math.BONE)	
 				
 				let tempPair = {
 					pair: [tokenA,tokenB],
-					assetA: assetA,
-					assetB: assetB,
+					assetA: prices.tokenAPrice,
+					assetB: prices.tokenBPrice,
 				}
 				pairPrices.push(tempPair)
 			}
@@ -474,6 +472,37 @@ class ALBTStakerSDK {
 
 		return tokenAmountMinBN;
 	}
+	async _getUinswapPriceForTokens(tokenAName, tokenBName, tokenAAmount) {
+		
+			const network = await this.provider.getNetwork()
+			if (this.debug) {
+				console.log(network);
+			}
+	
+			const tokenA = await this._getUniswapTokenByName(tokenAName);
+			const tokenB = await this._getUniswapTokenByName(tokenBName);
+			console.log(tokenA, "Test");
+			const pairA = await Fetcher.fetchPairData(tokenB, tokenA)
+			const routeA = new Route([pairA], tokenA)
+
+			const pairB = await Fetcher.fetchPairData(tokenA, tokenB)
+			const routeB = new Route([pairB], tokenB)
+	
+			const tradeB = new Trade(routeA, new TokenAmount(tokenA, tokenAAmount), TradeType.EXACT_INPUT)
+			const tradeA = new Trade(routeB, new TokenAmount(tokenB, tokenAAmount), TradeType.EXACT_INPUT)
+	
+			if (this.debug) {
+				console.log("Execution Price Token A:", tradeA.executionPrice.toSignificant(6))
+				console.log("Execution Price Token B:", tradeB.executionPrice.toSignificant(6))
+			}
+	
+			return {
+				tokenBPrice: tradeB.executionPrice.toSignificant(6),
+				tokenAPrice: tradeA.executionPrice.toSignificant(6)
+
+			}; 
+	}
+
 
 }
 
