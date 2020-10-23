@@ -162,7 +162,7 @@ contract StakingRewards is
         returns (bool)
     {
         for (uint i = 0; i < rewardsTokensArr.length; i++) {
-            if (0 > rewardsTokensMap[rewardsTokensArr[i]].periodFinish) {
+            if (rewardsTokensMap[rewardsTokensArr[i]].periodFinish > 0) {
                 return true;
             }
         }
