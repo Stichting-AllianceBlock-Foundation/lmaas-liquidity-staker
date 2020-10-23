@@ -220,10 +220,15 @@ describe('StakingRewardsFactory', () => {
                     for (i = 0; i < rewardTokensCount; i++) {
                         await rewardTokensInstances[i].transfer(stakingRewardsFactoryInstance.contractAddress, rewardAmounts[i]);
                     }
-                    await stakingRewardsFactoryInstance.startStaking(stakingTokenAddress);
 
-                    const hasStarted = await stakingRewardsFactoryInstance.hasStakingStarted(stakingTokenAddress);
-                    console.log(hasStarted);
+                    await stakingRewardsFactoryInstance.startStaking(stakingTokenAddress);
+                    const stakingRewardAddress = await stakingRewardsFactoryInstance.stakingRewardsByStakingToken(stakingTokenAddress)
+
+                    const hasStarted = await stakingRewardsFactoryInstance.hasStakingStarted(stakingRewardAddress);
+
+                    for (i = 0; i < rewardTokensCount; i++) {
+                        await rewardTokensInstances[i].transfer(stakingRewardsFactoryInstance.contractAddress, rewardAmounts[i]);
+                    }
 
                     await assert.revertWith(stakingRewardsFactoryInstance.startStaking(stakingTokenAddress), 'Staking has started')
                 });
@@ -243,13 +248,17 @@ describe('StakingRewardsFactory', () => {
                     const rewardToken = rewardTokensAddresses[0];
                     const rewardAmount = rewardAmounts[0];
 
-                    let amountToTransfer = rewardAmount.mul(2)
-                    await rewardTokenInstance.transfer(stakingRewardsFactoryInstance.contractAddress, amountToTransfer);
+                    for (i = 0; i < rewardTokensCount; i++) {
+                        await rewardTokensInstances[i].transfer(stakingRewardsFactoryInstance.contractAddress, rewardAmounts[i]);
+                    }
+
                     await stakingRewardsFactoryInstance.startStaking(stakingTokenAddress);
 
                     let rewardInfo = await stakingRewardsContract.rewardsTokensMap(rewardToken);
                     let periodFinishInitial = rewardInfo.periodFinish;
                     let rewardsDurationInitial = await stakingRewardsContract.rewardsDuration();
+
+                    await rewardTokensInstances[0].transfer(stakingRewardsFactoryInstance.contractAddress, rewardAmount);
 
                     await stakingRewardsFactoryInstance.extendRewardPeriod(stakingTokenAddress, rewardToken, rewardAmount);
 
@@ -262,7 +271,7 @@ describe('StakingRewardsFactory', () => {
                     let finalDuration = rewardsDurationInitial.add(duration)
 
                     assert(periodFinishFinal.eq(finalPeriod), "The finish period is not correct")
-                    assert(stakingRewardsBalanceFinal.eq(amountToTransfer), "The rewards amount is not correct")
+                    assert(stakingRewardsBalanceFinal.eq(rewardAmount.mul(2)), "The rewards amount is not correct")
                     assert(rewardsDurationFinal.eq(finalDuration), "The reward duration is not correct")
                 })
 
