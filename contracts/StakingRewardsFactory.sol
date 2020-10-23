@@ -64,7 +64,10 @@ contract StakingRewardsFactory is Ownable {
         require(_rewardsTokens.length > 0 && _rewardsAmounts.length > 0, 'StakingRewardsFactory::deploy: RewardsTokens and RewardsAmounts arrays could not be empty');
         require(_rewardsTokens.length == _rewardsAmounts.length, 'StakingRewardsFactory::deploy: RewardsTokens and RewardsAmounts should have a matching sizes');
 
-        // TODO: check validity of _rewardsTokens and _rewardsAmounts != address(0) , > 0
+        for (uint i = 0; i < _rewardsTokens.length; i++) {
+            require(_rewardsTokens[i] != address(0), 'StakingRewardsFactory::deploy: Reward token address could not be invalid');
+            require(_rewardsAmounts[i] > 0, 'StakingRewardsFactory::deploy: Reward must be greater than zero');
+        }
 
         stakingRewardsByStakingToken[_stakingToken] = address(new StakingRewards(/*_rewardsDistribution=*/ address(this), _rewardsTokens, _stakingToken, _rewardsDuration));
         rewardsTokensByStakingToken[_stakingToken] = _rewardsTokens;
@@ -138,8 +141,6 @@ contract StakingRewardsFactory is Ownable {
         require(!hasStakingStarted(sr), 'StakingRewardsFactory::startStaking: Staking has started');
 
         for (uint i = 0; i < rts.length; i++) {
-            require(ras[i] > 0, 'StakingRewardsFactory::startStaking: Reward must be greater than zero');
-
             require(
                 IERC20(rts[i]).transfer(sr, ras[i]),
                 'StakingRewardsFactory::startStaking: transfer failed'

@@ -277,7 +277,6 @@ contract StakingRewards is
         );
 
         for (uint i = 0; i < _rewardsTokens.length; i++) {
-            // TODO: chech ri validity
             RewardInfo storage ri = rewardsTokensMap[_rewardsTokens[i]];
             ri.rewardRate = _rewardsAmounts[i].div(rewardsDuration);
 
@@ -308,7 +307,6 @@ contract StakingRewards is
         updateReward(address(0))
         onlyRewardsDistribution
     {
-        // TODO: look into periodFinish
         uint256 periodToExtend = getPeriodsToExtend(rewardToken, rewardAmount);
         IERC20(rewardToken).transferFrom(msg.sender, address(this), rewardAmount);
         rewardsTokensMap[rewardToken].periodFinish = rewardsTokensMap[rewardToken].periodFinish.add(periodToExtend);
@@ -322,14 +320,13 @@ contract StakingRewards is
     /** @dev Modifier that re-calculates the rewards per user on user action.
      */
     modifier updateReward(address account) {
-        // TODO: account != address(0) -> move to require
         for (uint i = 0; i < rewardsTokensArr.length; i++) {
             address token = rewardsTokensArr[i];
-            // TODO: chech ri validity
             RewardInfo storage ri = rewardsTokensMap[token];
 
             ri.latestRewardPerTokenSaved = rewardPerToken(token); // Calculate the reward until now
             ri.lastUpdateTime = lastTimeRewardApplicable(token); // Update the last update time to now (or end date) for future calculations
+
             if (account != address(0)) {
                 ri.rewards[account] = earned(account, token);
                 ri.userRewardPerTokenRecorded[account] = ri.latestRewardPerTokenSaved;

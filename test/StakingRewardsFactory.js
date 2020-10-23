@@ -144,6 +144,17 @@ describe('StakingRewardsFactory', () => {
             await assert.revertWith(stakingRewardsFactoryInstance.deploy(stakingTokenAddress, rewardTokensAddresses.slice(0, 1), rewardAmounts, duration), errorString);
         });
 
+        it('Should fail if the reward amount is not greater than zero', async () => {
+            const errorString = "StakingRewardsFactory::deploy: Reward must be greater than zero"
+            await assert.revertWith(stakingRewardsFactoryInstance.deploy(stakingTokenAddress, [rewardTokensAddresses[0]], [0], duration), errorString);
+        });
+
+        it('Should fail if the reward token amount is invalid address', async () => {
+            const errorString = "StakingRewardsFactory::deploy: Reward token address could not be invalid"
+            console.log(rewardTokensAddresses[0])
+            await assert.revertWith(stakingRewardsFactoryInstance.deploy(stakingTokenAddress, [ethers.constants.AddressZero], [rewardAmounts[0]], duration), errorString);
+        });
+
         describe('Adding Reward', async function () {
 
             beforeEach(async () => {
@@ -208,12 +219,6 @@ describe('StakingRewardsFactory', () => {
 
                 it('Should fail on starting the staking reward without having transferred the tokens to the factory', async () => {
                     await assert.revert(stakingRewardsFactoryInstance.startStaking(stakingTokenAddress));
-                });
-
-                it('Should fail if the reward amount is not greater than zero', async () => {
-                    let secondStakingTokenInstance = await deployer.deploy(TestERC20, {}, ethers.utils.parseEther("300000"));
-                    await stakingRewardsFactoryInstance.deploy(secondStakingTokenInstance.contractAddress, [rewardTokensAddresses[0]], [0], duration);
-                    await assert.revertWith(stakingRewardsFactoryInstance.startStaking(secondStakingTokenInstance.contractAddress), 'Reward must be greater than zero')
                 });
 
                 it('Should fail if trying to start the staking while it has already been started', async () => {
