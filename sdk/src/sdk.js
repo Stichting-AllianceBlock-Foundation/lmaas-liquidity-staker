@@ -204,7 +204,6 @@ class ALBTStakerSDK {
 				const tokenA = currentPair[0]
 				const tokenB = currentPair[1]
 				const prices = await this._getUinswapPriceForTokens(tokenA,tokenB,math.BONE)	
-				
 				let tempPair = {
 					pair: [tokenA,tokenB],
 					assetA: prices.tokenAPrice,
@@ -276,11 +275,51 @@ class ALBTStakerSDK {
 		return ethers.utils.formatEther(poolShare.toString());
 	}
 
-
 	async getBPoolBalance(wallet, poolAddress) {
 		const poolContract = new ethers.Contract(poolAddress, balancerBPoolContractABI, wallet);
 
 		return poolContract.balanceOf(wallet.address)
+	}
+
+	//TODO work on better formatting
+	async getBalancerSpotPrice(provider, poolAddress, tokenAAddres, tokenBAddress) {	
+		const poolContract = new ethers.Contract(poolAddress, balancerBPoolContractABI, provider)
+		let priceAtoB = await poolContract.getSpotPrice(tokenAAddres,tokenBAddress);
+		const parsedPrice = ethers.utils.formatEther(priceAtoB)
+		
+		return parsedPrice;
+	}
+
+	async _getBalancerPricesForTokens(provider,poolAddress,tokenA,tokenB) {
+
+		let priceAtoB = await this.getBalancerSpotPrice(provider,poolAddress,tokenA,tokenB);
+		let priceBtoA = await this.getBalancerSpotPrice(provider,poolAddress,tokenB,tokenA);
+		return {
+			tokenAPrice: priceAtoB,
+			tokenBPrice: priceBtoA
+
+		}; 
+	}
+
+
+	async getBalancerPricesForPair(pair) {
+		let pairPrices = []
+			for (let i = 0; i < pair.length; i++) {
+	
+				const currentPair = pair[i];
+				const tokenA = this.contractsConfig.tokenContracts[currentPair[0]]
+				const tokenB = this.contractsConfig.tokenContracts[currentPair[1]]
+				const balancerPool = `${currentPair[0]}-${currentPair[1]}`
+				const poolAddress = this.contractsConfig.balancer.poolContracts[balancerPool]
+				const prices = await this._getBalancerPricesForTokens(this.provider,poolAddress,tokenA,tokenB)
+				let tempPair = {
+					pair: [tokenA,tokenB],
+					assetA: prices.tokenAPrice,
+					assetB: prices.tokenBPrice,
+				}
+				pairPrices.push(tempPair)
+			}
+			return pairPrices;
 	}
 
 	async approveToken(wallet, tokenAddress, spenderAddress) {	
@@ -336,17 +375,16 @@ class ALBTStakerSDK {
 		let balance = await stakingRewardsContract.balanceOf(wallet.address);
 		return ethers.utils.formatEther(balance.toString());
 	}
-	//TODO
 	async calculateCustomerWeeklyReward(wallet, tokenAddress) {
-	const stakingRewardsContract = new ethers.Contract(tokenAddress, stakingRewaradsContractABI, wallet);
-	const rewardRate = await stakingRewardsContract.rewardRate();
-	const stakedAmount = await stakingRewardsContract.balanceOf(wallet.address);
-	const totalStakedAmount = await stakingRewardsContract.totalSupply();
+		const stakingRewardsContract = new ethers.Contract(tokenAddress, stakingRewaradsContractABI, wallet);
+		const rewardRate = await stakingRewardsContract.rewardRate();
+		const stakedAmount = await stakingRewardsContract.balanceOf(wallet.address);
+		const totalStakedAmount = await stakingRewardsContract.totalSupply();
 
-	const multiplier = stakedAmount.mul(rewardRate)
-	const individualRewardRate = multiplier.div(totalStakedAmount)
+		const multiplier = stakedAmount.mul(rewardRate)
+		const individualRewardRate = multiplier.div(totalStakedAmount)
 
-	return individualRewardRate.mul(week);
+		return individualRewardRate.mul(week);
 
 	}
 	//TODO
@@ -481,7 +519,6 @@ class ALBTStakerSDK {
 	
 			const tokenA = await this._getUniswapTokenByName(tokenAName);
 			const tokenB = await this._getUniswapTokenByName(tokenBName);
-			console.log(tokenA, "Test");
 			const pairA = await Fetcher.fetchPairData(tokenB, tokenA)
 			const routeA = new Route([pairA], tokenA)
 
