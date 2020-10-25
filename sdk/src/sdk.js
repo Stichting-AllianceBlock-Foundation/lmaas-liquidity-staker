@@ -229,11 +229,11 @@ class ALBTStakerSDK {
 
 	async getUniswapPoolTokenBalance(wallet, tokenAName, tokenBName) {
 		const poolTokenAddress = this._getUniswapPairPoolToken(tokenAName, tokenBName);
-		const tokenContract = new ethers.Contract(poolTokenAddress, ERC20ABI, wallet)
+		const tokenContract = new ethers.Contract(poolTokenAddress, ERC20ABI, this.provider)
 
-		const walletAddress = await wallet.getAddress();
+		// const walletAddress = await wallet.getAddress();
 
-		return tokenContract.balanceOf(walletAddress)
+		return tokenContract.balanceOf(wallet)
 	}
 
 	async addBalancerLiquidity(wallet, tokenAddress, tokenAmountIn, poolAddress) {
@@ -264,9 +264,9 @@ class ALBTStakerSDK {
 	}
 
 	async calculateUniswapPoolPercentage(wallet, poolAddress) {
-		const poolContract = new ethers.Contract(poolAddress,ERC20ABI, wallet);
+		const poolContract = new ethers.Contract(poolAddress,ERC20ABI, this.provider);
 
-		let userBalance = await poolContract.balanceOf(wallet.address);
+		let userBalance = await poolContract.balanceOf(wallet);
 		let totalSupply = await poolContract.totalSupply();
 		
 		userBalance = new BigNumber(userBalance.toString())
@@ -285,7 +285,11 @@ class ALBTStakerSDK {
 	async getBalancerSpotPrice(provider, poolAddress, tokenAAddres, tokenBAddress) {	
 		const poolContract = new ethers.Contract(poolAddress, balancerBPoolContractABI, provider)
 		let priceAtoB = await poolContract.getSpotPrice(tokenAAddres,tokenBAddress);
+		// priceAtoB = new BigNumber(priceAtoB.toString())
+
+		// priceAtoB.integerValue(BigNumber.ROUND_HALF_UP)
 		const parsedPrice = ethers.utils.formatEther(priceAtoB)
+		console.log(parsedPrice.slice(0,6), "format")
 		
 		return parsedPrice;
 	}
@@ -363,22 +367,22 @@ class ALBTStakerSDK {
 	}
 
 	async getCurrentReward(wallet, rewardsContractAddress) {
-		const stakingRewardsContract = new ethers.Contract(rewardsContractAddress, stakingRewaradsContractABI, wallet);
+		const stakingRewardsContract = new ethers.Contract(rewardsContractAddress, stakingRewaradsContractABI, this.provider);
 
-		let currentReward = await stakingRewardsContract.earned(wallet.address);
+		let currentReward = await stakingRewardsContract.earned(wallet);
 		return ethers.utils.formatEther(currentReward.toString());
 	}
 
 	async getStakingTokensBalance(wallet, rewardsContractAddress) {
-		const stakingRewardsContract = new ethers.Contract(rewardsContractAddress, stakingRewaradsContractABI, wallet);
+		const stakingRewardsContract = new ethers.Contract(rewardsContractAddress, stakingRewaradsContractABI, this.provider);
 
-		let balance = await stakingRewardsContract.balanceOf(wallet.address);
+		let balance = await stakingRewardsContract.balanceOf(wallet);
 		return ethers.utils.formatEther(balance.toString());
 	}
 	async calculateCustomerWeeklyReward(wallet, tokenAddress) {
-		const stakingRewardsContract = new ethers.Contract(tokenAddress, stakingRewaradsContractABI, wallet);
+		const stakingRewardsContract = new ethers.Contract(tokenAddress, stakingRewaradsContractABI, this.provider);
 		const rewardRate = await stakingRewardsContract.rewardRate();
-		const stakedAmount = await stakingRewardsContract.balanceOf(wallet.address);
+		const stakedAmount = await stakingRewardsContract.balanceOf(wallet);
 		const totalStakedAmount = await stakingRewardsContract.totalSupply();
 
 		const multiplier = stakedAmount.mul(rewardRate)
