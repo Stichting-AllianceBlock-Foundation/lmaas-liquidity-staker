@@ -178,10 +178,13 @@ class ALBTStakerSDK {
 			const tokenA = currentPair[0]
 			const tokenB = currentPair[1]
 			const contractPair = `${tokenA}-${tokenB}`
-			
+			console.log("Card Data1")
 			const poolTokenBalance = await this.getUniswapPoolTokenBalance(wallet, tokenA,tokenB)
+			console.log("Card Data2", poolTokenBalance)
 			const weeklyRewards = await this.calculateCustomerWeeklyReward(wallet,this.contractsConfig.uniswap.rewardContracts[contractPair])
+			console.log("Card Data3", weeklyRewards)
 			const earnedReward = await this.getCurrentReward(wallet, this.contractsConfig.uniswap.rewardContracts[contractPair])
+			console.log("Card Data4", earnedReward)
 			const stakedTokens = await this.getStakingTokensBalance(wallet, this.contractsConfig.uniswap.rewardContracts[contractPair])
 			const poolShare = await this.calculateUniswapPoolPercentage(wallet, this.contractsConfig.uniswap.poolTokens[contractPair])
 			let tempPair = {
