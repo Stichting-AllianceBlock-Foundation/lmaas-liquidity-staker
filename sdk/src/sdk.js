@@ -171,6 +171,7 @@ class ALBTStakerSDK {
 	}
 
 	async getUniswapCardData(wallet, pair) {
+		console.log("Start fetchind the card data")
 		let cardData = []
 		for (let i = 0; i < pair.length; i++) {
 			
@@ -232,6 +233,7 @@ class ALBTStakerSDK {
 
 	async getUniswapPoolTokenBalance(wallet, tokenAName, tokenBName) {
 		const poolTokenAddress = this._getUniswapPairPoolToken(tokenAName, tokenBName);
+		console.log("this")
 		const tokenContract = new ethers.Contract(poolTokenAddress, ERC20ABI, this.provider)
 
 		// const walletAddress = await wallet.getAddress();
