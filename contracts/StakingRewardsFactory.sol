@@ -19,22 +19,6 @@ contract StakingRewardsFactory is Ownable {
      */
     mapping(address => address) public stakingRewardsByStakingToken;
 
-    /** @dev Mapping holding information about a particular Rewards Tokens by Staking Token
-     */
-    mapping(address => address[]) public rewardsTokensByStakingToken;
-
-    /** @dev Mapping holding information about a particular Rewards Amounts by Staking Token
-     */
-    mapping(address => uint256[]) public rewardsAmountsByStakingToken;
-
-    function getRewardsTokensCount(address stakingToken)
-        external
-        view
-        returns (uint256)
-    {
-        return rewardsTokensByStakingToken[stakingToken].length;
-    }
-
     /* ========== CONSTRUCTOR ========== */
 
     /** @dev Function called once on deployment time
@@ -72,9 +56,7 @@ contract StakingRewardsFactory is Ownable {
             require(_rewardsAmounts[i] != 0, 'StakingRewardsFactory::deploy: Reward must be greater than zero');
         }
 
-        stakingRewardsByStakingToken[_stakingToken] = address(new StakingRewards(_rewardsTokens, _stakingToken, _rewardsDuration));
-        rewardsTokensByStakingToken[_stakingToken] = _rewardsTokens;
-        rewardsAmountsByStakingToken[_stakingToken] = _rewardsAmounts;
+        stakingRewardsByStakingToken[_stakingToken] = address(new StakingRewards(_rewardsTokens, _rewardsAmounts, _stakingToken, _rewardsDuration));
 
         stakingTokens.push(_stakingToken);
     }
@@ -137,19 +119,21 @@ contract StakingRewardsFactory is Ownable {
         require(block.timestamp >= stakingRewardsGenesis, 'StakingRewardsFactory::startStaking: not ready');
 
         address sr = stakingRewardsByStakingToken[stakingToken]; // StakingRewards
-        address[] storage rts = rewardsTokensByStakingToken[stakingToken]; // RewardTokenS
-        uint256[] storage ras = rewardsAmountsByStakingToken[stakingToken]; // RewardAmountS
+
+        StakingRewards srInstance = StakingRewards(sr);
+        uint256 rtsSize = srInstance.getRewardsTokensCount();
 
         require(sr != address(0), 'StakingRewardsFactory::startStaking: not deployed');
         require(!hasStakingStarted(sr), 'StakingRewardsFactory::startStaking: Staking has started');
 
-        for (uint256 i = 0; i < rts.length; i++) {
+        for (uint256 i = 0; i < rtsSize; i++) {
             require(
-                IERC20(rts[i]).transfer(sr, ras[i]),
+                IERC20(srInstance.rewardsTokensArr(i))
+                    .transfer(sr, srInstance.rewardsAmountsArr(i)),
                 'StakingRewardsFactory::startStaking: transfer failed'
             );
         }
 
-        StakingRewards(sr).start(ras);
+        srInstance.start();
     }
 }

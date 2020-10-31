@@ -3,12 +3,12 @@ pragma solidity 0.5.16;
 
 import "openzeppelin-solidity-2.3.0/contracts/math/Math.sol";
 import "openzeppelin-solidity-2.3.0/contracts/math/SafeMath.sol";
-import "openzeppelin-solidity-2.3.0/contracts/token/ERC20/IERC20.sol";
 import "openzeppelin-solidity-2.3.0/contracts/token/ERC20/SafeERC20.sol";
 import "openzeppelin-solidity-2.3.0/contracts/utils/ReentrancyGuard.sol";
 
 // Inheritance
 import "./interfaces/IStakingRewards.sol";
+import "./interfaces/IERC20Detailed.sol";
 import "./RewardsDistributionRecipient.sol";
 
 contract StakingRewards is
@@ -41,6 +41,7 @@ contract StakingRewards is
 
     mapping(address => RewardInfo) public rewardsTokensMap; // structure for fast access to token's data
     address[] public rewardsTokensArr; // structure to iterate over
+    uint256[] public rewardsAmountsArr;
 
     function getRewardsTokensCount()
         external
@@ -70,11 +71,13 @@ contract StakingRewards is
 
     /** @dev Function called once on deployment time
     * @param _rewardsTokens The addresses of the tokens the rewards will be paid in
+    * @param _rewardsAmounts The reward amounts for each reward token
     * @param _stakingToken The address of the token being staked
     * @param _rewardsDuration Rewards duration in seconds
      */
     constructor(
         address[] memory _rewardsTokens,
+        uint256[] memory _rewardsAmounts,
         address _stakingToken,
         uint256 _rewardsDuration
     ) public {
@@ -82,6 +85,7 @@ contract StakingRewards is
             rewardsTokensMap[_rewardsTokens[i]] = RewardInfo(0, 0, 0, 0, _rewardsDuration);
         }
         rewardsTokensArr = _rewardsTokens;
+        rewardsAmountsArr = _rewardsAmounts;
         stakingToken = IERC20(_stakingToken);
 
         rewardsDistributor = msg.sender;
@@ -120,8 +124,7 @@ contract StakingRewards is
 
         uint256 rewardPerTokenSinceLastSave = timeSinceLastSave
             .mul(ri.rewardRate)
-            // TODO -> discuss
-            .mul(1e18 /* 10 ** IERC20(stakingToken).decimals() */)
+            .mul(10 ** uint256(IERC20Detailed(address(stakingToken)).decimals()))
             .div(_totalStakesAmount);
 
         return ri.latestRewardPerTokenSaved.add(rewardPerTokenSinceLastSave);
@@ -140,8 +143,7 @@ contract StakingRewards is
 
         uint256 newReward = _balances[account]
             .mul(userRewardPerTokenSinceRecorded)
-            // TODO -> discuss
-            .div(1e18 /* 10 ** IERC20(stakingToken).decimals() */);
+            .div(10 ** uint256(IERC20Detailed(address(stakingToken)).decimals()));
 
         return ri.rewards[account].add(newReward);
     }
@@ -267,9 +269,8 @@ contract StakingRewards is
     /* ========== RESTRICTED FUNCTIONS ========== */
 
     /** @dev Makes the needed calculations and starts the staking/rewarding.
-     * @param _rewardsAmounts Array of all the reward amounts for each token.
      */
-    function start(uint256[] calldata _rewardsAmounts)
+    function start()
         external
         onlyRewardsDistributor
         updateReward(address(0))
@@ -278,7 +279,7 @@ contract StakingRewards is
             address token = rewardsTokensArr[i];
             RewardInfo storage ri = rewardsTokensMap[token];
 
-            ri.rewardRate = _rewardsAmounts[i].div(ri.rewardDuration);
+            ri.rewardRate = rewardsAmountsArr[i].div(ri.rewardDuration);
             // Ensure the provided reward amount is not more than the balance in the contract.
             // This keeps the reward rate in the right range, preventing overflows due to
             // very high values of rewardRate in the earned and rewardsPerToken functions;
@@ -293,7 +294,7 @@ contract StakingRewards is
             ri.periodFinish = block.timestamp.add(ri.rewardDuration);
         }
 
-        emit RewardAdded(rewardsTokensArr, _rewardsAmounts);
+        emit RewardAdded(rewardsTokensArr, rewardsAmountsArr);
     }
 
     /** @dev Add's more rewards and updates the duration of the rewards distribution.
