@@ -32,6 +32,7 @@ contract StakingRewards is
         uint256 latestRewardPerTokenSaved;
         uint256 periodFinish;
         uint256 lastUpdateTime;
+        uint256 rewardDuration;
 
         // user rewards
         mapping(address => uint256) userRewardPerTokenRecorded;
@@ -40,9 +41,6 @@ contract StakingRewards is
 
     mapping(address => RewardInfo) public rewardsTokensMap; // structure for fast access to token's data
     address[] public rewardsTokensArr; // structure to iterate over
-
-    // timings
-    uint256 public rewardsDuration;
 
     function getRewardsTokensCount()
         external
@@ -81,11 +79,10 @@ contract StakingRewards is
         uint256 _rewardsDuration
     ) public {
         for (uint i = 0; i < _rewardsTokens.length; i++) {
-            rewardsTokensMap[_rewardsTokens[i]] = RewardInfo(0, 0, 0, 0);
+            rewardsTokensMap[_rewardsTokens[i]] = RewardInfo(0, 0, 0, 0, _rewardsDuration);
         }
         rewardsTokensArr = _rewardsTokens;
         stakingToken = IERC20(_stakingToken);
-        rewardsDuration = _rewardsDuration;
 
         rewardsDistributor = msg.sender;
     }
@@ -123,7 +120,8 @@ contract StakingRewards is
 
         uint256 rewardPerTokenSinceLastSave = timeSinceLastSave
             .mul(ri.rewardRate)
-            .mul(1e18)
+            // TODO -> discuss
+            .mul(1e18 /* 10 ** IERC20(stakingToken).decimals() */)
             .div(_totalStakesAmount);
 
         return ri.latestRewardPerTokenSaved.add(rewardPerTokenSinceLastSave);
@@ -142,7 +140,8 @@ contract StakingRewards is
 
         uint256 newReward = _balances[account]
             .mul(userRewardPerTokenSinceRecorded)
-            .div(1e18);
+            // TODO -> discuss
+            .div(1e18 /* 10 ** IERC20(stakingToken).decimals() */);
 
         return ri.rewards[account].add(newReward);
     }
@@ -151,7 +150,8 @@ contract StakingRewards is
      * @param rewardToken The reward token for which calculations will be made for
      */
     function getRewardForDuration(address rewardToken) external view returns (uint256) {
-        return rewardsTokensMap[rewardToken].rewardRate.mul(rewardsDuration);
+        RewardInfo storage ri = rewardsTokensMap[rewardToken];
+        return ri.rewardRate.mul(ri.rewardDuration);
     }
 
     /** @dev Calculates the finish period extension based on the new reward amount added
@@ -267,35 +267,33 @@ contract StakingRewards is
     /* ========== RESTRICTED FUNCTIONS ========== */
 
     /** @dev Makes the needed calculations and starts the staking/rewarding.
-     * @param _rewardsTokens Array of all reward tokens.
      * @param _rewardsAmounts Array of all the reward amounts for each token.
      */
-    function start(address[] calldata _rewardsTokens, uint256[] calldata _rewardsAmounts)
+    function start(uint256[] calldata _rewardsAmounts)
         external
         onlyRewardsDistributor
         updateReward(address(0))
     {
-        for (uint i = 0; i < _rewardsTokens.length; i++) {
+        for (uint i = 0; i < rewardsTokensArr.length; i++) {
             address token = rewardsTokensArr[i];
             RewardInfo storage ri = rewardsTokensMap[token];
 
-            ri.rewardRate = _rewardsAmounts[i].div(rewardsDuration);
+            ri.rewardRate = _rewardsAmounts[i].div(ri.rewardDuration);
             // Ensure the provided reward amount is not more than the balance in the contract.
             // This keeps the reward rate in the right range, preventing overflows due to
             // very high values of rewardRate in the earned and rewardsPerToken functions;
             // Reward + leftover must be less than 2^256 / 10^18 to avoid overflow.
             uint256 balance = IERC20(token).balanceOf(address(this));
             require(
-                ri.rewardRate <= balance.div(rewardsDuration),
+                ri.rewardRate <= balance.div(ri.rewardDuration),
                 "Provided reward too high"
             );
 
             ri.lastUpdateTime = block.timestamp;
-            ri.periodFinish = block.timestamp.add(rewardsDuration);
+            ri.periodFinish = block.timestamp.add(ri.rewardDuration);
         }
 
-
-        emit RewardAdded(_rewardsTokens, _rewardsAmounts);
+        emit RewardAdded(rewardsTokensArr, _rewardsAmounts);
     }
 
     /** @dev Add's more rewards and updates the duration of the rewards distribution.
@@ -309,8 +307,10 @@ contract StakingRewards is
     {
         uint256 periodToExtend = getPeriodsToExtend(rewardToken, rewardAmount);
         IERC20(rewardToken).safeTransferFrom(msg.sender, address(this), rewardAmount);
-        rewardsTokensMap[rewardToken].periodFinish = rewardsTokensMap[rewardToken].periodFinish.add(periodToExtend);
-        rewardsDuration = rewardsDuration.add(periodToExtend);
+
+        RewardInfo storage ri = rewardsTokensMap[rewardToken];
+        ri.periodFinish = ri.periodFinish.add(periodToExtend);
+        ri.rewardDuration = ri.rewardDuration.add(periodToExtend);
 
         emit RewardExtended(rewardToken, rewardAmount, block.timestamp, periodToExtend);
     }

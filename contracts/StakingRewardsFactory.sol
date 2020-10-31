@@ -99,7 +99,7 @@ contract StakingRewardsFactory is Ownable {
         require(sr != address(0), 'StakingRewardsFactory::extendRewardPeriod: not deployed');
         require(hasStakingStarted(sr), 'StakingRewardsFactory::extendRewardPeriod: Staking has not started');
 
-        (uint256 rate, , , ) = StakingRewards(sr).rewardsTokensMap(extendRewardToken);
+        (uint256 rate, , , ,) = StakingRewards(sr).rewardsTokensMap(extendRewardToken);
 
         require(rate != 0, 'StakingRewardsFactory::extendRewardPeriod: Token for extending reward is not known'); // its expected that valid token should have a valid rate
 
@@ -150,6 +150,6 @@ contract StakingRewardsFactory is Ownable {
             );
         }
 
-        StakingRewards(sr).start(rts, ras);
+        StakingRewards(sr).start(ras);
     }
 }
