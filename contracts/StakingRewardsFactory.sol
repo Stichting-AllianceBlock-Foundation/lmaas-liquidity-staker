@@ -121,11 +121,10 @@ contract StakingRewardsFactory is Ownable {
         address sr = stakingRewardsByStakingToken[stakingToken]; // StakingRewards
 
         StakingRewards srInstance = StakingRewards(sr);
-        uint256 rtsSize = srInstance.getRewardsTokensCount();
-
         require(sr != address(0), 'StakingRewardsFactory::startStaking: not deployed');
         require(!hasStakingStarted(sr), 'StakingRewardsFactory::startStaking: Staking has started');
 
+        uint256 rtsSize = srInstance.getRewardsTokensCount();
         for (uint256 i = 0; i < rtsSize; i++) {
             require(
                 IERC20(srInstance.rewardsTokensArr(i))
