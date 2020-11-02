@@ -76,10 +76,8 @@ describe('StakingRewardsFactory', () => {
 
             const stakingRewards = await stakingRewardsFactoryInstance.stakingRewardsByStakingToken(stakingTokenAddress);
             const stakingRewardsContract = await etherlime.ContractAt(StakingRewards, stakingRewards);
-            // const rewardsDuration = await stakingRewardsContract.rewardsDuration();
 
             assert.isAddress(stakingRewards, "The staking reward contract was not deployed");
-            // assert.equal(rewardsDuration.toString(), duration, "Rewards Duration was not set properly")
         });
 
         it('Should store and deploy correct reward token and reward amounts', async function () {

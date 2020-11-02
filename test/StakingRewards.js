@@ -44,8 +44,8 @@ describe('StakingRewards', () => {
         stakingRewardsInstance = await deployer.deploy(
             StakingRewards,
             {},
-            aliceAccount.signer.address,
             rewardTokensAddresses,
+            rewardAmounts,
             stakingTokenAddress,
             duration
         );
@@ -55,8 +55,7 @@ describe('StakingRewards', () => {
         assert.isAddress(stakingRewardsInstance.contractAddress, "The StakingReward contract was not deployed");
 
         const savedStakingTokenAddress = await stakingRewardsInstance.stakingToken();
-        const savedRewardsDistributor = await stakingRewardsInstance.rewardsDistribution();
-
+        const savedRewardsDistributor = await stakingRewardsInstance.rewardsDistributor();
         assert.strictEqual(stakingTokenInstance.contractAddress.toLowerCase(), savedStakingTokenAddress.toLowerCase(), "The saved staking token was not the same as the inputted one");
         assert.strictEqual(aliceAccount.signer.address.toLowerCase(), savedRewardsDistributor.toLowerCase(), "The saved rewards distributor was not the same as the inputted one");
 
@@ -72,13 +71,11 @@ describe('StakingRewards', () => {
             assert(info.rewardRate.eq(0), "Reward rate is not 0 before start");
             assert(info.lastUpdateTime.eq(0), "lastUpdate is not 0 before start");
             assert(info.latestRewardPerTokenSaved.eq(0), "Reward per token is not 0 before start");
+            assert(info.rewardDuration.eq(duration), "The saved duration was not correct before start");
         }
 
-        const savedDuration = await stakingRewardsInstance.rewardsDuration();
         const totalSupply = await stakingRewardsInstance.totalSupply();
-
         assert(totalSupply.eq(0), "Total supply is not 0 before start");
-        assert(savedDuration.eq(duration), "The saved duration was not correct before start");
     });
 
     describe('Starting', async function () {
@@ -90,7 +87,7 @@ describe('StakingRewards', () => {
         })
 
         it('Should successfully start the staking', async () => {
-            await stakingRewardsInstance.start(rewardTokensAddresses, rewardAmounts);
+            await stakingRewardsInstance.start();
 
             const {
                 timestamp: now
@@ -108,15 +105,7 @@ describe('StakingRewards', () => {
         });
 
         it('Should fail on start being called not by distributor', async () => {
-            await assert.revert(stakingRewardsInstance.from(bobAccount.signer.address).start(rewardTokensAddresses, rewardAmounts));
-        });
-
-        it('Should fail on start with higher reward than available', async () => {
-            await assert.revertWith(stakingRewardsInstance.start(
-                rewardTokensAddresses,
-                [rewardAmounts[0].mul(2)].concat(rewardAmounts.slice(2))
-                ),
-                "Provided reward too high");
+            await assert.revert(stakingRewardsInstance.from(bobAccount.signer.address).start());
         });
     })
 
@@ -130,7 +119,7 @@ describe('StakingRewards', () => {
             for (i = 0; i < rewardTokensCount; i++) {
                 await rewardTokensInstances[i].transfer(stakingRewardsInstance.contractAddress, rewardAmounts[i]);
             }
-            await stakingRewardsInstance.start(rewardTokensAddresses, rewardAmounts);
+            await stakingRewardsInstance.start();
         })
 
         it('Should successfully stake and earn reward', async () => {
@@ -287,7 +276,7 @@ describe('StakingRewards', () => {
             describe('Extending Rewards', async function () {
 
                 it("Should fail directly calling add rewards with zero amount", async () => {
-                    let distributionAddress = await stakingRewardsInstance.rewardsDistribution();
+                    let distributionAddress = await stakingRewardsInstance.rewardsDistributor();
 
                     for (i = 0; i < rewardTokensCount; i++) {
                         await assert.revertWith(stakingRewardsInstance.from(distributionAddress).addRewards(rewardTokensAddresses[i], 0), "Rewards should be greater than zero");
@@ -295,12 +284,12 @@ describe('StakingRewards', () => {
                 });
 
                 it("Should fail directly calling add rewards if the staking has not started", async () => {
-                    let distributionAddress = await stakingRewardsInstance.rewardsDistribution();
+                    let distributionAddress = await stakingRewardsInstance.rewardsDistributor();
                     let secondStakingRewardsInstance = await deployer.deploy(
                         StakingRewards,
                         {},
-                        aliceAccount.signer.address,
                         rewardTokensAddresses,
+                        rewardAmounts,
                         stakingTokenInstance.contractAddress,
                         duration
                     );
@@ -312,8 +301,8 @@ describe('StakingRewards', () => {
                     let secondStakingRewardsInstance = await deployer.deploy(
                         StakingRewards,
                         {},
-                        aliceAccount.signer.address,
                         rewardTokensAddresses,
+                        rewardAmounts,
                         stakingTokenInstance.contractAddress,
                         duration
                     );
@@ -322,7 +311,7 @@ describe('StakingRewards', () => {
                 });
 
                 it("Should not change the reward rate after extending the reward", async () => {
-                    let distributionAddress = await stakingRewardsInstance.rewardsDistribution();
+                    let distributionAddress = await stakingRewardsInstance.rewardsDistributor();
 
                     for (i = 0; i < rewardTokensCount; i++) {
                         let rewardToken = rewardTokensAddresses[i];
