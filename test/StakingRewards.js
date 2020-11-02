@@ -74,7 +74,7 @@ describe('StakingRewards', () => {
             assert(info.rewardDuration.eq(duration), "The saved duration was not correct before start");
         }
 
-        const totalSupply = await stakingRewardsInstance.totalSupply();
+        const totalSupply = await stakingRewardsInstance.totalStakesAmount();
         assert(totalSupply.eq(0), "Total supply is not 0 before start");
     });
 

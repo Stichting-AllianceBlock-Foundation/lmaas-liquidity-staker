@@ -43,29 +43,18 @@ contract StakingRewards is
     address[] public rewardsTokensArr; // structure to iterate over
     uint256[] public rewardsAmountsArr;
 
-    function getRewardsTokensCount()
-        external
-        view
-        returns (uint)
-    {
-        return rewardsTokensArr.length;
-    }
+    /* ========== EVENTS ========== */
 
-    function getUserRewardPerTokenRecorded(address rewardToken, address user)
-        external
-        view
-        returns (uint256)
-    {
-        return rewardsTokensMap[rewardToken].userRewardPerTokenRecorded[user];
-    }
-
-    function getUserReward(address rewardToken, address user)
-        external
-        view
-        returns (uint256)
-    {
-        return rewardsTokensMap[rewardToken].rewards[user];
-    }
+    event RewardAdded(address[] token, uint256[] reward);
+    event Staked(address indexed user, uint256 amount);
+    event Withdrawn(address indexed user, uint256 amount);
+    event RewardPaid(address indexed user, address indexed rewardToken, uint256 rewardAmount);
+    event RewardExtended(
+        address indexed rewardToken,
+        uint256 rewardAmount,
+        uint256 date,
+        uint256 periodToExtend
+    );
 
     /* ========== CONSTRUCTOR ========== */
 
@@ -91,61 +80,72 @@ contract StakingRewards is
         rewardsDistributor = msg.sender;
     }
 
-    /* ========== VIEWS ========== */
+    /* ========== MODIFIERS ========== */
 
-    function totalSupply() external view returns (uint256) {
+    /** @dev Modifier that re-calculates the rewards per user on user action.
+     */
+    modifier updateReward(address account) {
+        for (uint i = 0; i < rewardsTokensArr.length; i++) {
+            address token = rewardsTokensArr[i];
+            RewardInfo storage ri = rewardsTokensMap[token];
+
+            ri.latestRewardPerTokenSaved = rewardPerToken(token); // Calculate the reward until now
+            ri.lastUpdateTime = lastTimeRewardApplicable(token); // Update the last update time to now (or end date) for future calculations
+
+            if (account != address(0)) {
+                ri.rewards[account] = earned(account, token);
+                ri.userRewardPerTokenRecorded[account] = ri.latestRewardPerTokenSaved;
+            }
+        }
+        _;
+    }
+
+    /* ========== FUNCTIONS ========== */
+
+    /** @dev Return the length of Rewards tokens array.
+     */
+    function getRewardsTokensCount()
+        external
+        view
+        returns (uint)
+    {
+        return rewardsTokensArr.length;
+    }
+
+    /** @dev Returns reward per token for a specific user and specific reward token.
+     * @param rewardToken The reward token
+     * @param rewardToken The address of user
+     */
+    function getUserRewardPerTokenRecorded(address rewardToken, address user)
+        external
+        view
+        returns (uint256)
+    {
+        return rewardsTokensMap[rewardToken].userRewardPerTokenRecorded[user];
+    }
+
+    /** @dev Returns reward for a specific user and specific reward token.
+     * @param rewardToken The reward token
+     * @param rewardToken The address of user
+     */
+    function getUserReward(address rewardToken, address user)
+        external
+        view
+        returns (uint256)
+    {
+        return rewardsTokensMap[rewardToken].rewards[user];
+    }
+
+    /** @dev Returns the total amount of stakes.
+     */
+    function totalStakesAmount() external view returns (uint256) {
         return _totalStakesAmount;
     }
 
+    /** @dev Returns the balance of specific user.
+     */
     function balanceOf(address account) external view returns (uint256) {
         return _balances[account];
-    }
-
-    /** @dev Calculates the last time reward could be paid up until this moment for specific reward token.
-     * @param rewardToken The reward token for which calculations will be made for
-     */
-    function lastTimeRewardApplicable(address rewardToken) public view returns (uint256) {
-        return Math.min(block.timestamp, rewardsTokensMap[rewardToken].periodFinish);
-    }
-
-    /** @dev Calculates how many rewards tokens you should get per 1 staked token until last applicable time (in most cases it is now) for specific token
-     * @param rewardToken The reward token for which calculations will be made for
-     */
-    function rewardPerToken(address rewardToken) public view returns (uint256) {
-        RewardInfo storage ri = rewardsTokensMap[rewardToken];
-
-        if (_totalStakesAmount == 0) {
-            return ri.latestRewardPerTokenSaved;
-        }
-
-        uint256 timeSinceLastSave = lastTimeRewardApplicable(rewardToken).sub(
-            ri.lastUpdateTime
-        );
-
-        uint256 rewardPerTokenSinceLastSave = timeSinceLastSave
-            .mul(ri.rewardRate)
-            .mul(10 ** uint256(IERC20Detailed(address(stakingToken)).decimals()))
-            .div(_totalStakesAmount);
-
-        return ri.latestRewardPerTokenSaved.add(rewardPerTokenSinceLastSave);
-    }
-
-    /** @dev Calculates how much rewards a user has earned.
-     * @param account The user for whom calculations will be done
-     * @param rewardToken The reward token for which calculations will be made for
-     */
-    function earned(address account, address rewardToken) public view returns (uint256) {
-        RewardInfo storage ri = rewardsTokensMap[rewardToken];
-
-        uint256 userRewardPerTokenSinceRecorded = rewardPerToken(rewardToken).sub(
-            ri.userRewardPerTokenRecorded[account]
-        );
-
-        uint256 newReward = _balances[account]
-            .mul(userRewardPerTokenSinceRecorded)
-            .div(10 ** uint256(IERC20Detailed(address(stakingToken)).decimals()));
-
-        return ri.rewards[account].add(newReward);
     }
 
     /** @dev Calculates the rewards for this distribution.
@@ -154,22 +154,6 @@ contract StakingRewards is
     function getRewardForDuration(address rewardToken) external view returns (uint256) {
         RewardInfo storage ri = rewardsTokensMap[rewardToken];
         return ri.rewardRate.mul(ri.rewardDuration);
-    }
-
-    /** @dev Calculates the finish period extension based on the new reward amount added
-     * @param rewardAmount The additional reward amount
-     */
-    function getPeriodsToExtend(address rewardToken, uint256 rewardAmount)
-        public
-        view
-        returns (uint256 periodToExtend)
-    {
-        require(rewardAmount != 0, "Rewards should be greater than zero");
-
-        RewardInfo storage ri = rewardsTokensMap[rewardToken];
-        require(ri.rewardRate != 0, "Staking is not yet started");
-
-        periodToExtend = rewardAmount.div(ri.rewardRate);
     }
 
     /** @dev Checks if staking period has been started.
@@ -188,26 +172,6 @@ contract StakingRewards is
         return false;
     }
 
-    /** @dev Checks if staking period for every reward token has expired.
-     * Returns false if atleast one reward token has not yet finished
-     */
-    function hasPeriodFinished()
-        public
-        view
-        returns (bool)
-    {
-        for (uint i = 0; i < rewardsTokensArr.length; i++) {
-            // on first token for which the period has not expired, returns false.
-            if (block.timestamp < rewardsTokensMap[rewardsTokensArr[i]].periodFinish) {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    /* ========== MUTATIVE FUNCTIONS ========== */
-
     /** @dev Providing LP tokens to stake, start calculating rewards for user.
      * @param amount The amount to be staked
      */
@@ -223,50 +187,12 @@ contract StakingRewards is
         emit Staked(msg.sender, amount);
     }
 
-    /** @dev Withdrawing/removing the staked tokens back to the user's wallet
-     * @param amount The amount to be withdrawn
-     */
-    function withdraw(uint256 amount)
-        public
-        nonReentrant
-        updateReward(msg.sender)
-    {
-        require(amount != 0, "Cannot withdraw 0");
-        _totalStakesAmount = _totalStakesAmount.sub(amount);
-        _balances[msg.sender] = _balances[msg.sender].sub(amount);
-        stakingToken.safeTransfer(msg.sender, amount);
-        emit Withdrawn(msg.sender, amount);
-    }
-
-    /** @dev Claiming earned rewards up to now
-     */
-    function getReward()
-        public
-        nonReentrant
-        updateReward(msg.sender)
-    {
-        uint256 tokenArrLength = rewardsTokensArr.length;
-        for (uint i = 0; i < tokenArrLength; i++) {
-            address token = rewardsTokensArr[i];
-            RewardInfo storage ri = rewardsTokensMap[token];
-
-            uint256 reward = ri.rewards[msg.sender];
-            if (reward != 0) {
-                ri.rewards[msg.sender] = 0;
-                IERC20(token).safeTransfer(msg.sender, reward);
-                emit RewardPaid(msg.sender, token, reward);
-            }
-        }
-    }
-
     /** @dev Withdrawing the stake and claiming the rewards for the user
      */
     function exit() external {
         withdraw(_balances[msg.sender]);
         getReward();
     }
-
-    /* ========== RESTRICTED FUNCTIONS ========== */
 
     /** @dev Makes the needed calculations and starts the staking/rewarding.
      */
@@ -316,36 +242,120 @@ contract StakingRewards is
         emit RewardExtended(rewardToken, rewardAmount, block.timestamp, periodToExtend);
     }
 
-    /* ========== MODIFIERS ========== */
-
-    /** @dev Modifier that re-calculates the rewards per user on user action.
+    /** @dev Calculates the last time reward could be paid up until this moment for specific reward token.
+     * @param rewardToken The reward token for which calculations will be made for
      */
-    modifier updateReward(address account) {
+    function lastTimeRewardApplicable(address rewardToken) public view returns (uint256) {
+        return Math.min(block.timestamp, rewardsTokensMap[rewardToken].periodFinish);
+    }
+
+    /** @dev Calculates how many rewards tokens you should get per 1 staked token until last applicable time (in most cases it is now) for specific token
+     * @param rewardToken The reward token for which calculations will be made for
+     */
+    function rewardPerToken(address rewardToken) public view returns (uint256) {
+        RewardInfo storage ri = rewardsTokensMap[rewardToken];
+
+        if (_totalStakesAmount == 0) {
+            return ri.latestRewardPerTokenSaved;
+        }
+
+        uint256 timeSinceLastSave = lastTimeRewardApplicable(rewardToken).sub(
+            ri.lastUpdateTime
+        );
+
+        uint256 rewardPerTokenSinceLastSave = timeSinceLastSave
+            .mul(ri.rewardRate)
+            .mul(10 ** uint256(IERC20Detailed(address(stakingToken)).decimals()))
+            .div(_totalStakesAmount);
+
+        return ri.latestRewardPerTokenSaved.add(rewardPerTokenSinceLastSave);
+    }
+
+    /** @dev Calculates how much rewards a user has earned.
+     * @param account The user for whom calculations will be done
+     * @param rewardToken The reward token for which calculations will be made for
+     */
+    function earned(address account, address rewardToken) public view returns (uint256) {
+        RewardInfo storage ri = rewardsTokensMap[rewardToken];
+
+        uint256 userRewardPerTokenSinceRecorded = rewardPerToken(rewardToken).sub(
+            ri.userRewardPerTokenRecorded[account]
+        );
+
+        uint256 newReward = _balances[account]
+            .mul(userRewardPerTokenSinceRecorded)
+            .div(10 ** uint256(IERC20Detailed(address(stakingToken)).decimals()));
+
+        return ri.rewards[account].add(newReward);
+    }
+
+    /** @dev Calculates the finish period extension based on the new reward amount added
+     * @param rewardAmount The additional reward amount
+     */
+    function getPeriodsToExtend(address rewardToken, uint256 rewardAmount)
+        public
+        view
+        returns (uint256 periodToExtend)
+    {
+        require(rewardAmount != 0, "Rewards should be greater than zero");
+
+        RewardInfo storage ri = rewardsTokensMap[rewardToken];
+        require(ri.rewardRate != 0, "Staking is not yet started");
+
+        periodToExtend = rewardAmount.div(ri.rewardRate);
+    }
+
+    /** @dev Checks if staking period for every reward token has expired.
+     * Returns false if atleast one reward token has not yet finished
+     */
+    function hasPeriodFinished()
+        public
+        view
+        returns (bool)
+    {
         for (uint i = 0; i < rewardsTokensArr.length; i++) {
+            // on first token for which the period has not expired, returns false.
+            if (block.timestamp < rewardsTokensMap[rewardsTokensArr[i]].periodFinish) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /** @dev Withdrawing/removing the staked tokens back to the user's wallet
+     * @param amount The amount to be withdrawn
+     */
+    function withdraw(uint256 amount)
+        public
+        nonReentrant
+        updateReward(msg.sender)
+    {
+        require(amount != 0, "Cannot withdraw 0");
+        _totalStakesAmount = _totalStakesAmount.sub(amount);
+        _balances[msg.sender] = _balances[msg.sender].sub(amount);
+        stakingToken.safeTransfer(msg.sender, amount);
+        emit Withdrawn(msg.sender, amount);
+    }
+
+    /** @dev Claiming earned rewards up to now
+     */
+    function getReward()
+        public
+        nonReentrant
+        updateReward(msg.sender)
+    {
+        uint256 tokenArrLength = rewardsTokensArr.length;
+        for (uint i = 0; i < tokenArrLength; i++) {
             address token = rewardsTokensArr[i];
             RewardInfo storage ri = rewardsTokensMap[token];
 
-            ri.latestRewardPerTokenSaved = rewardPerToken(token); // Calculate the reward until now
-            ri.lastUpdateTime = lastTimeRewardApplicable(token); // Update the last update time to now (or end date) for future calculations
-
-            if (account != address(0)) {
-                ri.rewards[account] = earned(account, token);
-                ri.userRewardPerTokenRecorded[account] = ri.latestRewardPerTokenSaved;
+            uint256 reward = ri.rewards[msg.sender];
+            if (reward != 0) {
+                ri.rewards[msg.sender] = 0;
+                IERC20(token).safeTransfer(msg.sender, reward);
+                emit RewardPaid(msg.sender, token, reward);
             }
         }
-        _;
     }
-
-    /* ========== EVENTS ========== */
-
-    event RewardAdded(address[] token, uint256[] reward);
-    event Staked(address indexed user, uint256 amount);
-    event Withdrawn(address indexed user, uint256 amount);
-    event RewardPaid(address indexed user, address indexed rewardToken, uint256 rewardAmount);
-    event RewardExtended(
-        address indexed rewardToken,
-        uint256 rewardAmount,
-        uint256 date,
-        uint256 periodToExtend
-    );
 }
