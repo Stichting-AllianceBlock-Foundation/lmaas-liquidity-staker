@@ -55,6 +55,10 @@ describe('StakingRewardsFactory', () => {
         assert(savedGenesisTime.eq(genesisTime), "The saved genesis time was not the same");
     });
 
+    it('should not be able to start staing whithout any deploys', async () => {
+        await assert.revertWith(stakingRewardsFactoryInstance.startStakings(), "StakingRewardsFactory::startStakings: called before any deploys");
+    });
+
     describe('Deploying StakingRewards', async function () {
         let stakingTokenAddress;
 
@@ -72,34 +76,12 @@ describe('StakingRewardsFactory', () => {
 
             const stakingRewards = await stakingRewardsFactoryInstance.stakingRewardsByStakingToken(stakingTokenAddress);
             const stakingRewardsContract = await etherlime.ContractAt(StakingRewards, stakingRewards);
-            const rewardsDuration = await stakingRewardsContract.rewardsDuration();
 
             assert.isAddress(stakingRewards, "The staking reward contract was not deployed");
-            assert.equal(rewardsDuration.toString(), duration, "Rewards Duration was not set properly")
         });
 
         it('Should store and deploy correct reward token and reward amounts', async function () {
             await stakingRewardsFactoryInstance.deploy(stakingTokenAddress, rewardTokensAddresses, rewardAmounts, duration);
-
-            // check if correctly stored in factory
-            const countFactory = await stakingRewardsFactoryInstance.getRewardsTokensCount(stakingTokenAddress);
-
-            assert(countFactory.eq(rewardTokensCount), "Count of reward tokens in factory is not correct");
-
-            for (i = 0; i < countFactory; i++) {
-                const savedRewardToken = await stakingRewardsFactoryInstance.rewardsTokensByStakingToken(stakingTokenAddress, i);
-                const savedRewardAmount = await stakingRewardsFactoryInstance.rewardsAmountsByStakingToken(stakingTokenAddress, i);
-
-                assert.strictEqual(
-                    rewardTokensAddresses[i].toLowerCase(),
-                    savedRewardToken.toLowerCase(),
-                    "The saved reward token (" + i + ") in factory was not the same as the inputted one"
-                );
-
-                assert(rewardAmounts[i].eq(savedRewardAmount),
-                    "The saved reward amount (" + i + ") in factory was not the same as the inputted one"
-                );
-            }
 
             // check if correctly stored in staking contract
             const stakingRewards = await stakingRewardsFactoryInstance.stakingRewardsByStakingToken(stakingTokenAddress);
@@ -133,8 +115,9 @@ describe('StakingRewardsFactory', () => {
 
         it('Should fail on deploying with empty token and reward arrays', async () => {
             const errorString = "StakingRewardsFactory::deploy: RewardsTokens and RewardsAmounts arrays could not be empty"
+            const errorStringMatchingSizes = "StakingRewardsFactory::deploy: RewardsTokens and RewardsAmounts should have a matching sizes"
             await assert.revertWith(stakingRewardsFactoryInstance.deploy(stakingTokenAddress, [], [], duration), errorString);
-            await assert.revertWith(stakingRewardsFactoryInstance.deploy(stakingTokenAddress, rewardTokensAddresses, [], duration), errorString);
+            await assert.revertWith(stakingRewardsFactoryInstance.deploy(stakingTokenAddress, rewardTokensAddresses, [], duration), errorStringMatchingSizes);
             await assert.revertWith(stakingRewardsFactoryInstance.deploy(stakingTokenAddress, [], rewardAmounts, duration), errorString);
         });
 
@@ -151,7 +134,6 @@ describe('StakingRewardsFactory', () => {
 
         it('Should fail if the reward token amount is invalid address', async () => {
             const errorString = "StakingRewardsFactory::deploy: Reward token address could not be invalid"
-            console.log(rewardTokensAddresses[0])
             await assert.revertWith(stakingRewardsFactoryInstance.deploy(stakingTokenAddress, [ethers.constants.AddressZero], [rewardAmounts[0]], duration), errorString);
         });
 
@@ -166,7 +148,6 @@ describe('StakingRewardsFactory', () => {
             });
 
             describe('After Genesis Time', async function () {
-
                 beforeEach(async () => {
                     utils.timeTravel(deployer.provider, 60 * 60)
                 });
@@ -201,14 +182,16 @@ describe('StakingRewardsFactory', () => {
                         const lastPeriodFinsihAfter = info.periodFinish; // duration + timestamp of block
                         const latestRewardPerTokenSavedAfter = info.latestRewardPerTokenSaved;
                         const lastUpdateTimeAfter = info.lastUpdateTime;
+                        const rewardDuration = info.rewardDuration;
 
                         const balanceAfter = await rewardTokensInstances[i].balanceOf(stakingRewards);
 
-                        assert(lastRewardRateAfter.gt(0), "The reward rate was greater was 0 after start")
-                        assert(lastPeriodFinsihAfter.gt(duration), "The last period finish was not greather than duration")
-                        assert(latestRewardPerTokenSavedAfter.eq(0), "The last reward per token saved was not 0 after start")
-                        assert(lastUpdateTimeAfter.gt(0), "The last update time was 0 after start")
-                        assert(balanceAfter.eq(rewardAmounts[i]), "The balance was the reward amount after start")
+                        assert(lastRewardRateAfter.gt(0), "The reward rate was greater was 0 after start");
+                        assert(lastPeriodFinsihAfter.gt(duration), "The last period finish was not greather than duration");
+                        assert(latestRewardPerTokenSavedAfter.eq(0), "The last reward per token saved was not 0 after start");
+                        assert(lastUpdateTimeAfter.gt(0), "The last update time was 0 after start");
+                        assert(balanceAfter.eq(rewardAmounts[i]), "The balance was the reward amount after start");
+                        assert(rewardDuration.eq(duration), "The reward duration was unexpected value");
                     }
                 });
 
@@ -237,7 +220,7 @@ describe('StakingRewardsFactory', () => {
 
                     await assert.revertWith(stakingRewardsFactoryInstance.startStaking(stakingTokenAddress), 'Staking has started')
                 });
-            })
+            });
 
             describe('Extending the rewards period', async function () {
 
@@ -261,7 +244,7 @@ describe('StakingRewardsFactory', () => {
 
                     let rewardInfo = await stakingRewardsContract.rewardsTokensMap(rewardToken);
                     let periodFinishInitial = rewardInfo.periodFinish;
-                    let rewardsDurationInitial = await stakingRewardsContract.rewardsDuration();
+                    let rewardDurationInitial = rewardInfo.rewardDuration;
 
                     await rewardTokensInstances[0].transfer(stakingRewardsFactoryInstance.contractAddress, rewardAmount);
 
@@ -270,15 +253,15 @@ describe('StakingRewardsFactory', () => {
                     let stakingRewardsBalanceFinal = await rewardTokenInstance.balanceOf(stakingRewards);
                     rewardInfo = await stakingRewardsContract.rewardsTokensMap(rewardToken);
                     let periodFinishFinal = rewardInfo.periodFinish;
-                    let rewardsDurationFinal = await stakingRewardsContract.rewardsDuration();
+                    let rewardDurationFinal = rewardInfo.rewardDuration;
 
                     let finalPeriod = periodFinishInitial.add(duration)
-                    let finalDuration = rewardsDurationInitial.add(duration)
+                    let finalDuration = rewardDurationInitial.add(duration)
 
                     assert(periodFinishFinal.eq(finalPeriod), "The finish period is not correct")
                     assert(stakingRewardsBalanceFinal.eq(rewardAmount.mul(2)), "The rewards amount is not correct")
-                    assert(rewardsDurationFinal.eq(finalDuration), "The reward duration is not correct")
-                })
+                    assert(rewardDurationFinal.eq(finalDuration), "The reward duration is not correct")
+                });
 
                 it("Should fail if the rewards amount is not greater than zero", async () => {
                     await assert.revertWith(stakingRewardsFactoryInstance.extendRewardPeriod(
@@ -286,7 +269,7 @@ describe('StakingRewardsFactory', () => {
                         rewardTokensAddresses[0],
                         0
                     ), 'StakingRewardsFactory::extendRewardPeriod: Reward must be greater than zero');
-                })
+                });
 
                 it("Should fail if the staking contracts is not deployed", async () => {
                     const randomAddress = accounts[6].signer.address;
@@ -295,7 +278,7 @@ describe('StakingRewardsFactory', () => {
                         rewardTokensAddresses[0],
                         rewardAmounts[0]
                     ), 'StakingRewardsFactory::extendRewardPeriod: not deployed')
-                })
+                });
 
                 it("Should fail if the staking has not yet started", async () => {
                     await assert.revertWith(stakingRewardsFactoryInstance.extendRewardPeriod(
@@ -303,8 +286,7 @@ describe('StakingRewardsFactory', () => {
                         rewardTokensAddresses[0],
                         rewardAmounts[0]
                     ), 'Staking has not started')
-                })
-
+                });
             });
         });
     });
