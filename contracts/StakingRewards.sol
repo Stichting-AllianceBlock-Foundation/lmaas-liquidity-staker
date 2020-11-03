@@ -3,12 +3,11 @@ pragma solidity 0.5.16;
 
 import "openzeppelin-solidity-2.3.0/contracts/math/Math.sol";
 import "openzeppelin-solidity-2.3.0/contracts/math/SafeMath.sol";
-import "openzeppelin-solidity-2.3.0/contracts/token/ERC20/SafeERC20.sol";
 import "openzeppelin-solidity-2.3.0/contracts/utils/ReentrancyGuard.sol";
 
-// Inheritance
 import "./interfaces/IStakingRewards.sol";
 import "./interfaces/IERC20Detailed.sol";
+import "./SafeERC20Detailed.sol";
 import "./RewardsDistributionRecipient.sol";
 
 contract StakingRewards is
@@ -17,12 +16,12 @@ contract StakingRewards is
     ReentrancyGuard
 {
     using SafeMath for uint256;
-    using SafeERC20 for IERC20;
+    using SafeERC20Detailed for IERC20Detailed;
 
     /* ========== STATE VARIABLES ========== */
 
     // staking
-    IERC20 public stakingToken;
+    IERC20Detailed public stakingToken;
     uint256 private _totalStakesAmount;
     mapping(address => uint256) private _balances;
 
@@ -75,7 +74,7 @@ contract StakingRewards is
         }
         rewardsTokensArr = _rewardsTokens;
         rewardsAmountsArr = _rewardsAmounts;
-        stakingToken = IERC20(_stakingToken);
+        stakingToken = IERC20Detailed(_stakingToken);
 
         rewardsDistributor = msg.sender;
     }
@@ -210,7 +209,7 @@ contract StakingRewards is
             // This keeps the reward rate in the right range, preventing overflows due to
             // very high values of rewardRate in the earned and rewardsPerToken functions;
             // Reward + leftover must be less than 2^256 / 10^18 to avoid overflow.
-            uint256 balance = IERC20(token).balanceOf(address(this));
+            uint256 balance = IERC20Detailed(token).balanceOf(address(this));
             require(
                 ri.rewardRate <= balance.div(ri.rewardDuration),
                 "Provided reward too high"
@@ -233,7 +232,7 @@ contract StakingRewards is
         onlyRewardsDistributor
     {
         uint256 periodToExtend = getPeriodsToExtend(rewardToken, rewardAmount);
-        IERC20(rewardToken).safeTransferFrom(msg.sender, address(this), rewardAmount);
+        IERC20Detailed(rewardToken).safeTransferFrom(msg.sender, address(this), rewardAmount);
 
         RewardInfo storage ri = rewardsTokensMap[rewardToken];
         ri.periodFinish = ri.periodFinish.add(periodToExtend);
@@ -353,7 +352,7 @@ contract StakingRewards is
             uint256 reward = ri.rewards[msg.sender];
             if (reward != 0) {
                 ri.rewards[msg.sender] = 0;
-                IERC20(token).safeTransfer(msg.sender, reward);
+                IERC20Detailed(token).safeTransfer(msg.sender, reward);
                 emit RewardPaid(msg.sender, token, reward);
             }
         }

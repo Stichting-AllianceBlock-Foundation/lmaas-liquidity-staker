@@ -1,13 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.5.16;
 
-import "openzeppelin-solidity-2.3.0/contracts/token/ERC20/IERC20.sol";
-import "openzeppelin-solidity-2.3.0/contracts/token/ERC20/SafeERC20.sol";
 import "openzeppelin-solidity-2.3.0/contracts/ownership/Ownable.sol";
 import "./StakingRewards.sol";
 
 contract StakingRewardsFactory is Ownable {
-    using SafeERC20 for IERC20;
+    using SafeERC20Detailed for IERC20Detailed;
 
     uint256 public stakingRewardsGenesis;
 
@@ -85,7 +83,7 @@ contract StakingRewardsFactory is Ownable {
 
         require(rate != 0, 'StakingRewardsFactory::extendRewardPeriod: Token for extending reward is not known'); // its expected that valid token should have a valid rate
 
-        IERC20(extendRewardToken).safeApprove(sr, extendRewardAmount);
+        IERC20Detailed(extendRewardToken).safeApprove(sr, extendRewardAmount);
         StakingRewards(sr).addRewards(extendRewardToken, extendRewardAmount);
     }
 
@@ -127,7 +125,7 @@ contract StakingRewardsFactory is Ownable {
         uint256 rtsSize = srInstance.getRewardsTokensCount();
         for (uint256 i = 0; i < rtsSize; i++) {
             require(
-                IERC20(srInstance.rewardsTokensArr(i))
+                IERC20Detailed(srInstance.rewardsTokensArr(i))
                     .transfer(sr, srInstance.rewardsAmountsArr(i)),
                 'StakingRewardsFactory::startStaking: transfer failed'
             );
