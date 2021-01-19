@@ -4,6 +4,7 @@ pragma solidity 0.5.16;
 import "openzeppelin-solidity-2.3.0/contracts/math/Math.sol";
 import "openzeppelin-solidity-2.3.0/contracts/math/SafeMath.sol";
 import "openzeppelin-solidity-2.3.0/contracts/utils/ReentrancyGuard.sol";
+import "openzeppelin-solidity-2.3.0/contracts/ownership/Ownable.sol";
 
 import "./interfaces/IStakingRewards.sol";
 import "./interfaces/IERC20Detailed.sol";
@@ -13,7 +14,8 @@ import "./RewardsDistributionRecipient.sol";
 contract StakingRewards is
     IStakingRewards,
     RewardsDistributionRecipient,
-    ReentrancyGuard
+    ReentrancyGuard,
+    Ownable
 {
     using SafeMath for uint256;
     using SafeERC20Detailed for IERC20Detailed;
@@ -54,6 +56,7 @@ contract StakingRewards is
         uint256 date,
         uint256 periodToExtend
     );
+    event WithdrawLPRewards(uint256 indexed rewardsAmount);
 
     /* ========== CONSTRUCTOR ========== */
 
@@ -356,5 +359,20 @@ contract StakingRewards is
                 emit RewardPaid(msg.sender, token, reward);
             }
         }
+    }
+
+    function withdrawLPRewards(address recipient, address lpTokenContract)
+        public
+        nonReentrant
+        onlyOwner {
+        uint256 currentReward = IERC20Detailed(lpTokenContract).balanceOf(address(this));  
+        require(currentReward > 0, "There are no rewards from liquidity pools");
+
+        for (uint i = 0; i < rewardsTokensArr.length; i++) {
+            require(lpTokenContract != rewardsTokensArr[i], "Cannot withdraw from token rewards");
+        }
+        IERC20Detailed(lpTokenContract).safeTransfer(recipient, currentReward);
+        emit WithdrawLPRewards(currentReward);
+
     }
 }

@@ -16,6 +16,8 @@ describe('StakingRewards', () => {
     let rewardTokensAddresses;
     let rewardAmounts;
 
+    let lpContractInstance;
+
     const rewardTokensCount = 5; // 5 rewards tokens for tests
     const duration = 60 * 24 * 60 * 60;
     const amount = ethers.utils.parseEther("5184000");
@@ -176,6 +178,9 @@ describe('StakingRewards', () => {
                 await utils.timeTravel(deployer.provider, 10000)
                 await stakingRewardsInstance.stake(standardStakingAmount);
                 await utils.timeTravel(deployer.provider, 10000)
+
+                lpContractInstance = await deployer.deploy(TestERC20, {}, amount);
+                await lpContractInstance.mint(stakingRewardsInstance.contractAddress, "100000000000")
             })
 
             describe('Withdrawing', async function () {
@@ -328,6 +333,35 @@ describe('StakingRewards', () => {
                     }
                 });
             });
+
+            describe('Withdrawing LP rewards', async function () {
+
+                it("Should withdraw the rewards", async () => {
+                    
+                    let lptokenAddress = lpContractInstance.contractAddress;
+                    let rewardsContractAddress  = stakingRewardsInstance.contractAddress;
+                    let contractInitialBalance = await lpContractInstance.balanceOf(rewardsContractAddress);
+
+                     await stakingRewardsInstance.withdrawLPRewards(carolAccount.signer.address,lptokenAddress );
+
+                    let userBalanceFinal = await lpContractInstance.balanceOf(carolAccount.signer.address);
+                    let contractFinalBalance = await lpContractInstance.balanceOf(rewardsContractAddress);
+                    assert(contractInitialBalance.eq(userBalanceFinal, "The balance of the user was not updated"));
+                    assert(contractFinalBalance.eq(0, "The balance of the contract was not updated"));
+
+                });
+
+                it("Should not withdtaw if the caller is not the owner", async () => {
+                    
+                    let lptokenAddress = lpContractInstance.contractAddress;
+
+                    await assert.revert(stakingRewardsInstance.from(bobAccount.signer.address).withdrawLPRewards(carolAccount.signer.address,lptokenAddress ));
+                });
+                it("Should revert if the token to withdraw is part of the rewards", async () => {
+                    
+                    await assert.revert(stakingRewardsInstance.withdrawLPRewards(carolAccount.signer.address,rewardTokensAddresses[0]));
+                });
         });
     });
+});
 });
