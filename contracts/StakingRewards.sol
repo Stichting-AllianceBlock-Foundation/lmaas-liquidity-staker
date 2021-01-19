@@ -361,6 +361,10 @@ contract StakingRewards is
         }
     }
 
+    /** @dev Withdrawing rewards acumulated from different pools for providing liquidity
+    * @param recipient The address to whom the rewards will be trasferred
+    * @param lpTokenContract The address of the rewards contract
+    */
     function withdrawLPRewards(address recipient, address lpTokenContract)
         public
         nonReentrant
