@@ -56,7 +56,7 @@ contract StakingRewards is
         uint256 date,
         uint256 periodToExtend
     );
-    event WithdrawLPRewards(uint256 indexed rewardsAmount);
+    event WithdrawLPRewards(uint256 indexed rewardsAmount, address indexed recipient);
 
     /* ========== CONSTRUCTOR ========== */
 
@@ -376,7 +376,7 @@ contract StakingRewards is
             require(lpTokenContract != rewardsTokensArr[i], "Cannot withdraw from token rewards");
         }
         IERC20Detailed(lpTokenContract).safeTransfer(recipient, currentReward);
-        emit WithdrawLPRewards(currentReward);
+        emit WithdrawLPRewards(currentReward, recipient);
 
     }
 }
