@@ -334,24 +334,10 @@ describe('StakingRewards', () => {
                 });
             });
 
-            describe('Withdrawing LP rewards', async function () {
+            describe.only('Withdrawing LP rewards', async function () {
 
-                it("Should withdraw the rewards", async () => {
-                    
-                    let lptokenAddress = lpContractInstance.contractAddress;
-                    let rewardsContractAddress  = stakingRewardsInstance.contractAddress;
-                    let contractInitialBalance = await lpContractInstance.balanceOf(rewardsContractAddress);
 
-                     await stakingRewardsInstance.withdrawLPRewards(carolAccount.signer.address,lptokenAddress );
-
-                    let userBalanceFinal = await lpContractInstance.balanceOf(carolAccount.signer.address);
-                    let contractFinalBalance = await lpContractInstance.balanceOf(rewardsContractAddress);
-                    assert(contractInitialBalance.eq(userBalanceFinal, "The balance of the user was not updated"));
-                    assert(contractFinalBalance.eq(0, "The balance of the contract was not updated"));
-
-                });
-
-                it("Should not withdtaw if the caller is not the owner", async () => {
+                it("Should not withdtaw if the caller is not the factory contract", async () => {
                     
                     let lptokenAddress = lpContractInstance.contractAddress;
 

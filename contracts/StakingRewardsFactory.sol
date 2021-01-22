@@ -133,4 +133,21 @@ contract StakingRewardsFactory is Ownable {
 
         srInstance.start();
     }
+
+    /** @dev Triggers the withdrawal of LP rewards from the staking rewards contract to the given recipient address
+     * @param stakingToken The address of the token being staked
+     * @param recipient The address to whom the rewards will be trasferred
+     * @param lpTokenContract The address of the rewards contract
+     */
+    function withdrawLPRewards(address stakingToken, address recipient, address lpTokenContract)
+        external
+        onlyOwner {
+
+        address sr = stakingRewardsByStakingToken[stakingToken]; // StakingRewards
+
+        require(sr != address(0), 'StakingRewardsFactory::startStaking: not deployed');
+        StakingRewards srInstance = StakingRewards(sr);
+        srInstance.withdrawLPRewards(recipient, lpTokenContract);
+        
+    }
 }
