@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.5.16;
+pragma solidity 0.6.12;
 
-import "openzeppelin-solidity-2.3.0/contracts/math/Math.sol";
-import "openzeppelin-solidity-2.3.0/contracts/math/SafeMath.sol";
-import "openzeppelin-solidity-2.3.0/contracts/utils/ReentrancyGuard.sol";
+import "openzeppelin-solidity/contracts/math/Math.sol";
+import "openzeppelin-solidity/contracts/math/SafeMath.sol";
+import "openzeppelin-solidity/contracts/utils/ReentrancyGuard.sol";
 
 import "./interfaces/IStakingRewards.sol";
 import "./interfaces/IERC20Detailed.sol";
@@ -147,21 +147,22 @@ contract StakingRewards is
 
     /** @dev Returns the total amount of stakes.
      */
-    function totalStakesAmount() external view returns (uint256) {
+    function  totalStakesAmount() external override view returns (uint256) {
         return _totalStakesAmount;
     }
 
     /** @dev Returns the balance of specific user.
      */
-    function balanceOf(address account) external view returns (uint256) {
+    function balanceOf(address account) external override view returns (uint256) {
         return _balances[account];
     }
 
     /** @dev Calculates the rewards for this distribution.
      * @param rewardToken The reward token for which calculations will be made for
      */
-    function getRewardForDuration(address rewardToken)
+    function getRewardForDuration (address rewardToken)
         external
+        override
         view
         returns (uint256)
     {
@@ -186,6 +187,7 @@ contract StakingRewards is
      */
     function stake(uint256 amount)
         external
+        override
         nonReentrant
         updateReward(msg.sender)
     {
@@ -198,14 +200,14 @@ contract StakingRewards is
 
     /** @dev Withdrawing the stake and claiming the rewards for the user
      */
-    function exit() external {
+    function exit() external override {
         withdraw(_balances[msg.sender]);
         getReward();
     }
 
     /** @dev Makes the needed calculations and starts the staking/rewarding.
      */
-    function start() external onlyRewardsDistributor updateReward(address(0)) {
+    function start() external override onlyRewardsDistributor updateReward(address(0)) {
         for (uint256 i = 0; i < rewardsTokensArr.length; i++) {
             address token = rewardsTokensArr[i];
             RewardInfo storage ri = rewardsTokensMap[token];
@@ -261,6 +263,7 @@ contract StakingRewards is
      */
     function lastTimeRewardApplicable(address rewardToken)
         public
+        override
         view
         returns (uint256)
     {
@@ -274,7 +277,7 @@ contract StakingRewards is
     /** @dev Calculates how many rewards tokens you should get per 1 staked token until last applicable time (in most cases it is now) for specific token
      * @param rewardToken The reward token for which calculations will be made for
      */
-    function rewardPerToken(address rewardToken) public view returns (uint256) {
+    function rewardPerToken(address rewardToken) public override view returns (uint256) {
         RewardInfo storage ri = rewardsTokensMap[rewardToken];
 
         if (_totalStakesAmount == 0) {
@@ -301,6 +304,7 @@ contract StakingRewards is
      */
     function earned(address account, address rewardToken)
         public
+        override
         view
         returns (uint256)
     {
@@ -357,6 +361,7 @@ contract StakingRewards is
      */
     function withdraw(uint256 amount)
         public
+        override
         nonReentrant
         updateReward(msg.sender)
     {
@@ -369,7 +374,7 @@ contract StakingRewards is
 
     /** @dev Claiming earned rewards up to now
      */
-    function getReward() public nonReentrant updateReward(msg.sender) {
+    function getReward() public override nonReentrant updateReward(msg.sender) {
         uint256 tokenArrLength = rewardsTokensArr.length;
         for (uint256 i = 0; i < tokenArrLength; i++) {
             address token = rewardsTokensArr[i];

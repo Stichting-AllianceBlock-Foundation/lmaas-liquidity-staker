@@ -201,7 +201,7 @@ describe('StakingRewards', () => {
                     assert(balanceAfter.eq(balanceBefore.add(standardStakingAmount), "The stake was not returned"));
 
                     const earningsBefore = await stakingRewardsInstance.earned(aliceAccount.signer.address, rewardToken);
-
+                    console.log(earningsBefore.toString())
                     assert(earningsBefore.eq(ethers.utils.parseEther(ellapsedTime.toString(10))), "Earnings was not correct sometime after withdraw");
 
                     await utils.timeTravel(deployer.provider, 10000);
@@ -238,7 +238,8 @@ describe('StakingRewards', () => {
 
                     for (i = 0; i < rewardTokensCount; i++) {
                         const balanceReward = await rewardTokensInstances[i].balanceOf(aliceAccount.signer.address);
-
+                        console.log(balanceReward.toString())
+                        console.log(ethers.utils.parseEther(ellapsedTimeForAllTokens[i].toString(10)).toString())
                         assert(balanceReward.eq(ethers.utils.parseEther(ellapsedTimeForAllTokens[i].toString(10))), "Reward was not correct ");
                     }
                 });
@@ -334,7 +335,7 @@ describe('StakingRewards', () => {
                 });
             });
 
-            describe.only('Withdrawing LP rewards', async function () {
+            describe('Withdrawing LP rewards', async function () {
 
 
                 it("Should not withdtaw if the caller is not the factory contract", async () => {

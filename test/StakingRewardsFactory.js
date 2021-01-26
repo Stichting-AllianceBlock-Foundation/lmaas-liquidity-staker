@@ -293,7 +293,7 @@ describe('StakingRewardsFactory', () => {
                 });
             });
 
-            describe.only('Withdrawing LP rewards', async function () {
+            describe('Withdrawing LP rewards', async function () {
 
                 beforeEach(async () => {
 

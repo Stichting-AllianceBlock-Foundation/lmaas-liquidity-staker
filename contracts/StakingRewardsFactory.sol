@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.5.16;
+pragma solidity 0.6.12;
 
-import "openzeppelin-solidity-2.3.0/contracts/ownership/Ownable.sol";
+import "openzeppelin-solidity/contracts/access/Ownable.sol";
 import "./StakingRewards.sol";
 
 contract StakingRewardsFactory is Ownable {
