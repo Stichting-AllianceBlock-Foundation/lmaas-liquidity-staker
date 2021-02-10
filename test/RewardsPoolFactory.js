@@ -5,7 +5,7 @@ const TestERC20 = require('../build/TestERC20.json');
 const RewardsPool = require('../build/RewardsPool.json');
 
 
-describe('RewardsPoolFactory', () => {
+describe.only('RewardsPoolFactory', () => {
     let aliceAccount = accounts[3];
     let bobAccount = accounts[4];
     let carolAccount = accounts[5];
@@ -15,7 +15,6 @@ describe('RewardsPoolFactory', () => {
     let rewardTokensAddresses;
     let lpContractInstance;
     let rewardAmounts;
-    let genesisTime;
     const duration = 60 * 24 * 60 * 60; // 60 days in seconds
     const rewardTokensCount = 5; // 5 rewards tokens for tests
     const amount = ethers.utils.parseEther("5184000");
@@ -25,7 +24,6 @@ describe('RewardsPoolFactory', () => {
         const {
             timestamp: now
         } = await deployer.provider.getBlock('latest');
-        genesisTime = now + 60 * 60;
 
         // clear
         rewardTokensInstances = [];
@@ -44,7 +42,7 @@ describe('RewardsPoolFactory', () => {
             rewardAmounts.push(ethers.utils.parseEther("10000" + i.toString()));
         }
 
-        RewardsPoolFactoryInstance = await deployer.deploy(RewardsPoolFactory, {}, genesisTime);
+        RewardsPoolFactoryInstance = await deployer.deploy(RewardsPoolFactory, {});
     });
 
     it('should deploy valid rewards pool factory contract', async () => {
@@ -53,9 +51,6 @@ describe('RewardsPoolFactory', () => {
         for (i = 0; i < rewardTokensInstances.length; i++) {
             assert.isAddress(rewardTokensInstances[i].contractAddress, "The reward token contract was not deployed");
         }
-
-        const savedGenesisTime = await RewardsPoolFactoryInstance.rewardsPoolGenesis();
-        assert(savedGenesisTime.eq(genesisTime), "The saved genesis time was not the same");
     });
 
     it('should not be able to start staing whithout any deploys', async () => {
@@ -103,12 +98,6 @@ describe('RewardsPoolFactory', () => {
             }
         });
 
-		//this limitation is removed
-        xit('Should fail on deploying the same token again', async () => {
-            await RewardsPoolFactoryInstance.deploy(stakingTokenAddress, rewardTokensAddresses, rewardAmounts, duration);
-            await assert.revert(RewardsPoolFactoryInstance.deploy(stakingTokenAddress, rewardTokensAddresses, rewardAmounts, duration));
-        });
-
         it('Should fail on deploying not from owner', async () => {
             await assert.revert(RewardsPoolFactoryInstance.from(bobAccount).deploy(stakingTokenAddress, rewardTokensAddresses, rewardAmounts, duration));
         });
@@ -146,14 +135,7 @@ describe('RewardsPoolFactory', () => {
 				 await RewardsPoolFactoryInstance.deploy(stakingTokenAddress, rewardTokensAddresses, rewardAmounts, duration);
             });
 
-            it('Should fail on starting the staking reward prior the genesis time', async () => {
-                await assert.revertWith(RewardsPoolFactoryInstance.startStaking(stakingTokenAddress), 'RewardsPoolFactory::startStaking: not ready');
-            });
-
-            describe('After Genesis Time', async function () {
-                beforeEach(async () => {
-                    utils.timeTravel(deployer.provider, 60 * 60)
-                });
+            describe('Starting Rewards', async function () {
 
                 it('Should start the staking reward completely', async () => {
 					let rewardsPoolLength = await RewardsPoolFactoryInstance.getRewardsPoolNumber()
@@ -228,7 +210,6 @@ describe('RewardsPoolFactory', () => {
             describe('Extending the rewards period', async function () {
 
                 beforeEach(async () => {
-                    utils.timeTravel(deployer.provider, 60 * 60)
                     lpContractInstance = await deployer.deploy(TestERC20, {}, amount);
                 });
 

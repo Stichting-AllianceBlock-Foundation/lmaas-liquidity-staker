@@ -7,7 +7,6 @@ import "./RewardsPool.sol";
 contract RewardsPoolFactory is Ownable {
     using SafeERC20Detailed for IERC20Detailed;
 
-    uint256 public rewardsPoolGenesis;
 
     /** @dev all liquidity mining campaigns
      */
@@ -15,18 +14,6 @@ contract RewardsPoolFactory is Ownable {
 
     event LiquidityMiningCampaignDeployed(address indexed rewardsPoolAddress, address indexed stakingToken);
 
-    /* ========== CONSTRUCTOR ========== */
-
-    /** @dev Function called once on deployment time
-     * @param _rewardsPoolGenesis Timestamp after which the staking can start
-     */
-    constructor(
-        uint256 _rewardsPoolGenesis
-    ) public {
-        require(_rewardsPoolGenesis >= block.timestamp, 'RewardsPoolFactory::constructor: genesis too soon');
-
-        rewardsPoolGenesis = _rewardsPoolGenesis;
-    }
 
     /* ========== Permissioned FUNCTIONS ========== */
 
@@ -111,7 +98,6 @@ contract RewardsPoolFactory is Ownable {
      * @param rewardsPoolAddress The address of liquidity mining campaign
      */
     function startStaking(address rewardsPoolAddress) public {
-        require(block.timestamp >= rewardsPoolGenesis, 'RewardsPoolFactory::startStaking: not ready');
         require(rewardsPoolAddress != address(0), 'RewardsPoolFactory::startStaking: not deployed');
 
 
