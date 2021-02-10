@@ -71,18 +71,6 @@ contract RewardsPoolFactory is Ownable {
         RewardsPool(rewardsPoolAddress).addRewards(extendRewardToken, extendRewardAmount);
     }
 
-    /* ========== Permissionless FUNCTIONS ========== */
-
-    /** @dev Calls startStakings for all staking tokens.
-     */
-    function startStakings() external {
-        require(rewardsPools.length != 0, 'RewardsPoolFactory::startStakings: called before any deploys');
-
-        for (uint256 i = 0; i < rewardsPools.length; i++) {
-            startStaking(rewardsPools[i]);
-        }
-    }
-
     /** @dev Function to determine whether the staking and rewards distribution has stared for a given RewardsPool contract
      * @param rewardsPoolAddress The address of the reward pools contract
      */

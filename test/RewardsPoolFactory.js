@@ -53,10 +53,6 @@ describe.only('RewardsPoolFactory', () => {
         }
     });
 
-    it('should not be able to start staing whithout any deploys', async () => {
-        await assert.revertWith(RewardsPoolFactoryInstance.startStakings(), "RewardsPoolFactory::startStakings: called before any deploys");
-    });
-
     describe('Deploying RewardsPool', async function () {
         let stakingTokenAddress;
 
@@ -332,7 +328,7 @@ describe.only('RewardsPoolFactory', () => {
 					assert(contractFinalBalance.eq(amountToMint, "The balance of the contract was not updated"))
 				});
 
-				it("Should not revert if the stakings has started ", async () => {
+				it("Should not revert if the staking has started ", async () => {
 					
 					let rewardsPoolAddress = await RewardsPoolFactoryInstance.rewardsPools((0) )
 					const RewardsPoolContract = await etherlime.ContractAt(RewardsPool, rewardsPoolAddress);
