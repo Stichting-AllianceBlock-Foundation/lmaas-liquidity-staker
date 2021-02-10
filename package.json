@@ -16,7 +16,7 @@
     "@ethersproject/solidity": "^5.0.4",
     "@uniswap/sdk": "^3.0.3",
     "etherlime-lib": "^1.2.3",
-    "openzeppelin-solidity-2.3.0": "npm:openzeppelin-solidity@2.3.0",
-    "solc": "^0.5.16"
+    "openzeppelin-solidity": "^3.3.0",
+    "solc": "^0.6.12"
   }
 }

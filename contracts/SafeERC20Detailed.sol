@@ -1,7 +1,8 @@
-pragma solidity 0.5.16;
+// SPDX-License-Identifier: MIT
+pragma solidity 0.6.12;
 
-import "openzeppelin-solidity-2.3.0/contracts/math/SafeMath.sol";
-import "openzeppelin-solidity-2.3.0/contracts/utils/Address.sol";
+import "openzeppelin-solidity/contracts/math/SafeMath.sol";
+import "openzeppelin-solidity/contracts/utils/Address.sol";
 
 import "./interfaces/IERC20Detailed.sol";
 
