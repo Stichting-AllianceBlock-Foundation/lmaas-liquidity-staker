@@ -16,8 +16,10 @@ contract RewardsPoolBase is ReentrancyGuard {
     uint256[] public tokenRewardPerBlock;
     address[] public rewardsTokens;
     IERC20Detailed public stakingToken;
-    uint256 public startTimestamp;
+    uint256 public startBlock;
+    uint256 public lastRewardBlock;
     bool public hasStakingStarted;
+    uint256[] public rewardPerStakedToken;
 
     struct UserInfo {
         uint256 firstStakedBlockNumber;
@@ -34,7 +36,8 @@ contract RewardsPoolBase is ReentrancyGuard {
         IERC20Detailed _stakingToken,
         uint256[] memory _tokenRewardPerBlock,
         address[] memory _rewardsTokens,
-        uint256 _startTimestamp
+        uint256 _startBlock,
+        uint256[] memory _rewardPerStakedToken
     ) public {
         require(
             address(_stakingToken) != address(0),
@@ -46,27 +49,36 @@ contract RewardsPoolBase is ReentrancyGuard {
         );
         require(_rewardsTokens.length > 0, "Rewards tokens are not provided");
         require(
-            _startTimestamp >= _getBlockTimestamp(),
+            _startBlock >= _getBlock(),
             "The starting block must be in the future."
+        );
+        require(
+            _tokenRewardPerBlock.length == _rewardsTokens.length,
+            "Rewards per block and rewards tokens must be with the same length."
+        );
+        require(
+            _tokenRewardPerBlock.length == _rewardPerStakedToken.length,
+            "Rewards per block and rewards per staked tokens must be with the same length."
         );
 
         stakingToken = _stakingToken;
         tokenRewardPerBlock = _tokenRewardPerBlock;
-        startTimestamp = _startTimestamp;
+        startBlock = _startBlock;
         rewardsTokens = _rewardsTokens;
+        rewardPerStakedToken = _rewardPerStakedToken;
     }
 
     function stake(uint256 _tokenAmount) external nonReentrant {
-        require(_getBlockTimestamp() > startTimestamp, "Staking is not yet started");
+        require(_getBlock() > startBlock, "Staking is not yet started");
         require(_tokenAmount > 0, "Cannot stake 0");
 
         UserInfo storage user = userInfo[msg.sender];
 
         // first stake
         if (user.amountStaked == 0) {
-            user.firstStakedBlockNumber = _getBlockTimestamp();
+            user.firstStakedBlockNumber = _getBlock();
         }
-
+        updateRewardsPerStakedToken();
         _updateUserReward(msg.sender);
 
         user.amountStaked = user.amountStaked.add(_tokenAmount);
@@ -81,12 +93,25 @@ contract RewardsPoolBase is ReentrancyGuard {
         emit Staked(msg.sender, _tokenAmount);
     }
 
-    function getUserStakedAmount(address _userAddress) external view returns(uint256) {
-        return userInfo[_userAddress].amountStaked;
-    }
+    function updateRewardsPerStakedToken() private {
+        if (_getBlock() <= lastRewardBlock) {
+            return;
+        }
 
-     function getUserRewardDept(address _userAddress) external view returns(uint256) {
-        return userInfo[_userAddress].rewardDebt;
+        if (totalStakedAmount == 0) {
+            lastRewardBlock = _getBlock();
+            return;
+        }
+
+        uint256 blocksSinceLastReward = _getBlock().sub(lastRewardBlock);
+
+        for (uint256 i = 0; i < rewardsTokens.length; i++) {
+            uint256 reward = blocksSinceLastReward.mul(tokenRewardPerBlock[i]);
+            rewardPerStakedToken[i] = rewardPerStakedToken[i].add(
+                reward.mul(1e18).div(totalStakedAmount)
+            );
+        }
+        lastRewardBlock = _getBlock();
     }
 
     function _updateUserReward(address _userAddress) internal {
@@ -101,7 +126,7 @@ contract RewardsPoolBase is ReentrancyGuard {
         }
     }
 
-    function _getBlockTimestamp() internal view virtual returns (uint256) {
-        return block.timestamp;
+    function _getBlock() internal view virtual returns (uint256) {
+        return block.number;
     }
 }
