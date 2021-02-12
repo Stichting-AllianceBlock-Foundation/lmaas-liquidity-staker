@@ -1,19 +1,19 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.6.12;
-
 import "openzeppelin-solidity/contracts/access/Ownable.sol";
 import "./RewardsPool.sol";
 
 contract RewardsPoolFactory is Ownable {
     using SafeERC20Detailed for IERC20Detailed;
 
-
     /** @dev all liquidity mining campaigns
      */
     address[] public rewardsPools;
 
-    event LiquidityMiningCampaignDeployed(address indexed rewardsPoolAddress, address indexed stakingToken);
-
+    event LiquidityMiningCampaignDeployed(
+        address indexed rewardsPoolAddress,
+        address indexed stakingToken
+    );
 
     /* ========== Permissioned FUNCTIONS ========== */
 
@@ -24,21 +24,44 @@ contract RewardsPoolFactory is Ownable {
      * @param _rewardsDuration Rewards duration in seconds
      */
     function deploy(
-        address            _stakingToken,
+        address _stakingToken,
         address[] calldata _rewardsTokens,
         uint256[] calldata _rewardsAmounts,
-        uint256            _rewardsDuration
+        uint256 _rewardsDuration
     ) external onlyOwner {
-        require(_rewardsDuration != 0, 'RewardsPoolFactory::deploy:The Duration should be greater than zero');
-        require(_rewardsTokens.length != 0, 'RewardsPoolFactory::deploy: RewardsTokens and RewardsAmounts arrays could not be empty');
-        require(_rewardsTokens.length == _rewardsAmounts.length, 'RewardsPoolFactory::deploy: RewardsTokens and RewardsAmounts should have a matching sizes');
+        require(
+            _rewardsDuration != 0,
+            "RewardsPoolFactory::deploy:The Duration should be greater than zero"
+        );
+        require(
+            _rewardsTokens.length != 0,
+            "RewardsPoolFactory::deploy: RewardsTokens and RewardsAmounts arrays could not be empty"
+        );
+        require(
+            _rewardsTokens.length == _rewardsAmounts.length,
+            "RewardsPoolFactory::deploy: RewardsTokens and RewardsAmounts should have a matching sizes"
+        );
 
         for (uint256 i = 0; i < _rewardsTokens.length; i++) {
-            require(_rewardsTokens[i] != address(0), 'RewardsPoolFactory::deploy: Reward token address could not be invalid');
-            require(_rewardsAmounts[i] != 0, 'RewardsPoolFactory::deploy: Reward must be greater than zero');
+            require(
+                _rewardsTokens[i] != address(0),
+                "RewardsPoolFactory::deploy: Reward token address could not be invalid"
+            );
+            require(
+                _rewardsAmounts[i] != 0,
+                "RewardsPoolFactory::deploy: Reward must be greater than zero"
+            );
         }
 
-        address rewardsPool = address(new RewardsPool(_rewardsTokens, _rewardsAmounts, _stakingToken, _rewardsDuration));
+        address rewardsPool =
+            address(
+                new RewardsPool(
+                    _rewardsTokens,
+                    _rewardsAmounts,
+                    _stakingToken,
+                    _rewardsDuration
+                )
+            );
 
         rewardsPools.push(rewardsPool);
 
@@ -54,21 +77,37 @@ contract RewardsPoolFactory is Ownable {
         address rewardsPoolAddress,
         address extendRewardToken,
         uint256 extendRewardAmount
-    )
-        external
-        onlyOwner
-    {
-        require(extendRewardAmount != 0, 'RewardsPoolFactory::extendRewardPeriod: Reward must be greater than zero');
+    ) external onlyOwner {
+        require(
+            extendRewardAmount != 0,
+            "RewardsPoolFactory::extendRewardPeriod: Reward must be greater than zero"
+        );
 
-        require(rewardsPoolAddress != address(0), 'RewardsPoolFactory::extendRewardPeriod: not deployed');
-        require(hasStakingStarted(rewardsPoolAddress), 'RewardsPoolFactory::extendRewardPeriod: Staking has not started');
+        require(
+            rewardsPoolAddress != address(0),
+            "RewardsPoolFactory::extendRewardPeriod: not deployed"
+        );
+        require(
+            hasStakingStarted(rewardsPoolAddress),
+            "RewardsPoolFactory::extendRewardPeriod: Staking has not started"
+        );
 
-        (uint256 rate, , , ,) = RewardsPool(rewardsPoolAddress).rewardsTokensMap(extendRewardToken);
+        (uint256 rate, , , , ) =
+            RewardsPool(rewardsPoolAddress).rewardsTokensMap(extendRewardToken);
 
-        require(rate != 0, 'RewardsPoolFactory::extendRewardPeriod: Token for extending reward is not known'); // its expected that valid token should have a valid rate
+        require(
+            rate != 0,
+            "RewardsPoolFactory::extendRewardPeriod: Token for extending reward is not known"
+        ); // its expected that valid token should have a valid rate
 
-        IERC20Detailed(extendRewardToken).safeApprove(rewardsPoolAddress, extendRewardAmount);
-        RewardsPool(rewardsPoolAddress).addRewards(extendRewardToken, extendRewardAmount);
+        IERC20Detailed(extendRewardToken).safeApprove(
+            rewardsPoolAddress,
+            extendRewardAmount
+        );
+        RewardsPool(rewardsPoolAddress).addRewards(
+            extendRewardToken,
+            extendRewardAmount
+        );
     }
 
     /** @dev Function to determine whether the staking and rewards distribution has stared for a given RewardsPool contract
@@ -86,19 +125,26 @@ contract RewardsPoolFactory is Ownable {
      * @param rewardsPoolAddress The address of liquidity mining campaign
      */
     function startStaking(address rewardsPoolAddress) public {
-        require(rewardsPoolAddress != address(0), 'RewardsPoolFactory::startStaking: not deployed');
-
+        require(
+            rewardsPoolAddress != address(0),
+            "RewardsPoolFactory::startStaking: not deployed"
+        );
 
         RewardsPool srInstance = RewardsPool(rewardsPoolAddress);
-       
-        require(!hasStakingStarted(rewardsPoolAddress), 'RewardsPoolFactory::startStaking: Staking has started');
+
+        require(
+            !hasStakingStarted(rewardsPoolAddress),
+            "RewardsPoolFactory::startStaking: Staking has started"
+        );
 
         uint256 rtsSize = srInstance.getRewardsTokensCount();
         for (uint256 i = 0; i < rtsSize; i++) {
             require(
-                IERC20Detailed(srInstance.rewardsTokensArr(i))
-                    .transfer(rewardsPoolAddress, srInstance.rewardsAmountsArr(i)),
-                'RewardsPoolFactory::startStaking: transfer failed'
+                IERC20Detailed(srInstance.rewardsTokensArr(i)).transfer(
+                    rewardsPoolAddress,
+                    srInstance.rewardsAmountsArr(i)
+                ),
+                "RewardsPoolFactory::startStaking: transfer failed"
             );
         }
 
@@ -110,24 +156,27 @@ contract RewardsPoolFactory is Ownable {
      * @param recipient The address to whom the rewards will be trasferred
      * @param lpTokenContract The address of the rewards contract
      */
-    function withdrawLPRewards(address rewardsPoolAddress, address recipient, address lpTokenContract)
-        external
-        onlyOwner {
-
-        require(rewardsPoolAddress != address(0), 'RewardsPoolFactory::startStaking: not deployed');
+    function withdrawLPRewards(
+        address rewardsPoolAddress,
+        address recipient,
+        address lpTokenContract
+    ) external onlyOwner {
+        require(
+            rewardsPoolAddress != address(0),
+            "RewardsPoolFactory::startStaking: not deployed"
+        );
         RewardsPool srInstance = RewardsPool(rewardsPoolAddress);
         srInstance.withdrawLPRewards(recipient, lpTokenContract);
-        
     }
 
     /** @dev Triggers the withdrawal of rewards from the rewards pool contract.
      * @param rewardsPoolAddress The address of the token being staked
      */
-    function withdrawRewards(address rewardsPoolAddress)
-        external
-        onlyOwner {
-            
-        require(rewardsPoolAddress != address(0), 'RewardsPoolFactory::startStaking: not deployed');
+    function withdrawRewards(address rewardsPoolAddress) external onlyOwner {
+        require(
+            rewardsPoolAddress != address(0),
+            "RewardsPoolFactory::startStaking: not deployed"
+        );
         RewardsPool srInstance = RewardsPool(rewardsPoolAddress);
         srInstance.withdrawRewards();
     }
@@ -137,5 +186,4 @@ contract RewardsPoolFactory is Ownable {
     function getRewardsPoolNumber() public view returns (uint256) {
         return rewardsPools.length;
     }
-
 }

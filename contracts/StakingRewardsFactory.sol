@@ -22,10 +22,11 @@ contract StakingRewardsFactory is Ownable {
     /** @dev Function called once on deployment time
      * @param _stakingRewardsGenesis Timestamp after which the staking can start
      */
-    constructor(
-        uint256 _stakingRewardsGenesis
-    ) public {
-        require(_stakingRewardsGenesis >= block.timestamp, 'StakingRewardsFactory::constructor: genesis too soon');
+    constructor(uint256 _stakingRewardsGenesis) public {
+        require(
+            _stakingRewardsGenesis >= block.timestamp,
+            "StakingRewardsFactory::constructor: genesis too soon"
+        );
 
         stakingRewardsGenesis = _stakingRewardsGenesis;
     }
@@ -39,22 +40,47 @@ contract StakingRewardsFactory is Ownable {
      * @param _rewardsDuration Rewards duration in seconds
      */
     function deploy(
-        address            _stakingToken,
+        address _stakingToken,
         address[] calldata _rewardsTokens,
         uint256[] calldata _rewardsAmounts,
-        uint256            _rewardsDuration
+        uint256 _rewardsDuration
     ) external onlyOwner {
-        require(stakingRewardsByStakingToken[_stakingToken] == address(0), 'StakingRewardsFactory::deploy: already deployed');
-        require(_rewardsDuration != 0, 'StakingRewardsFactory::deploy:The Duration should be greater than zero');
-        require(_rewardsTokens.length != 0, 'StakingRewardsFactory::deploy: RewardsTokens and RewardsAmounts arrays could not be empty');
-        require(_rewardsTokens.length == _rewardsAmounts.length, 'StakingRewardsFactory::deploy: RewardsTokens and RewardsAmounts should have a matching sizes');
+        require(
+            stakingRewardsByStakingToken[_stakingToken] == address(0),
+            "StakingRewardsFactory::deploy: already deployed"
+        );
+        require(
+            _rewardsDuration != 0,
+            "StakingRewardsFactory::deploy:The Duration should be greater than zero"
+        );
+        require(
+            _rewardsTokens.length != 0,
+            "StakingRewardsFactory::deploy: RewardsTokens and RewardsAmounts arrays could not be empty"
+        );
+        require(
+            _rewardsTokens.length == _rewardsAmounts.length,
+            "StakingRewardsFactory::deploy: RewardsTokens and RewardsAmounts should have a matching sizes"
+        );
 
         for (uint256 i = 0; i < _rewardsTokens.length; i++) {
-            require(_rewardsTokens[i] != address(0), 'StakingRewardsFactory::deploy: Reward token address could not be invalid');
-            require(_rewardsAmounts[i] != 0, 'StakingRewardsFactory::deploy: Reward must be greater than zero');
+            require(
+                _rewardsTokens[i] != address(0),
+                "StakingRewardsFactory::deploy: Reward token address could not be invalid"
+            );
+            require(
+                _rewardsAmounts[i] != 0,
+                "StakingRewardsFactory::deploy: Reward must be greater than zero"
+            );
         }
 
-        stakingRewardsByStakingToken[_stakingToken] = address(new StakingRewards(_rewardsTokens, _rewardsAmounts, _stakingToken, _rewardsDuration));
+        stakingRewardsByStakingToken[_stakingToken] = address(
+            new StakingRewards(
+                _rewardsTokens,
+                _rewardsAmounts,
+                _stakingToken,
+                _rewardsDuration
+            )
+        );
 
         stakingTokens.push(_stakingToken);
     }
@@ -68,20 +94,30 @@ contract StakingRewardsFactory is Ownable {
         address stakingToken,
         address extendRewardToken,
         uint256 extendRewardAmount
-    )
-        external
-        onlyOwner
-    {
-        require(extendRewardAmount != 0, 'StakingRewardsFactory::extendRewardPeriod: Reward must be greater than zero');
+    ) external onlyOwner {
+        require(
+            extendRewardAmount != 0,
+            "StakingRewardsFactory::extendRewardPeriod: Reward must be greater than zero"
+        );
 
         address sr = stakingRewardsByStakingToken[stakingToken]; // StakingRewards
 
-        require(sr != address(0), 'StakingRewardsFactory::extendRewardPeriod: not deployed');
-        require(hasStakingStarted(sr), 'StakingRewardsFactory::extendRewardPeriod: Staking has not started');
+        require(
+            sr != address(0),
+            "StakingRewardsFactory::extendRewardPeriod: not deployed"
+        );
+        require(
+            hasStakingStarted(sr),
+            "StakingRewardsFactory::extendRewardPeriod: Staking has not started"
+        );
 
-        (uint256 rate, , , ,) = StakingRewards(sr).rewardsTokensMap(extendRewardToken);
+        (uint256 rate, , , , ) =
+            StakingRewards(sr).rewardsTokensMap(extendRewardToken);
 
-        require(rate != 0, 'StakingRewardsFactory::extendRewardPeriod: Token for extending reward is not known'); // its expected that valid token should have a valid rate
+        require(
+            rate != 0,
+            "StakingRewardsFactory::extendRewardPeriod: Token for extending reward is not known"
+        ); // its expected that valid token should have a valid rate
 
         IERC20Detailed(extendRewardToken).safeApprove(sr, extendRewardAmount);
         StakingRewards(sr).addRewards(extendRewardToken, extendRewardAmount);
@@ -92,7 +128,10 @@ contract StakingRewardsFactory is Ownable {
     /** @dev Calls startStakings for all staking tokens.
      */
     function startStakings() external {
-        require(stakingTokens.length != 0, 'StakingRewardsFactory::startStakings: called before any deploys');
+        require(
+            stakingTokens.length != 0,
+            "StakingRewardsFactory::startStakings: called before any deploys"
+        );
 
         for (uint256 i = 0; i < stakingTokens.length; i++) {
             startStaking(stakingTokens[i]);
@@ -114,20 +153,31 @@ contract StakingRewardsFactory is Ownable {
      * @param stakingToken The address of the token being staked
      */
     function startStaking(address stakingToken) public {
-        require(block.timestamp >= stakingRewardsGenesis, 'StakingRewardsFactory::startStaking: not ready');
+        require(
+            block.timestamp >= stakingRewardsGenesis,
+            "StakingRewardsFactory::startStaking: not ready"
+        );
 
         address sr = stakingRewardsByStakingToken[stakingToken]; // StakingRewards
 
         StakingRewards srInstance = StakingRewards(sr);
-        require(sr != address(0), 'StakingRewardsFactory::startStaking: not deployed');
-        require(!hasStakingStarted(sr), 'StakingRewardsFactory::startStaking: Staking has started');
+        require(
+            sr != address(0),
+            "StakingRewardsFactory::startStaking: not deployed"
+        );
+        require(
+            !hasStakingStarted(sr),
+            "StakingRewardsFactory::startStaking: Staking has started"
+        );
 
         uint256 rtsSize = srInstance.getRewardsTokensCount();
         for (uint256 i = 0; i < rtsSize; i++) {
             require(
-                IERC20Detailed(srInstance.rewardsTokensArr(i))
-                    .transfer(sr, srInstance.rewardsAmountsArr(i)),
-                'StakingRewardsFactory::startStaking: transfer failed'
+                IERC20Detailed(srInstance.rewardsTokensArr(i)).transfer(
+                    sr,
+                    srInstance.rewardsAmountsArr(i)
+                ),
+                "StakingRewardsFactory::startStaking: transfer failed"
             );
         }
 
@@ -139,15 +189,18 @@ contract StakingRewardsFactory is Ownable {
      * @param recipient The address to whom the rewards will be trasferred
      * @param lpTokenContract The address of the rewards contract
      */
-    function withdrawLPRewards(address stakingToken, address recipient, address lpTokenContract)
-        external
-        onlyOwner {
-
+    function withdrawLPRewards(
+        address stakingToken,
+        address recipient,
+        address lpTokenContract
+    ) external onlyOwner {
         address sr = stakingRewardsByStakingToken[stakingToken]; // StakingRewards
 
-        require(sr != address(0), 'StakingRewardsFactory::startStaking: not deployed');
+        require(
+            sr != address(0),
+            "StakingRewardsFactory::startStaking: not deployed"
+        );
         StakingRewards srInstance = StakingRewards(sr);
         srInstance.withdrawLPRewards(recipient, lpTokenContract);
-        
     }
 }

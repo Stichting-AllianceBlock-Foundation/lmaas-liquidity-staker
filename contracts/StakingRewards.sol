@@ -147,23 +147,28 @@ contract StakingRewards is
 
     /** @dev Returns the total amount of stakes.
      */
-    function  totalStakesAmount() external override view returns (uint256) {
+    function totalStakesAmount() external view override returns (uint256) {
         return _totalStakesAmount;
     }
 
     /** @dev Returns the balance of specific user.
      */
-    function balanceOf(address account) external override view returns (uint256) {
+    function balanceOf(address account)
+        external
+        view
+        override
+        returns (uint256)
+    {
         return _balances[account];
     }
 
     /** @dev Calculates the rewards for this distribution.
      * @param rewardToken The reward token for which calculations will be made for
      */
-    function getRewardForDuration (address rewardToken)
+    function getRewardForDuration(address rewardToken)
         external
-        override
         view
+        override
         returns (uint256)
     {
         RewardInfo storage ri = rewardsTokensMap[rewardToken];
@@ -207,7 +212,12 @@ contract StakingRewards is
 
     /** @dev Makes the needed calculations and starts the staking/rewarding.
      */
-    function start() external override onlyRewardsDistributor updateReward(address(0)) {
+    function start()
+        external
+        override
+        onlyRewardsDistributor
+        updateReward(address(0))
+    {
         for (uint256 i = 0; i < rewardsTokensArr.length; i++) {
             address token = rewardsTokensArr[i];
             RewardInfo storage ri = rewardsTokensMap[token];
@@ -263,8 +273,8 @@ contract StakingRewards is
      */
     function lastTimeRewardApplicable(address rewardToken)
         public
-        override
         view
+        override
         returns (uint256)
     {
         return
@@ -277,7 +287,12 @@ contract StakingRewards is
     /** @dev Calculates how many rewards tokens you should get per 1 staked token until last applicable time (in most cases it is now) for specific token
      * @param rewardToken The reward token for which calculations will be made for
      */
-    function rewardPerToken(address rewardToken) public override view returns (uint256) {
+    function rewardPerToken(address rewardToken)
+        public
+        view
+        override
+        returns (uint256)
+    {
         RewardInfo storage ri = rewardsTokensMap[rewardToken];
 
         if (_totalStakesAmount == 0) {
@@ -304,8 +319,8 @@ contract StakingRewards is
      */
     function earned(address account, address rewardToken)
         public
-        override
         view
+        override
         returns (uint256)
     {
         RewardInfo storage ri = rewardsTokensMap[rewardToken];

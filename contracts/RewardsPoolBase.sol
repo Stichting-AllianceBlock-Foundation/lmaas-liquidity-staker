@@ -24,8 +24,8 @@ contract RewardsPoolBase is ReentrancyGuard {
     struct UserInfo {
         uint256 firstStakedBlockNumber;
         uint256 amountStaked; // How many tokens the user has staked.
-        uint256 rewardDebt; //
-        uint256 tokensOwed; // How many tokens the contract owes to the user.
+        uint256[] rewardDebt; //
+        uint256[] tokensOwed; // How many tokens the contract owes to the user.
     }
 
     mapping(address => UserInfo) public userInfo;
@@ -66,6 +66,7 @@ contract RewardsPoolBase is ReentrancyGuard {
         startBlock = _startBlock;
         rewardsTokens = _rewardsTokens;
         rewardPerStakedToken = _rewardPerStakedToken;
+        lastRewardBlock = _getBlock() > startBlock ? _getBlock() : startBlock;
     }
 
     function stake(uint256 _tokenAmount) external nonReentrant {
@@ -89,7 +90,17 @@ contract RewardsPoolBase is ReentrancyGuard {
             _tokenAmount
         );
 
-        user.rewardDebt = user.amountStaked;
+        for (uint256 i = 0; i < rewardsTokens.length; i++) {
+            if (user.rewardDebt.length != rewardsTokens.length) {
+                user.rewardDebt.push(
+                    user.amountStaked.mul(rewardPerStakedToken[i].div(1e18))
+                );
+                continue;
+            }
+            user.rewardDebt[i] = user.amountStaked.mul(
+                rewardPerStakedToken[i].div(1e18)
+            );
+        }
         emit Staked(msg.sender, _tokenAmount);
     }
 
@@ -117,16 +128,72 @@ contract RewardsPoolBase is ReentrancyGuard {
     function _updateUserReward(address _userAddress) internal {
         UserInfo storage user = userInfo[_userAddress];
 
+        //initialized tokebs owed todo
+        if (user.tokensOwed.length != rewardsTokens.length) {
+            for (uint256 i = 0; i < rewardsTokens.length; i++) {
+                user.tokensOwed.push(0);
+            }
+        }
         if (user.amountStaked > 0) {
-            uint256 pending = user.amountStaked.sub(user.rewardDebt);
-            if (pending > 0) {
-                user.tokensOwed = pending;
-                user.rewardDebt = user.amountStaked;
+            for (uint256 i = 0; i < rewardsTokens.length; i++) {
+                uint256 pending =
+                    user
+                        .amountStaked
+                        .mul(rewardPerStakedToken[i])
+                        .div(1e18)
+                        .sub(user.rewardDebt[i]);
+                if (pending > 0) {
+                    user.tokensOwed[i] = user.tokensOwed[i].add(pending);
+                    user.rewardDebt[i] = user
+                        .amountStaked
+                        .mul(rewardPerStakedToken[i])
+                        .div(1e18);
+                }
             }
         }
     }
 
     function _getBlock() internal view virtual returns (uint256) {
         return block.number;
+    }
+
+    function getUserOwedTokens(address _userAddress, uint256 _index)
+        public
+        view
+        returns (uint256)
+    {
+        require(_userAddress != address(0), "Invalid user address");
+        UserInfo storage user = userInfo[_userAddress];
+        return user.tokensOwed[_index];
+    }
+
+    function getUserOwedLength(address _userAddress, uint256 _index)
+        public
+        view
+        returns (uint256)
+    {
+        require(_userAddress != address(0), "Invalid user address");
+        UserInfo storage user = userInfo[_userAddress];
+        return user.tokensOwed.length;
+    }
+
+    function getUserRewardDebt(address _userAddress, uint256 _index)
+        public
+        view
+        returns (uint256)
+    {
+        require(_userAddress != address(0), "Invalid user address");
+        UserInfo storage user = userInfo[_userAddress];
+        return user.rewardDebt[_index];
+    }
+
+    function getUserRewardDebtLength(address _userAddress, uint256 _index)
+        public
+        view
+        returns (uint256)
+    {
+        require(_userAddress != address(0), "Invalid user address");
+        UserInfo storage user = userInfo[_userAddress];
+        return user.rewardDebt.length;
     }
 }

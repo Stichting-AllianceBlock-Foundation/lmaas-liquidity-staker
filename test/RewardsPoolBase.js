@@ -73,16 +73,15 @@ describe.only('RewardsPoolBase', () => {
 		for (i = 0; i < 50; i++) {
 			//forcing to mine some blocks
 			await stakingTokenInstance.mint(aliceAccount.signer.address,amount);
-        }
+		}
 		await RewardsPoolBaseInstance.stake(standardStakingAmount);
-		
 		let totalStakedAmount = await RewardsPoolBaseInstance.totalStakedAmount();
-
 		let userInfo = await RewardsPoolBaseInstance.userInfo(aliceAccount.signer.address)
+		let userRewardDebtContract = await RewardsPoolBaseInstance.getUserRewardDebt(aliceAccount.signer.address, 0);
 
 		assert(totalStakedAmount.eq(standardStakingAmount), "The stake was not successful")
 		assert(userInfo.amountStaked.eq(standardStakingAmount), "User's staked amount is not correct")
-		assert(userInfo.rewardDebt.eq(standardStakingAmount), "User's staked amount is not correct")
+		assert(userRewardDebtContract.eq(0), "User's reward debt is not correct")
 	})
 
 	it("Should successfully stake and update the rates", async() => {
@@ -109,6 +108,57 @@ describe.only('RewardsPoolBase', () => {
 		let rewardsPerStakedToken = await RewardsPoolBaseInstance.rewardPerStakedToken(0);
 
 		assert(rewardsPerStakedToken.eq(updatedRewardPerToken), "The stake was not successful")
+	})
+
+
+	it.only("Should successfully stake and update the user rewards", async() => {
+		const standardStakingAmount = ethers.utils.parseEther('10') // 10 tokens
+		await stakingTokenInstance.approve(RewardsPoolBaseInstance.contractAddress, ethers.constants.MaxUint256);
+		for (i = 0; i < 50; i++) {
+			//forcing to mine some blocks
+			await stakingTokenInstance.mint(aliceAccount.signer.address,amount);
+        }
+		await RewardsPoolBaseInstance.stake(standardStakingAmount);
+		const blockBeforeStake = await deployer.provider.getBlock('latest');
+		let lastRewardBlock = await RewardsPoolBaseInstance.lastRewardBlock()
+		console.log(lastRewardBlock.toString())
+		let leght2 = await RewardsPoolBaseInstance.getUserRewardDebtLength(aliceAccount.signer.address, 0);
+		let userRewardDebtContract = await RewardsPoolBaseInstance.getUserRewardDebt(aliceAccount.signer.address, 0);
+		
+		let blockSinceLastReward = lastRewardBlock.add(ethers.utils.bigNumberify("1")).sub(ethers.utils.bigNumberify(blockBeforeStake.number))
+		let rewardPerBlock = await RewardsPoolBaseInstance.tokenRewardPerBlock(0)
+		console.log(rewardPerBlock.toString(), "reward per block")
+		let rewardPerToken = await RewardsPoolBaseInstance.rewardPerStakedToken(0)
+		console.log(rewardPerToken.toString(), "reward per token")
+		let totalStakedAmount = await RewardsPoolBaseInstance.totalStakedAmount();
+		console.log(totalStakedAmount.toString(),"total staked amount")
+		
+		for (i = 0; i < 10; i++) {
+			//forcing to mine some blocks
+			await stakingTokenInstance.mint(aliceAccount.signer.address,amount);
+		}
+		lastRewardBlock = await RewardsPoolBaseInstance.lastRewardBlock()
+		let blockSince = blockSinceLastReward.mul(rewardPerBlock)
+		let updatedRewardPerToken = blockSince.add(rewardPerToken).mul(bOne).div(totalStakedAmount)
+		console.log(updatedRewardPerToken.toString(), "updated reward per token")
+		
+		await RewardsPoolBaseInstance.stake(standardStakingAmount);
+		//  rewardPerToken = await RewardsPoolBaseInstance.rewardPerStakedToken(0)
+		//  console.log(rewardPerStakedToken.toString(), "reward per staked tolen after second stake")
+		// let userInfo = await RewardsPoolBaseInstance.userInfo(aliceAccount.signer.address)
+		//  userRewardDebtContract = await RewardsPoolBaseInstance.getUserRewardDebt(aliceAccount.signer.address, 0);
+		// let userTokensOwedContract = await RewardsPoolBaseInstance.getUserOwedLength(aliceAccount.signer.address, 0);
+		// console.log(userTokensOwedContract, "lenght")
+		
+		// let userTokensOwed = userInfo.amountStaked.mul(updatedRewardPerToken).div(ethers.utils.bigNumberify("1").sub(userRewardDebtContract))
+		// let userRewardDebt = userInfo.amountStaked.mul(updatedRewardPerToken).div(ethers.utils.bigNumberify("1"))
+		// console.log(userRewardDebt.toString(), "reward dept")
+		// console.log(userRewardDebtContract.toString())
+
+		// let leght1 = await RewardsPoolBaseInstance.getUserRewardDebtLength(aliceAccount.signer.address, 0);
+		// console.log(leght1.toString(), "debt length")
+		// assert(userRewardDebtContract.eq(userRewardDebt), "The reward debt was not updated properly")
+		// assert(userTokensOwedContract.eq(userTokensOwed), "The tokens owed was not updated properly")
 	})
 
 	it("Should fail if amount to stake is not greater than zero", async() => {
