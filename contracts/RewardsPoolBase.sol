@@ -17,8 +17,8 @@ contract RewardsPoolBase is ReentrancyGuard {
     address[] public rewardsTokens;
     IERC20Detailed public stakingToken;
     uint256 public startBlock;
+    uint256 public endBlock;
     uint256 public lastRewardBlock;
-    bool public hasStakingStarted;
     uint256[] public accumulatedRewardMultiplier;
 
     struct UserInfo {
@@ -32,11 +32,13 @@ contract RewardsPoolBase is ReentrancyGuard {
 
     event Staked(address indexed user, uint256 amount);
 
+    // TODO add end block
     constructor(
         IERC20Detailed _stakingToken,
-        uint256[] memory _rewardPerBlock,
+        uint256 _startBlock,
+        uint256 _endBlock,
         address[] memory _rewardsTokens,
-        uint256 _startBlock
+        uint256[] memory _rewardPerBlock
     ) public {
         require(
             address(_stakingToken) != address(0),
@@ -48,8 +50,12 @@ contract RewardsPoolBase is ReentrancyGuard {
         );
         require(_rewardsTokens.length > 0, "Rewards tokens are not provided");
         require(
-            _startBlock >= _getBlock(),
+            _startBlock > _getBlock(),
             "The starting block must be in the future."
+        );
+        require(
+            _endBlock > _getBlock(),
+            "The end block must be in the future."
         );
         require(
             _rewardPerBlock.length == _rewardsTokens.length,
@@ -59,16 +65,23 @@ contract RewardsPoolBase is ReentrancyGuard {
         stakingToken = _stakingToken;
         rewardPerBlock = _rewardPerBlock;
         startBlock = _startBlock;
+        endBlock = _endBlock;
         rewardsTokens = _rewardsTokens;
-        lastRewardBlock = _getBlock() > startBlock ? _getBlock() : startBlock;
+        lastRewardBlock = startBlock;
         for (uint256 i = 0; i < rewardsTokens.length; i++) {
             accumulatedRewardMultiplier.push(0);
         }
         
     }
 
-    function stake(uint256 _tokenAmount) external nonReentrant {
-        require(_getBlock() > startBlock, "Stake::Staking is not yet started");
+    modifier onlyInsideBlockBounds() {
+        uint256 currentBlock = _getBlock();
+        require(currentBlock > startBlock, "Stake::Staking has not yet started");
+        require(currentBlock <= endBlock, "Stake::Staking has finished");
+        _;
+    }
+
+    function stake(uint256 _tokenAmount) external nonReentrant onlyInsideBlockBounds {
         require(_tokenAmount > 0, "Stake::Cannot stake 0");
 
         UserInfo storage user = userInfo[msg.sender];
@@ -109,7 +122,7 @@ contract RewardsPoolBase is ReentrancyGuard {
     /**
         @dev updates the accumulated reward multipliers for everyone and each token
      */
-    function updateRewardMultipliers() internal {
+    function updateRewardMultipliers() public {
         if (_getBlock() <= lastRewardBlock) {
             return;
         }
@@ -195,6 +208,10 @@ contract RewardsPoolBase is ReentrancyGuard {
         return block.number;
     }
 
+    function hasStakingStarted() public view returns(bool) {
+        return (_getBlock() >= startBlock);
+    }
+
     function getUserRewardDebt(address _userAddress, uint256 _index)
         public
         view
@@ -221,7 +238,7 @@ contract RewardsPoolBase is ReentrancyGuard {
         @param tokenIndex the index of the reward token you are interested
      */
     function getUserAccumulatedReward(address _userAddress, uint256 tokenIndex) public view returns(uint256) {
-        uint256 blocksSinceLastReward = _getBlock().sub(lastRewardBlock);
+        uint256 blocksSinceLastReward = _getBlock().sub(lastRewardBlock); // Overflow makes sure this is not called too early
 
         uint256 newReward = blocksSinceLastReward.mul(rewardPerBlock[tokenIndex]); // Get newly accumulated reward
         uint256 rewardMultiplierIncrease = newReward.mul(1e18).div(totalStaked); // Calculate the multiplier increase
@@ -253,4 +270,7 @@ contract RewardsPoolBase is ReentrancyGuard {
         UserInfo storage user = userInfo[_userAddress];
         return user.rewardDebt.length;
     }
+
+    // TODO add logic for reward per block manipulation
+    // TODO add logic for extension
 }
