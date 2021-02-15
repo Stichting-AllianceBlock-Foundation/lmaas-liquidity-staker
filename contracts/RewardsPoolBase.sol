@@ -31,8 +31,10 @@ contract RewardsPoolBase is ReentrancyGuard {
     mapping(address => UserInfo) public userInfo;
 
     event Staked(address indexed user, uint256 amount);
+    event Claimed(address indexed user);
+    event Withdrawn(address indexed user, uint256 amount);
+    event Exited(address indexed user, uint256 amount);
 
-    // TODO add end block
     constructor(
         IERC20Detailed _stakingToken,
         uint256 _startBlock,
@@ -42,24 +44,27 @@ contract RewardsPoolBase is ReentrancyGuard {
     ) public {
         require(
             address(_stakingToken) != address(0),
-            "Invalid staking token address"
+            "Constructor::Invalid staking token address"
         );
         require(
             _rewardPerBlock.length > 0,
-            "Token rewards are not provided"
+            "Constructor::Rewards per block are not provided"
         );
-        require(_rewardsTokens.length > 0, "Rewards tokens are not provided");
+        require(
+            _rewardsTokens.length > 0,
+            "Constructor::Rewards tokens are not provided"
+        );
         require(
             _startBlock > _getBlock(),
-            "The starting block must be in the future."
+            "Constructor::The starting block must be in the future."
         );
         require(
             _endBlock > _getBlock(),
-            "The end block must be in the future."
+            "Constructor::The end block must be in the future."
         );
         require(
             _rewardPerBlock.length == _rewardsTokens.length,
-            "Rewards per block and rewards tokens must be with the same length."
+            "Constructor::Rewards per block and rewards tokens must be with the same length."
         );
 
         stakingToken = _stakingToken;
@@ -71,17 +76,26 @@ contract RewardsPoolBase is ReentrancyGuard {
         for (uint256 i = 0; i < rewardsTokens.length; i++) {
             accumulatedRewardMultiplier.push(0);
         }
-        
     }
 
     modifier onlyInsideBlockBounds() {
         uint256 currentBlock = _getBlock();
-        require(currentBlock > startBlock, "Stake::Staking has not yet started");
+        require(
+            currentBlock > startBlock,
+            "Stake::Staking has not yet started"
+        );
         require(currentBlock <= endBlock, "Stake::Staking has finished");
         _;
     }
 
-    function stake(uint256 _tokenAmount) external nonReentrant onlyInsideBlockBounds {
+    /** @dev Providing LP tokens to stake, update rewards.
+     * @param _tokenAmount The amount to be staked
+     */
+    function stake(uint256 _tokenAmount)
+        external
+        nonReentrant
+        onlyInsideBlockBounds
+    {
         require(_tokenAmount > 0, "Stake::Cannot stake 0");
 
         UserInfo storage user = userInfo[msg.sender];
@@ -103,10 +117,66 @@ contract RewardsPoolBase is ReentrancyGuard {
         );
 
         for (uint256 i = 0; i < rewardsTokens.length; i++) {
-            uint256 totalDebt = user.amountStaked.mul(accumulatedRewardMultiplier[i]).div(1e18); // Update user reward debt for each token
+            uint256 totalDebt =
+                user.amountStaked.mul(accumulatedRewardMultiplier[i]).div(1e18); // Update user reward debt for each token
             user.rewardDebt[i] = totalDebt;
         }
         emit Staked(msg.sender, _tokenAmount);
+    }
+
+    /** @dev Claiming accrued rewards.
+     */
+    function claim() public nonReentrant {
+        UserInfo storage user = userInfo[msg.sender];
+        updateRewardMultipliers();
+        updateUserAccruedReward(msg.sender);
+
+        for (uint256 i = 0; i < rewardsTokens.length; i++) {
+            uint256 reward = getUserAccumulatedReward(msg.sender, i);
+            user.tokensOwed[i] = user.tokensOwed[i].sub(reward);
+            IERC20Detailed(rewardsTokens[i]).safeTransfer(msg.sender, reward);
+        }
+
+        emit Claimed(msg.sender);
+    }
+
+    /** @dev Withdrawing portion of staked tokens.
+     * @param _tokenAmount The amount to be withdrawn
+     */
+    function withdraw(uint256 _tokenAmount) public nonReentrant {
+        require(_tokenAmount > 0, "Withdraw::Cannot withdraw 0");
+
+        UserInfo storage user = userInfo[msg.sender];
+        require(
+            user.amountStaked >= _tokenAmount,
+            "Withdraw:: Amount to withdraw exceeds balance"
+        );
+
+        updateRewardMultipliers(); // Update the accumulated multipliers for everyone
+        updateUserAccruedReward(msg.sender); // Update the accrued reward for this specific user
+
+        user.amountStaked = user.amountStaked.sub(_tokenAmount);
+        totalStaked = totalStaked.sub(_tokenAmount);
+
+        stakingToken.safeTransfer(address(msg.sender), _tokenAmount);
+
+        for (uint256 i = 0; i < rewardsTokens.length; i++) {
+            uint256 totalDebt =
+                user.amountStaked.mul(accumulatedRewardMultiplier[i]).div(1e18); // Update user reward debt for each token
+            user.rewardDebt[i] = totalDebt;
+        }
+
+        emit Withdrawn(msg.sender, _tokenAmount);
+    }
+
+    /** @dev Claiming all rewards and withdrawing all staked tokens. Exits from the rewards pool
+     */
+    function exit() public {
+        UserInfo storage user = userInfo[msg.sender];
+        claim();
+        withdraw(user.amountStaked);
+
+        emit Exited(msg.sender, user.amountStaked);
     }
 
     /**
@@ -114,7 +184,7 @@ contract RewardsPoolBase is ReentrancyGuard {
         Could be overriden if needed by the later contracts.
         @param _userAddress the address of the user
      */
-    function onInitialStake(address _userAddress) internal { 
+    function onInitialStake(address _userAddress) internal {
         UserInfo storage user = userInfo[_userAddress];
         user.firstStakedBlockNumber = _getBlock();
     }
@@ -136,8 +206,11 @@ contract RewardsPoolBase is ReentrancyGuard {
 
         for (uint256 i = 0; i < rewardsTokens.length; i++) {
             uint256 newReward = blocksSinceLastReward.mul(rewardPerBlock[i]); // Get newly accumulated reward
-            uint256 rewardMultiplierIncrease = newReward.mul(1e18).div(totalStaked); // Calculate the multiplier increase
-            accumulatedRewardMultiplier[i] = accumulatedRewardMultiplier[i].add(rewardMultiplierIncrease); // Add the multiplier increase to the accumulated multiplier
+            uint256 rewardMultiplierIncrease =
+                newReward.mul(1e18).div(totalStaked); // Calculate the multiplier increase
+            accumulatedRewardMultiplier[i] = accumulatedRewardMultiplier[i].add(
+                rewardMultiplierIncrease
+            ); // Add the multiplier increase to the accumulated multiplier
         }
         lastRewardBlock = _getBlock();
     }
@@ -155,7 +228,11 @@ contract RewardsPoolBase is ReentrancyGuard {
         if (user.amountStaked == 0) {
             return;
         }
-        for (uint256 tokenIndex = 0; tokenIndex < rewardsTokens.length; tokenIndex++) {
+        for (
+            uint256 tokenIndex = 0;
+            tokenIndex < rewardsTokens.length;
+            tokenIndex++
+        ) {
             updateUserRewardForToken(_userAddress, tokenIndex);
         }
     }
@@ -167,10 +244,15 @@ contract RewardsPoolBase is ReentrancyGuard {
     function initialiseUserTokensOwed(address _userAddress) internal {
         UserInfo storage user = userInfo[_userAddress];
 
-        if (user.tokensOwed.length == rewardsTokens.length) { // Already initialised
+        if (user.tokensOwed.length == rewardsTokens.length) {
+            // Already initialised
             return;
         }
-        for (uint256 i = user.tokensOwed.length; i < rewardsTokens.length; i++) {
+        for (
+            uint256 i = user.tokensOwed.length;
+            i < rewardsTokens.length;
+            i++
+        ) {
             user.tokensOwed.push(0);
         }
     }
@@ -182,10 +264,15 @@ contract RewardsPoolBase is ReentrancyGuard {
     function initialiseUserRewardDebt(address _userAddress) internal {
         UserInfo storage user = userInfo[_userAddress];
 
-        if (user.rewardDebt.length == rewardsTokens.length) { // Allready initialised
+        if (user.rewardDebt.length == rewardsTokens.length) {
+            // Allready initialised
             return;
         }
-        for (uint256 i = user.rewardDebt.length; i < rewardsTokens.length; i++) {
+        for (
+            uint256 i = user.rewardDebt.length;
+            i < rewardsTokens.length;
+            i++
+        ) {
             user.rewardDebt.push(0);
         }
     }
@@ -194,12 +281,19 @@ contract RewardsPoolBase is ReentrancyGuard {
         @dev calculates and updates the current user rewardDebt. Accrues accumulated reward.
         @param _userAddress the address of the user
      */
-    function updateUserRewardForToken(address _userAddress, uint256 tokenIndex) internal {
+    function updateUserRewardForToken(address _userAddress, uint256 tokenIndex)
+        internal
+    {
         UserInfo storage user = userInfo[_userAddress];
-        uint256 totalDebt = user.amountStaked.mul(accumulatedRewardMultiplier[tokenIndex]).div(1e18);
+        uint256 totalDebt =
+            user.amountStaked.mul(accumulatedRewardMultiplier[tokenIndex]).div(
+                1e18
+            );
         uint256 pendingDebt = totalDebt.sub(user.rewardDebt[tokenIndex]);
         if (pendingDebt > 0) {
-            user.tokensOwed[tokenIndex] = user.tokensOwed[tokenIndex].add(pendingDebt);
+            user.tokensOwed[tokenIndex] = user.tokensOwed[tokenIndex].add(
+                pendingDebt
+            );
             user.rewardDebt[tokenIndex] = totalDebt;
         }
     }
@@ -208,7 +302,7 @@ contract RewardsPoolBase is ReentrancyGuard {
         return block.number;
     }
 
-    function hasStakingStarted() public view returns(bool) {
+    function hasStakingStarted() public view returns (bool) {
         return (_getBlock() >= startBlock);
     }
 
@@ -237,12 +331,20 @@ contract RewardsPoolBase is ReentrancyGuard {
         @param _userAddress the address of the user
         @param tokenIndex the index of the reward token you are interested
      */
-    function getUserAccumulatedReward(address _userAddress, uint256 tokenIndex) public view returns(uint256) {
+    function getUserAccumulatedReward(address _userAddress, uint256 tokenIndex)
+        public
+        view
+        returns (uint256)
+    {
         uint256 blocksSinceLastReward = _getBlock().sub(lastRewardBlock); // Overflow makes sure this is not called too early
 
-        uint256 newReward = blocksSinceLastReward.mul(rewardPerBlock[tokenIndex]); // Get newly accumulated reward
+        uint256 newReward =
+            blocksSinceLastReward.mul(rewardPerBlock[tokenIndex]); // Get newly accumulated reward
         uint256 rewardMultiplierIncrease = newReward.mul(1e18).div(totalStaked); // Calculate the multiplier increase
-        uint256 currentMultiplier = accumulatedRewardMultiplier[tokenIndex].add(rewardMultiplierIncrease); // Simulate the multiplier increase to the accumulated multiplier
+        uint256 currentMultiplier =
+            accumulatedRewardMultiplier[tokenIndex].add(
+                rewardMultiplierIncrease
+            ); // Simulate the multiplier increase to the accumulated multiplier
 
         UserInfo storage user = userInfo[_userAddress];
 
@@ -271,6 +373,35 @@ contract RewardsPoolBase is ReentrancyGuard {
         return user.rewardDebt.length;
     }
 
-    // TODO add logic for reward per block manipulation
-    // TODO add logic for extension
+    /**
+        @dev Extends the rewards period and updates the rates
+        @param _endBlock  new end block for the rewards
+        @param _rewardsPerBlock array with new rewards per block for each token 
+     */
+    function extend(uint256 _endBlock, uint256[] memory _rewardsPerBlock)
+        public
+    {
+        require(_endBlock > _getBlock(), "End block must be in the future");
+        require(
+            _endBlock >= endBlock,
+            "End block must be after the current end block"
+        );
+        require(
+            _rewardsPerBlock.length == rewardsTokens.length,
+            "Rewards amounts length is less than expected"
+        );
+
+        for (uint256 i = 0; i < _rewardsPerBlock.length; i++) {
+            rewardPerBlock[i] = _rewardsPerBlock[i];
+
+            IERC20Detailed(rewardsTokens[i]).safeTransferFrom(
+                msg.sender,
+                address(this),
+                _rewardsPerBlock[i]
+            );
+        }
+
+        endBlock = _endBlock;
+        updateRewardMultipliers();
+    }
 }
