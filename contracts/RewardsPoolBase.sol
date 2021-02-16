@@ -390,10 +390,38 @@ contract RewardsPoolBase is ReentrancyGuard {
         updateRewardMultipliers();
 
         for (uint256 i = 0; i < _rewardsPerBlock.length; i++) {
+            uint256 currentRemainingReward = calculateRewardsAmount(_getBlock(), endBlock, rewardPerBlock[i]);
+            uint256 newRemainingReward = calculateRewardsAmount(_getBlock(), _endBlock, _rewardsPerBlock[i]);
+
+            address rewardsToken = rewardsTokens[i];
+
+            if (currentRemainingReward > newRemainingReward) {
+                // Some reward leftover needs to be returned
+                IERC20Detailed(rewardsToken).safeTransfer(msg.sender, currentRemainingReward.sub(newRemainingReward));
+            }
+
             rewardPerBlock[i] = _rewardsPerBlock[i];
         }
+
         endBlock = _endBlock;
 
         emit Extended(_endBlock, _rewardsPerBlock);
+    }
+
+    /** @dev Helper function to calculate how much tokens should be transffered to a rewards pool.
+     */
+    function calculateRewardsAmount(
+        uint256 _startBlock,
+        uint256 _endBlock,
+        uint256 _rewardPerBlock
+    ) internal pure returns (uint256) {
+        require(
+            _rewardPerBlock > 0,
+            "RewardsPoolFactory::calculateRewardsAmount: Rewards per block must be greater than zero"
+        );
+
+        uint256 rewardsPeriod = _endBlock.sub(_startBlock);
+
+        return _rewardPerBlock.mul(rewardsPeriod);
     }
 }

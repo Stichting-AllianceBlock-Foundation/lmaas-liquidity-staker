@@ -92,39 +92,34 @@ contract RewardsPoolFactory is Ownable {
     /** @dev Function that will extend the rewards period, but not change the reward rate, for a given staking contract.
      * @param _endBlock The new endblock for the rewards pool.
      * @param _rewardsPerBlock Rewards per block .
-     * @param _rewardsTokens The addresses of the tokens the rewards will be paid in.
      * @param _rewardsPoolAddress The address of the RewardsPoolBase contract.
      */
     function extendRewardPool(
         uint256 _endBlock,
         uint256[] memory _rewardsPerBlock,
-        address[] memory _rewardsTokens,
         address _rewardsPoolAddress
     ) external onlyOwner {
+
+        RewardsPoolBase pool = RewardsPoolBase(_rewardsPoolAddress);
+        uint256 currentEndBlock = pool.endBlock();
+
+        for (uint256 i = 0; i < _rewardsPerBlock.length; i++) {
+            uint256 currentRemainingReward = calculateRewardsAmount(block.number, currentEndBlock, pool.rewardPerBlock(i));
+            uint256 newRemainingReward = calculateRewardsAmount(block.number, _endBlock, _rewardsPerBlock[i]);
+
+            address rewardsToken = RewardsPoolBase(_rewardsPoolAddress).rewardsTokens(i);
+
+            if (newRemainingReward > currentRemainingReward) {
+                // Some more reward needs to be transferred to the rewards pool contract
+                IERC20Detailed(rewardsToken).safeTransfer(_rewardsPoolAddress, newRemainingReward.sub(currentRemainingReward));
+            }
+        }
+
         RewardsPoolBase(_rewardsPoolAddress).extend(
             _endBlock,
             _rewardsPerBlock
         );
 
-        for (uint256 i = 0; i < _rewardsPerBlock.length; i++) {
-            uint256 rewardAmount =
-                calculateRewardsAmount(
-                    block.number,
-                    _endBlock,
-                    _rewardsPerBlock[i]
-                );
-            uint256 currentRewardsAmount =
-                IERC20Detailed(_rewardsTokens[i]).balanceOf(
-                    _rewardsPoolAddress
-                );
-
-            uint256 rewardsToTransfer = rewardAmount.sub(currentRewardsAmount);
-
-            IERC20Detailed(_rewardsTokens[i]).safeTransfer(
-                _rewardsPoolAddress,
-                rewardsToTransfer
-            );
-        }
     }
 
 
@@ -159,7 +154,7 @@ contract RewardsPoolFactory is Ownable {
         uint256 _startBlock,
         uint256 _endBlock,
         uint256 _rewardPerBlock
-    ) internal returns (uint256) {
+    ) internal pure returns (uint256) {
         require(
             _rewardPerBlock > 0,
             "RewardsPoolFactory::calculateRewardsAmount: Rewards per block must be greater than zero"
