@@ -339,7 +339,7 @@ describe.only('RewardsPoolBase', () => {
 		})
 
 		it("Should fail withdrawing if the amount to withraw is not greater than zero", async() => {
-			assert.revertWith(RewardsPoolBaseInstance.withdraw(ethers.constants.MaxUint256),  "Withdraw:: Amount to withdraw exceeds balance");
+			assert.revertWith(RewardsPoolBaseInstance.withdraw(ethers.constants.MaxUint256),  "SafeMath: subtraction overflow");
 		})
 
 		//TODO add tests for extend

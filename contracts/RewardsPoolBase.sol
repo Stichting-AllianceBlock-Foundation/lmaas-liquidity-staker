@@ -31,9 +31,10 @@ contract RewardsPoolBase is ReentrancyGuard {
     mapping(address => UserInfo) public userInfo;
 
     event Staked(address indexed user, uint256 amount);
-    event Claimed(address indexed user);
+    event Claimed(address indexed user, uint256 amount, address token);
     event Withdrawn(address indexed user, uint256 amount);
     event Exited(address indexed user, uint256 amount);
+    event Extended(uint256 newEndBlock,uint256[] newRewardsPerBlock);
 
     constructor(
         IERC20Detailed _stakingToken,
@@ -132,12 +133,12 @@ contract RewardsPoolBase is ReentrancyGuard {
         updateUserAccruedReward(msg.sender);
 
         for (uint256 i = 0; i < rewardsTokens.length; i++) {
-            uint256 reward = getUserAccumulatedReward(msg.sender, i);
-            user.tokensOwed[i] = user.tokensOwed[i].sub(reward);
+            uint256 reward = user.tokensOwed[i];
+            user.tokensOwed[i] = 0;
             IERC20Detailed(rewardsTokens[i]).safeTransfer(msg.sender, reward);
-        }
 
-        emit Claimed(msg.sender);
+            emit Claimed(msg.sender, reward, rewardsTokens[i]);
+        }
     }
 
     /** @dev Withdrawing portion of staked tokens.
@@ -147,10 +148,6 @@ contract RewardsPoolBase is ReentrancyGuard {
         require(_tokenAmount > 0, "Withdraw::Cannot withdraw 0");
 
         UserInfo storage user = userInfo[msg.sender];
-        require(
-            user.amountStaked >= _tokenAmount,
-            "Withdraw:: Amount to withdraw exceeds balance"
-        );
 
         updateRewardMultipliers(); // Update the accumulated multipliers for everyone
         updateUserAccruedReward(msg.sender); // Update the accrued reward for this specific user
@@ -390,18 +387,14 @@ contract RewardsPoolBase is ReentrancyGuard {
             _rewardsPerBlock.length == rewardsTokens.length,
             "Rewards amounts length is less than expected"
         );
+        updateRewardMultipliers();
 
         for (uint256 i = 0; i < _rewardsPerBlock.length; i++) {
             rewardPerBlock[i] = _rewardsPerBlock[i];
 
-            IERC20Detailed(rewardsTokens[i]).safeTransferFrom(
-                msg.sender,
-                address(this),
-                _rewardsPerBlock[i]
-            );
-        }
+            endBlock = _endBlock;
 
-        endBlock = _endBlock;
-        updateRewardMultipliers();
+            emit Extended(_endBlock, _rewardsPerBlock);
+        }
     }
 }
