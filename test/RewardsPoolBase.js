@@ -256,7 +256,7 @@ describe.only('RewardsPoolBase', () => {
 		
 	})
 
-	describe.only("Rewards", function() {
+	describe("Rewards", function() {
 
 		beforeEach(async () => {
 			await stakingTokenInstance.approve(RewardsPoolBaseInstance.contractAddress, standardStakingAmount);
@@ -317,17 +317,16 @@ describe.only('RewardsPoolBase', () => {
 			const userRewards = await RewardsPoolBaseInstance.getUserAccumulatedReward(aliceAccount.signer.address, 0);
 
 			await RewardsPoolBaseInstance.exit();
-
+			
 			const userFinalBalanceRewards = await rewardTokensInstances[0].balanceOf(aliceAccount.signer.address);
-			const userRewardsAfterClaiming = await RewardsPoolBaseInstance.getUserAccumulatedReward(aliceAccount.signer.address, 0);
 			const userTokensOwed = await RewardsPoolBaseInstance.getUserOwedTokens(aliceAccount.signer.address, 0);
 			const userFinalBalanceStaking = await stakingTokenInstance.balanceOf(aliceAccount.signer.address);
 			const userInfoFinal = await RewardsPoolBaseInstance.userInfo(aliceAccount.signer.address);
 			const finalTotalStkaedAmount = await RewardsPoolBaseInstance.totalStaked();
 
+
 			assert(userFinalBalanceRewards.gt(userInitialBalanceRewards), "Rewards claim was not successful")
 			assert(userFinalBalanceRewards.eq(userInitialBalanceRewards.add(userRewards.add(userRewards))), "Rewards claim was not successful")
-			assert(userRewardsAfterClaiming.eq(0), "There are rewards left")
 			assert(userTokensOwed.eq(0), "User tokens owed should be zero")
 			assert(userFinalBalanceStaking.eq(userInitialBalanceStaking.add(standardStakingAmount)), "Withdraw was not successfull")
 			assert(userInfoFinal.amountStaked.eq(userInfoInitial.amountStaked.sub(standardStakingAmount)), "User staked amount is not updated properly")
@@ -342,7 +341,55 @@ describe.only('RewardsPoolBase', () => {
 			assert.revertWith(RewardsPoolBaseInstance.withdraw(ethers.constants.MaxUint256),  "SafeMath: subtraction overflow");
 		})
 
-		//TODO add tests for extend
+		it("Should extend the periods and update the reward per block", async() => {
+			await mineBlock(deployer.provider);
+
+			let currentEndBlock = await RewardsPoolBaseInstance.endBlock()
+			let currentRewardPerBlock = await RewardsPoolBaseInstance.rewardPerBlock(0);
+			let newRewardsPerBlock = []
+
+			const bigTwenty = ethers.utils.bigNumberify(20);
+			const newEndBlock = currentEndBlock.add(bigTwenty);
+			
+			for (i = 0; i < rewardTokensCount; i++) {
+	
+				let parsedReward = await ethers.utils.parseEther(`${i+2}`);
+				newRewardsPerBlock.push(parsedReward);
+			}
+			await RewardsPoolBaseInstance.extend(newEndBlock,newRewardsPerBlock);
+			let endBlock = await RewardsPoolBaseInstance.endBlock()
+			let rewardPerBlock = await RewardsPoolBaseInstance.rewardPerBlock(0);
+
+
+			assert(endBlock.eq(currentEndBlock.add(bigTwenty)), "Extending the end block was not successfull")
+			assert(rewardPerBlock.eq(currentRewardPerBlock.add(bOne)), "Extending the reward per block was not successfull")
+		})
+
+		it("Should fail extentind the rewards pool if the end block is not in the future", async() => {
+			await assert.revertWith( RewardsPoolBaseInstance.extend(0,rewardPerBlock), "End block must be in the future")
+		})
+
+		it("Should fail extentind the rewards pool if the end block is not greater than the previous", async() => {
+			let currentEndBlock = await RewardsPoolBaseInstance.endBlock()
+			let newEndBlock = currentEndBlock.sub(1)
+			await assert.revertWith( RewardsPoolBaseInstance.extend(newEndBlock,rewardPerBlock), "End block must be after the current end block")
+		})
+
+		it("Should fail extentind the rewards pool if the rewards per block arrays is with different length", async() => {
+
+			let currentEndBlock = await RewardsPoolBaseInstance.endBlock()
+			let newRewardsPerBlock = []
+
+			const bigTwenty = ethers.utils.bigNumberify(20);
+			const newEndBlock = currentEndBlock.add(bigTwenty);
+
+			for (i = 0; i <= rewardTokensCount; i++) {
+	
+				let parsedReward = await ethers.utils.parseEther(`${i+2}`);
+				newRewardsPerBlock.push(parsedReward);
+			}
+			await assert.revertWith( RewardsPoolBaseInstance.extend(newEndBlock,newRewardsPerBlock), "Rewards amounts length is less than expected")
+		})
 	})
 
 

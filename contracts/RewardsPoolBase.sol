@@ -34,7 +34,7 @@ contract RewardsPoolBase is ReentrancyGuard {
     event Claimed(address indexed user, uint256 amount, address token);
     event Withdrawn(address indexed user, uint256 amount);
     event Exited(address indexed user, uint256 amount);
-    event Extended(uint256 newEndBlock,uint256[] newRewardsPerBlock);
+    event Extended(uint256 newEndBlock, uint256[] newRewardsPerBlock);
 
     constructor(
         IERC20Detailed _stakingToken,
@@ -391,10 +391,9 @@ contract RewardsPoolBase is ReentrancyGuard {
 
         for (uint256 i = 0; i < _rewardsPerBlock.length; i++) {
             rewardPerBlock[i] = _rewardsPerBlock[i];
-
-            endBlock = _endBlock;
-
-            emit Extended(_endBlock, _rewardsPerBlock);
         }
+        endBlock = _endBlock;
+
+        emit Extended(_endBlock, _rewardsPerBlock);
     }
 }
