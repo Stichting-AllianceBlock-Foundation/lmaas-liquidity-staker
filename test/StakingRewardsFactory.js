@@ -8,14 +8,17 @@ const StakingRewards = require('../build/StakingRewards.json');
 describe('StakingRewardsFactory', () => {
     let aliceAccount = accounts[3];
     let bobAccount = accounts[4];
+    let carolAccount = accounts[5];
     let deployer;
     let stakingRewardsFactoryInstance;
     let rewardTokensInstances;
     let rewardTokensAddresses;
+    let lpContractInstance;
     let rewardAmounts;
     let genesisTime;
     const duration = 60 * 24 * 60 * 60; // 60 days in seconds
     const rewardTokensCount = 5; // 5 rewards tokens for tests
+    const amount = ethers.utils.parseEther("5184000");
 
     beforeEach(async () => {
         deployer = new etherlime.EtherlimeGanacheDeployer(aliceAccount.secretKey);
@@ -226,6 +229,7 @@ describe('StakingRewardsFactory', () => {
 
                 beforeEach(async () => {
                     utils.timeTravel(deployer.provider, 60 * 60)
+                    lpContractInstance = await deployer.deploy(TestERC20, {}, amount);
                 });
 
                 it("Should extend the rewards period successfully", async () => {
@@ -286,6 +290,47 @@ describe('StakingRewardsFactory', () => {
                         rewardTokensAddresses[0],
                         rewardAmounts[0]
                     ), 'Staking has not started')
+                });
+            });
+
+            describe('Withdrawing LP rewards', async function () {
+
+                beforeEach(async () => {
+
+                    const stakingRewardsAddress = await stakingRewardsFactoryInstance.stakingRewardsByStakingToken(stakingTokenAddress);
+
+                    lpContractInstance = await deployer.deploy(TestERC20, {}, amount);
+                    await lpContractInstance.mint(stakingRewardsAddress, "100000000000")
+                });
+
+                it("Should withdraw the rewards", async () => {
+                    
+                    let lptokenAddress = lpContractInstance.contractAddress;
+                   
+                    const stakingRewardsAddress = await stakingRewardsFactoryInstance.stakingRewardsByStakingToken(stakingTokenAddress);
+                    let contractInitialBalance = await lpContractInstance.balanceOf(stakingRewardsAddress);
+
+                    await stakingRewardsFactoryInstance.withdrawLPRewards(stakingTokenAddress ,carolAccount.signer.address,lptokenAddress );
+
+                    let userBalanceFinal = await lpContractInstance.balanceOf(carolAccount.signer.address);
+                    let contractFinalBalance = await lpContractInstance.balanceOf(stakingRewardsAddress);
+                    assert(contractInitialBalance.eq(userBalanceFinal, "The balance of the user was not updated"));
+                    assert(contractFinalBalance.eq(0, "The balance of the contract was not updated"));
+
+                });
+
+                it("Should not withdtaw if the caller is not the owner ", async () => {
+                    
+                    let lptokenAddress = lpContractInstance.contractAddress;
+
+                    await assert.revert(stakingRewardsFactoryInstance.from(bobAccount.signer.address).withdrawLPRewards(stakingTokenAddress,carolAccount.signer.address,lptokenAddress ));
+                });
+
+                it("Should not withdtaw if the staking rewards is not present", async () => {
+                    
+                    let lptokenAddress = lpContractInstance.contractAddress;
+
+                    await assert.revert(stakingRewardsFactoryInstance.withdrawLPRewards(bobAccount.signer.address,carolAccount.signer.address,lptokenAddress ));
                 });
             });
         });

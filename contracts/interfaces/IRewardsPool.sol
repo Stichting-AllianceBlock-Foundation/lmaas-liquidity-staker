@@ -2,7 +2,7 @@
 pragma solidity >=0.4.24;
 
 
-interface IStakingRewards {
+interface IRewardsPool{
     // Views
     function lastTimeRewardApplicable(address rewardToken) external view returns (uint256);
 

@@ -5,13 +5,13 @@ import "openzeppelin-solidity/contracts/math/Math.sol";
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import "openzeppelin-solidity/contracts/utils/ReentrancyGuard.sol";
 
-import "./interfaces/IStakingRewards.sol";
+import "./interfaces/IRewardsPool.sol";
 import "./interfaces/IERC20Detailed.sol";
 import "./SafeERC20Detailed.sol";
 import "./RewardsDistributionRecipient.sol";
 
-contract StakingRewards is
-    IStakingRewards,
+contract RewardsPool is
+    IRewardsPool,
     RewardsDistributionRecipient,
     ReentrancyGuard
 {
@@ -425,5 +425,24 @@ contract StakingRewards is
         }
         IERC20Detailed(lpTokenContract).safeTransfer(recipient, currentReward);
         emit WithdrawLPRewards(currentReward, recipient);
+    }
+
+    /** @dev Withdrawing rewards before the campaign has started. This method can be used if tokens were accidentally transferred to the contract. The tokens will be returned to the factory contract.
+     */
+    function withdrawRewards() public nonReentrant onlyRewardsDistributor {
+        bool hasPeriodStartedCheck = this.hasPeriodStarted();
+        require(
+            hasPeriodStartedCheck != true,
+            "The Rewards Campaign has started"
+        );
+
+        for (uint256 i = 0; i < rewardsTokensArr.length; i++) {
+            uint256 rewardsAmount =
+                IERC20Detailed(rewardsTokensArr[i]).balanceOf(address(this));
+            IERC20Detailed(rewardsTokensArr[i]).safeTransfer(
+                rewardsDistributor,
+                rewardsAmount
+            );
+        }
     }
 }
