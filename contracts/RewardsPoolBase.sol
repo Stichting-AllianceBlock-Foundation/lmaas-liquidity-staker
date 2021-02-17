@@ -128,7 +128,7 @@ contract RewardsPoolBase is ReentrancyGuard {
 
     /** @dev Claiming accrued rewards.
      */
-    function claim() public nonReentrant {
+    function claim() public virtual nonReentrant {
         UserInfo storage user = userInfo[msg.sender];
         updateRewardMultipliers();
         updateUserAccruedReward(msg.sender);
@@ -145,7 +145,7 @@ contract RewardsPoolBase is ReentrancyGuard {
     /** @dev Withdrawing portion of staked tokens.
      * @param _tokenAmount The amount to be withdrawn
      */
-    function withdraw(uint256 _tokenAmount) public nonReentrant {
+    function withdraw(uint256 _tokenAmount) public virtual nonReentrant {
         require(_tokenAmount > 0, "Withdraw::Cannot withdraw 0");
 
         UserInfo storage user = userInfo[msg.sender];
