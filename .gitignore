@@ -3,3 +3,6 @@ build
 .etherlime-store
 coverage
 .DS_Store
+.prettierrc
+coverage.json
+coverage
