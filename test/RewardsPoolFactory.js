@@ -3,6 +3,7 @@ const etherlime = require('etherlime-lib');
 const RewardsPoolFactory = require('../build/RewardsPoolFactory.json');
 const TestERC20 = require('../build/TestERC20.json');
 const RewardsPoolBase = require('../build/RewardsPoolBase.json');
+const { mineBlock } = require('./utils')
 
 
 describe.only('RewardsPoolFactory', () => {
@@ -21,7 +22,7 @@ describe.only('RewardsPoolFactory', () => {
     const duration = 60 * 24 * 60 * 60; // 60 days in seconds
     const rewardTokensCount = 1; // 5 rewards tokens for tests
     const amount = ethers.utils.parseEther("5184000");
-    const amountToTransfer = ethers.utils.parseEther("100");
+    const amountToTransfer = ethers.utils.parseEther("10000");
     
 
 
@@ -38,7 +39,7 @@ describe.only('RewardsPoolFactory', () => {
 			rewardTokensAddresses.push(tknInst.contractAddress);
 
 			// populate amounts
-			let parsedReward = await ethers.utils.parseEther(`${i+1}`);
+			let parsedReward = await ethers.utils.parseEther(`${i+10}`);
             rewardPerBlock.push(parsedReward);
         }
 
@@ -63,7 +64,7 @@ describe.only('RewardsPoolFactory', () => {
         }
     });
 
-    describe.only('Deploying RewardsPoolBase', async function () {
+    describe('Deploying RewardsPoolBase', async function () {
         let stakingTokenAddress;
 
         beforeEach(async () => {
@@ -105,7 +106,7 @@ describe.only('RewardsPoolFactory', () => {
                 assert.equal(tokenAddress, rewardTokensAddresses[i], `The saved address of the reward token ${i} was incorrect`);
     
                 const rewardPerBlock = await RewardsPoolContract.rewardPerBlock(i);
-                assert(rewardPerBlock.eq(ethers.utils.parseEther(`${i+1}`)), "The saved reward per block is incorrect");
+                assert(rewardPerBlock.eq(ethers.utils.parseEther(`${i+10}`)), "The saved reward per block is incorrect");
     
                 const accumulatedMultiplier = await RewardsPoolContract.accumulatedRewardMultiplier(i);
                 assert(accumulatedMultiplier.eq(ethers.utils.bigNumberify(0)), "The saved accumulatedMultiplier is incorrect");
@@ -147,69 +148,134 @@ describe.only('RewardsPoolFactory', () => {
             await assert.revertWith(RewardsPoolFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock, rewardTokensAddresses,[0]), errorString);
         });
 
-        xdescribe('Extending Rewards', async function () {
+        describe('Extending Rewards', async function () {
             beforeEach(async () => {
+                for (i = 0; i < rewardTokensAddresses.length; i++) {
+                    await rewardTokensInstances[i].transfer(RewardsPoolFactoryInstance.contractAddress, amountToTransfer);
+                }
                 await RewardsPoolFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock, rewardTokensAddresses,rewardPerBlock);
             });
 
-                it("Should extend the rewards period successfully", async () => {
+                it("Should extend the rewards pool successfully with the same rate", async () => {
+
 					let rewardsPoolLength = await RewardsPoolFactoryInstance.getRewardsPoolNumber()
-					let rewardsPoolAddress = await RewardsPoolFactoryInstance.rewardsPools((rewardsPoolLength - 1) )
-                    const RewardsPoolContract = await etherlime.ContractAt(RewardsPool, rewardsPoolAddress);
+					let rewardsPoolAddress = await RewardsPoolFactoryInstance.rewardsPools((rewardsPoolLength - 1))
+                    const RewardsPoolContract = await etherlime.ContractAt(RewardsPoolBase, rewardsPoolAddress);
                     const rewardTokenInstance = rewardTokensInstances[0];
-                    const rewardToken = rewardTokensAddresses[0];
-                    const rewardAmount = rewardAmounts[0];
+                    let rewardsBalanceInitial = await rewardTokenInstance.balanceOf(RewardsPoolContract.contractAddress)
 
-                    for (i = 0; i < rewardTokensCount; i++) {
-                        await rewardTokensInstances[i].transfer(RewardsPoolFactoryInstance.contractAddress, rewardAmounts[i]);
+                    let currentBlock = await deployer.provider.getBlock('latest');
+                    let blocksDelta = (endBlock-currentBlock.number);
+
+                    while (blocksDelta > 10) {
+                        await mineBlock(deployer.provider);
+                        currentBlock = await deployer.provider.getBlock('latest');
+                        blocksDelta = (endBlock-currentBlock.number);
                     }
-                    await RewardsPoolFactoryInstance.startStaking(rewardsPoolAddress);
-					let rewardInfo = await RewardsPoolContract.rewardsTokensMap(rewardToken);
-                    let periodFinishInitial = rewardInfo.periodFinish;
-                    let rewardDurationInitial = rewardInfo.rewardDuration;
+                    let initialEndBlock = await RewardsPoolContract.endBlock();
+                    let blockExtension = 10
+                    let newEndBlock = initialEndBlock.add(blockExtension)
+                    for (i = 0; i < rewardTokensCount; i++) {
+                        let amount = await RewardsPoolFactoryInstance.calculateRewardsAmount(currentBlock.number,newEndBlock,rewardPerBlock[0])
+                        await rewardTokensInstances[i].transfer(RewardsPoolFactoryInstance.contractAddress, amount);
+                    }
+                    await RewardsPoolFactoryInstance.extendRewardPool(newEndBlock, rewardPerBlock, rewardsPoolAddress);
+				   
 
-                    await rewardTokensInstances[0].transfer(RewardsPoolFactoryInstance.contractAddress, rewardAmount);
-                    await RewardsPoolFactoryInstance.extendRewardPeriod(rewardsPoolAddress, rewardToken, rewardAmount);
-					let RewardsPoolBalanceFinal = await rewardTokenInstance.balanceOf(rewardsPoolAddress);
-					rewardInfo = await RewardsPoolContract.rewardsTokensMap(rewardToken);
-                    let periodFinishFinal = rewardInfo.periodFinish;
-                    let rewardDurationFinal = rewardInfo.rewardDuration;
+                    let rewardsBalanceFinal = await rewardTokenInstance.balanceOf(RewardsPoolContract.contractAddress)
+                    let finalEndBlock = await RewardsPoolContract.endBlock();
+                    let finalRewardPerBlock = await RewardsPoolContract.rewardPerBlock(0);
+                    let amountToTransfer = rewardPerBlock[0].mul(blockExtension)
 
-                    let finalPeriod = periodFinishInitial.add(duration)
-                    let finalDuration = rewardDurationInitial.add(duration)
+                    assert(finalEndBlock.eq(newEndBlock), "The endblock is different");
+                    assert(finalRewardPerBlock.eq(rewardPerBlock[0]), "The rewards amount is not correct");
+                    assert(rewardsBalanceFinal.eq((rewardsBalanceInitial.add(amountToTransfer))), "The transfered amount is not correct")
 
-                    assert(periodFinishFinal.eq(finalPeriod), "The finish period is not correct")
-                    assert(RewardsPoolBalanceFinal.eq(rewardAmount.mul(2)), "The rewards amount is not correct")
-                    assert(rewardDurationFinal.eq(finalDuration), "The reward duration is not correct")
                 });
 
-                it("Should fail if the rewards amount is not greater than zero", async () => {
-                    await assert.revertWith(RewardsPoolFactoryInstance.extendRewardPeriod(
-                        stakingTokenAddress,
-                        rewardTokensAddresses[0],
-                        0
-                    ), 'RewardsPoolFactory::extendRewardPeriod: Reward must be greater than zero');
-                });
+                it("Should extend the rewards pool successfully with the half of the rate", async () => {
 
-                it("Should fail if the staking contracts is not deployed", async () => {
-                    const randomAddress = accounts[6].signer.address;
-                    await assert.revertWith(RewardsPoolFactoryInstance.extendRewardPeriod(
-                        ethers.constants.AddressZero,
-                        rewardTokensAddresses[0],
-                        rewardAmounts[0]
-                    ), 'RewardsPoolFactory::extendRewardPeriod: not deployed')
-                });
-
-                it("Should fail if the staking has not yet started", async () => {
 					let rewardsPoolLength = await RewardsPoolFactoryInstance.getRewardsPoolNumber()
-					let rewardsPoolAddress = await RewardsPoolFactoryInstance.rewardsPools((rewardsPoolLength - 1) )
-                    await assert.revertWith(RewardsPoolFactoryInstance.extendRewardPeriod(
-                        rewardsPoolAddress,
-                        rewardTokensAddresses[0],
-                        rewardAmounts[0]
-                    ), 'Staking has not started')
+					let rewardsPoolAddress = await RewardsPoolFactoryInstance.rewardsPools((rewardsPoolLength - 1))
+                    const RewardsPoolContract = await etherlime.ContractAt(RewardsPoolBase, rewardsPoolAddress);
+                    const rewardTokenInstance = rewardTokensInstances[0];
+                    let rewardsBalanceInitial = await rewardTokenInstance.balanceOf(RewardsPoolContract.contractAddress)
+                    console.log(rewardsBalanceInitial.toString())
+
+                    let currentBlock = await deployer.provider.getBlock('latest');
+                    let blocksDelta = (endBlock-currentBlock.number);
+
+                    while (blocksDelta > 11) {
+                        await mineBlock(deployer.provider);
+                        currentBlock = await deployer.provider.getBlock('latest');
+                        blocksDelta = (endBlock-currentBlock.number);
+                    }
+                    let initialEndBlock = await RewardsPoolContract.endBlock();
+                    let blockExtension = 10
+                    let newEndBlock = initialEndBlock.add(blockExtension)
+                    currentBlock = await deployer.provider.getBlock('latest');
+
+
+                    let newRewardPerBlock = []
+                    for (i = 0; i < rewardTokensCount; i++) {
+                        let newSingleReward = rewardPerBlock[i].div(2)
+                        newRewardPerBlock.push(newSingleReward)
+          
+                    }
+                    await RewardsPoolFactoryInstance.extendRewardPool(newEndBlock, newRewardPerBlock, rewardsPoolAddress);
+
+                    let rewardsBalanceFinal = await rewardTokenInstance.balanceOf(RewardsPoolContract.contractAddress)
+                    let finalEndBlock = await RewardsPoolContract.endBlock();
+                    let finalRewardPerBlock = await RewardsPoolContract.rewardPerBlock(0);
+
+                    assert(finalEndBlock.eq(newEndBlock), "The endblock is different");
+                    assert(finalRewardPerBlock.eq(newRewardPerBlock[0]), "The rewards amount is not correct");
+                    assert(rewardsBalanceFinal.eq((rewardsBalanceInitial)), "The transfered amount is not correct")
+
                 });
 
+
+                it("Should extend the rewards pool successfully with the half of the rate", async () => {
+
+					let rewardsPoolLength = await RewardsPoolFactoryInstance.getRewardsPoolNumber()
+					let rewardsPoolAddress = await RewardsPoolFactoryInstance.rewardsPools((rewardsPoolLength - 1))
+                    const RewardsPoolContract = await etherlime.ContractAt(RewardsPoolBase, rewardsPoolAddress);
+                    const rewardTokenInstance = rewardTokensInstances[0];
+                    let rewardsBalanceInitial = await rewardTokenInstance.balanceOf(RewardsPoolContract.contractAddress)
+
+                    let currentBlock = await deployer.provider.getBlock('latest');
+                    let blocksDelta = (endBlock-currentBlock.number);
+
+                    while (blocksDelta > 11) {
+                        await mineBlock(deployer.provider);
+                        currentBlock = await deployer.provider.getBlock('latest');
+                        blocksDelta = (endBlock-currentBlock.number);
+                    }
+                    let initialEndBlock = await RewardsPoolContract.endBlock();
+                    let blockExtension = 10
+                    let newEndBlock = initialEndBlock.add(blockExtension)
+                    currentBlock = await deployer.provider.getBlock('latest');
+                    let amountToTransfer = []
+                    let newRewardPerBlock = []
+                    for (i = 0; i < rewardTokensCount; i++) {
+                        let newSingleReward = rewardPerBlock[i].div(5)
+                        newRewardPerBlock.push(newSingleReward)
+                        let currentRemainingReward = await RewardsPoolFactoryInstance.calculateRewardsAmount((currentBlock.number +1),endBlock,rewardPerBlock[i])
+                        let newRemainingReward = await RewardsPoolFactoryInstance.calculateRewardsAmount((currentBlock.number+1) ,newEndBlock,newSingleReward)
+                        amountToTransfer.push(currentRemainingReward.sub(newRemainingReward))
+                    }
+                    await RewardsPoolFactoryInstance.extendRewardPool(newEndBlock, newRewardPerBlock, rewardsPoolAddress);
+                    let rewardsBalanceFinal = await rewardTokenInstance.balanceOf(RewardsPoolContract.contractAddress)
+                    let finalEndBlock = await RewardsPoolContract.endBlock();
+                    let finalRewardPerBlock = await RewardsPoolContract.rewardPerBlock(0);
+                    
+                    assert(finalEndBlock.eq(newEndBlock), "The endblock is different");
+                    assert(finalRewardPerBlock.eq(newRewardPerBlock[0]), "The rewards amount is not correct");
+                    assert(rewardsBalanceFinal.eq((rewardsBalanceInitial.sub(amountToTransfer[0]))), "The transfered amount is not correct")
+
+                });
+
+           
             describe('Withdrawing rewards', async function () {
 			
 
@@ -252,37 +318,6 @@ describe.only('RewardsPoolFactory', () => {
                     await assert.revert(RewardsPoolFactoryInstance.withdrawLPRewards(bobAccount.signer.address,carolAccount.signer.address,lptokenAddress ));
 				});
 				
-				it("Should withdraw the rewards before the campaign being started", async () => {
-					
-					let rewardsPoolLength = await RewardsPoolFactoryInstance.getRewardsPoolNumber()
-					let rewardsPoolAddress = await RewardsPoolFactoryInstance.rewardsPools((rewardsPoolLength - 1) )
-					const RewardsContract = await etherlime.ContractAt(TestERC20, rewardTokensAddresses[0]);
-					const amountToMint = ethers.utils.parseEther("100000000000")
-					await RewardsContract.from(aliceAccount).mint(rewardsPoolAddress, amountToMint)
-                    let contractInitialBalance = await RewardsContract.balanceOf(RewardsPoolFactoryInstance.contractAddress);
-
-                    await RewardsPoolFactoryInstance.withdrawRewards(rewardsPoolAddress);
-
-					let contractFinalBalance = await RewardsContract.balanceOf(RewardsPoolFactoryInstance.contractAddress);
-			
-					assert(contractFinalBalance.gt(0, "The balance of the contract was not updated"));
-					assert(contractFinalBalance.gt(contractInitialBalance, "The balance of the contract was not updated"))
-					assert(contractFinalBalance.eq(amountToMint, "The balance of the contract was not updated"))
-				});
-
-				it("Should not revert if the staking has started ", async () => {
-					
-					let rewardsPoolAddress = await RewardsPoolFactoryInstance.rewardsPools((0) )
-					const RewardsPoolContract = await etherlime.ContractAt(RewardsPool, rewardsPoolAddress);
-					const count = await RewardsPoolContract.getRewardsTokensCount();
-					for (i = 0; i < count; i++) {
-                        await rewardTokensInstances[i].transfer(RewardsPoolFactoryInstance.contractAddress, rewardAmounts[i]);
-                    }
-					await RewardsPoolFactoryInstance.startStaking(rewardsPoolAddress)
-
-                    await assert.revert(RewardsPoolFactoryInstance.withdrawRewards(rewardsPoolAddress));
-				});
-
 			});
 			
 			

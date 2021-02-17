@@ -20,6 +20,7 @@ contract RewardsPoolBase is ReentrancyGuard {
     uint256 public endBlock;
     uint256 public lastRewardBlock;
     uint256[] public accumulatedRewardMultiplier;
+    address public rewardsPoolFactory;
 
     struct UserInfo {
         uint256 firstStakedBlockNumber;
@@ -35,6 +36,7 @@ contract RewardsPoolBase is ReentrancyGuard {
     event Withdrawn(address indexed user, uint256 amount);
     event Exited(address indexed user, uint256 amount);
     event Extended(uint256 newEndBlock, uint256[] newRewardsPerBlock);
+    event WithdrawLPRewards(uint256 indexed rewardsAmount, address indexed recipient);
 
     constructor(
         IERC20Detailed _stakingToken,
@@ -74,6 +76,7 @@ contract RewardsPoolBase is ReentrancyGuard {
         endBlock = _endBlock;
         rewardsTokens = _rewardsTokens;
         lastRewardBlock = startBlock;
+        rewardsPoolFactory = msg.sender;
         for (uint256 i = 0; i < rewardsTokens.length; i++) {
             accumulatedRewardMultiplier.push(0);
         }
@@ -86,6 +89,14 @@ contract RewardsPoolBase is ReentrancyGuard {
             "Stake::Staking has not yet started"
         );
         require(currentBlock <= endBlock, "Stake::Staking has finished");
+        _;
+    }
+
+    modifier onlyFactory() {
+        require(
+            msg.sender == rewardsPoolFactory,
+            "Caller is not RewardsPoolFactory contract"
+        );
         _;
     }
 
@@ -309,7 +320,10 @@ contract RewardsPoolBase is ReentrancyGuard {
         view
         returns (uint256)
     {
-        require(_userAddress != address(0), "GetUserRewardDebt::Invalid user address");
+        require(
+            _userAddress != address(0),
+            "GetUserRewardDebt::Invalid user address"
+        );
         UserInfo storage user = userInfo[_userAddress];
         return user.rewardDebt[_index];
     }
@@ -319,7 +333,10 @@ contract RewardsPoolBase is ReentrancyGuard {
         view
         returns (uint256)
     {
-        require(_userAddress != address(0), "GetUserOwedTokens::Invalid user address");
+        require(
+            _userAddress != address(0),
+            "GetUserOwedTokens::Invalid user address"
+        );
         UserInfo storage user = userInfo[_userAddress];
         return user.tokensOwed[_index];
     }
@@ -356,7 +373,10 @@ contract RewardsPoolBase is ReentrancyGuard {
         view
         returns (uint256)
     {
-        require(_userAddress != address(0), "GetUserTokensOwedLength::Invalid user address");
+        require(
+            _userAddress != address(0),
+            "GetUserTokensOwedLength::Invalid user address"
+        );
         UserInfo storage user = userInfo[_userAddress];
         return user.tokensOwed.length;
     }
@@ -366,7 +386,10 @@ contract RewardsPoolBase is ReentrancyGuard {
         view
         returns (uint256)
     {
-        require(_userAddress != address(0), "GetUserRewardDebtLength::Invalid user address");
+        require(
+            _userAddress != address(0),
+            "GetUserRewardDebtLength::Invalid user address"
+        );
         UserInfo storage user = userInfo[_userAddress];
         return user.rewardDebt.length;
     }
@@ -380,7 +403,10 @@ contract RewardsPoolBase is ReentrancyGuard {
         external
         virtual
     {
-        require(_endBlock > _getBlock(), "Extend::End block must be in the future");
+        require(
+            _endBlock > _getBlock(),
+            "Extend::End block must be in the future"
+        );
         require(
             _endBlock >= endBlock,
             "Extend::End block must be after the current end block"
@@ -421,6 +447,32 @@ contract RewardsPoolBase is ReentrancyGuard {
         endBlock = _endBlock;
 
         emit Extended(_endBlock, _rewardsPerBlock);
+    }
+
+    /** @dev Withdrawing rewards acumulated from different pools for providing liquidity
+     * @param recipient The address to whom the rewards will be trasferred
+     * @param lpTokenContract The address of the rewards contract
+     */
+    function withdrawLPRewards(address recipient, address lpTokenContract)
+        external
+        nonReentrant
+        onlyFactory()
+    {
+        uint256 currentReward =
+            IERC20Detailed(lpTokenContract).balanceOf(address(this));
+        require(
+            currentReward > 0,
+            "WithdrawLPRewards::There are no rewards from liquidity pools"
+        );
+
+        for (uint256 i = 0; i < rewardsTokens.length; i++) {
+            require(
+                lpTokenContract != rewardsTokens[i],
+                "WithdrawLPRewards::Cannot withdraw from token rewards"
+            );
+        }
+        IERC20Detailed(lpTokenContract).safeTransfer(recipient, currentReward);
+        emit WithdrawLPRewards(currentReward, recipient);
     }
 
     /** @dev Helper function to calculate how much tokens should be transffered to a rewards pool.

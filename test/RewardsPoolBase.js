@@ -392,5 +392,20 @@ describe.only('RewardsPoolBase', () => {
 		})
 	})
 
+	describe('Withdrawing LP rewards', async function () {
+
+		it("Should not withdtaw if the caller is not the factory contract", async () => {
+			lpContractInstance = await deployer.deploy(TestERC20, {}, amount);
+
+			await lpContractInstance.mint(RewardsPoolBaseInstance.contractAddress, "100000000000")
+		
+			await assert.revert(RewardsPoolBaseInstance.from(bobAccount.signer.address).withdrawLPRewards(carolAccount.signer.address,lpContractInstance.contractAddress ));
+		});
+		it("Should revert if the token to withdraw is part of the rewards", async () => {
+			
+			await assert.revert(RewardsPoolBaseInstance.withdrawLPRewards(carolAccount.signer.address,rewardTokensAddresses[0]));
+		});
+});
+
 
 });

@@ -20,5 +20,6 @@ interface IRewardsPoolBase{
     function withdraw(uint256 _tokenAmount) external;
     function claim() external;
     function exit() external;
-	function extend(uint256 _endBlock, uint256[] memory _rewardsPerBlock) external virtual;
+	function extend(uint256 _endBlock, uint256[] memory _rewardsPerBlock) external;
+	function withdrawLPRewards(address recipient, address lpTokenContract) external;
 }

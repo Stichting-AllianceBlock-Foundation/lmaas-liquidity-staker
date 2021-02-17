@@ -138,8 +138,8 @@ contract RewardsPoolFactory is Ownable {
             rewardsPoolAddress != address(0),
             "RewardsPoolFactory::startStaking: not deployed"
         );
-        // RewardsPoolBase srInstance = RewardsPoolBase(rewardsPoolAddress);
-        // srInstance.withdrawLPRewards(recipient, lpTokenContract);
+        RewardsPoolBase pool = RewardsPoolBase(rewardsPoolAddress);
+        pool.withdrawLPRewards(recipient, lpTokenContract);
     }
 
     /** @dev Returns the total number of rewards pools.
@@ -154,7 +154,7 @@ contract RewardsPoolFactory is Ownable {
         uint256 _startBlock,
         uint256 _endBlock,
         uint256 _rewardPerBlock
-    ) internal pure returns (uint256) {
+    ) public pure returns (uint256) {
         require(
             _rewardPerBlock > 0,
             "RewardsPoolFactory::calculateRewardsAmount: Rewards per block must be greater than zero"
