@@ -94,6 +94,7 @@ contract RewardsPoolBase is ReentrancyGuard {
      */
     function stake(uint256 _tokenAmount)
         external
+        virtual
         nonReentrant
         onlyInsideBlockBounds
     {
@@ -127,7 +128,7 @@ contract RewardsPoolBase is ReentrancyGuard {
 
     /** @dev Claiming accrued rewards.
      */
-    function claim() public nonReentrant {
+    function claim() public virtual nonReentrant {
         UserInfo storage user = userInfo[msg.sender];
         updateRewardMultipliers();
         updateUserAccruedReward(msg.sender);
@@ -144,7 +145,7 @@ contract RewardsPoolBase is ReentrancyGuard {
     /** @dev Withdrawing portion of staked tokens.
      * @param _tokenAmount The amount to be withdrawn
      */
-    function withdraw(uint256 _tokenAmount) public nonReentrant {
+    function withdraw(uint256 _tokenAmount) public virtual nonReentrant {
         require(_tokenAmount > 0, "Withdraw::Cannot withdraw 0");
 
         UserInfo storage user = userInfo[msg.sender];
@@ -168,7 +169,7 @@ contract RewardsPoolBase is ReentrancyGuard {
 
     /** @dev Claiming all rewards and withdrawing all staked tokens. Exits from the rewards pool
      */
-    function exit() public {
+    function exit() public virtual {
         UserInfo storage user = userInfo[msg.sender];
         claim();
         withdraw(user.amountStaked);
@@ -308,7 +309,7 @@ contract RewardsPoolBase is ReentrancyGuard {
         view
         returns (uint256)
     {
-        require(_userAddress != address(0), "Invalid user address");
+        require(_userAddress != address(0), "GetUserRewardDebt::Invalid user address");
         UserInfo storage user = userInfo[_userAddress];
         return user.rewardDebt[_index];
     }
@@ -318,7 +319,7 @@ contract RewardsPoolBase is ReentrancyGuard {
         view
         returns (uint256)
     {
-        require(_userAddress != address(0), "Invalid user address");
+        require(_userAddress != address(0), "GetUserOwedTokens::Invalid user address");
         UserInfo storage user = userInfo[_userAddress];
         return user.tokensOwed[_index];
     }
@@ -355,7 +356,7 @@ contract RewardsPoolBase is ReentrancyGuard {
         view
         returns (uint256)
     {
-        require(_userAddress != address(0), "Invalid user address");
+        require(_userAddress != address(0), "GetUserTokensOwedLength::Invalid user address");
         UserInfo storage user = userInfo[_userAddress];
         return user.tokensOwed.length;
     }
@@ -365,7 +366,7 @@ contract RewardsPoolBase is ReentrancyGuard {
         view
         returns (uint256)
     {
-        require(_userAddress != address(0), "Invalid user address");
+        require(_userAddress != address(0), "GetUserRewardDebtLength::Invalid user address");
         UserInfo storage user = userInfo[_userAddress];
         return user.rewardDebt.length;
     }
@@ -377,27 +378,41 @@ contract RewardsPoolBase is ReentrancyGuard {
      */
     function extend(uint256 _endBlock, uint256[] memory _rewardsPerBlock)
         public
+        virtual
     {
-        require(_endBlock > _getBlock(), "End block must be in the future");
+        require(_endBlock > _getBlock(), "Extend::End block must be in the future");
         require(
             _endBlock >= endBlock,
-            "End block must be after the current end block"
+            "Extend::End block must be after the current end block"
         );
         require(
             _rewardsPerBlock.length == rewardsTokens.length,
-            "Rewards amounts length is less than expected"
+            "Extend::Rewards amounts length is less than expected"
         );
         updateRewardMultipliers();
 
         for (uint256 i = 0; i < _rewardsPerBlock.length; i++) {
-            uint256 currentRemainingReward = calculateRewardsAmount(_getBlock(), endBlock, rewardPerBlock[i]);
-            uint256 newRemainingReward = calculateRewardsAmount(_getBlock(), _endBlock, _rewardsPerBlock[i]);
+            uint256 currentRemainingReward =
+                calculateRewardsAmount(
+                    _getBlock(),
+                    endBlock,
+                    rewardPerBlock[i]
+                );
+            uint256 newRemainingReward =
+                calculateRewardsAmount(
+                    _getBlock(),
+                    _endBlock,
+                    _rewardsPerBlock[i]
+                );
 
             address rewardsToken = rewardsTokens[i];
 
             if (currentRemainingReward > newRemainingReward) {
                 // Some reward leftover needs to be returned
-                IERC20Detailed(rewardsToken).safeTransfer(msg.sender, currentRemainingReward.sub(newRemainingReward));
+                IERC20Detailed(rewardsToken).safeTransfer(
+                    msg.sender,
+                    currentRemainingReward.sub(newRemainingReward)
+                );
             }
 
             rewardPerBlock[i] = _rewardsPerBlock[i];
@@ -417,7 +432,7 @@ contract RewardsPoolBase is ReentrancyGuard {
     ) internal pure returns (uint256) {
         require(
             _rewardPerBlock > 0,
-            "RewardsPoolFactory::calculateRewardsAmount: Rewards per block must be greater than zero"
+            "RewardsPoolBase::calculateRewardsAmount: Rewards per block must be greater than zero"
         );
 
         uint256 rewardsPeriod = _endBlock.sub(_startBlock);

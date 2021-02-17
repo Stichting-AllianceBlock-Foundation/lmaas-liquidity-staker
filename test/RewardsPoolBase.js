@@ -4,7 +4,7 @@ const RewardsPoolBase = require('../build/RewardsPoolBase.json');
 const TestERC20 = require('../build/TestERC20.json');
 const { mineBlock } = require('./utils')
 
-describe('RewardsPoolBase', () => {
+describe.only('RewardsPoolBase', () => {
     let aliceAccount = accounts[3];
     let bobAccount = accounts[4];
     let carolAccount = accounts[5];
@@ -365,14 +365,14 @@ describe('RewardsPoolBase', () => {
 			assert(rewardPerBlock.eq(currentRewardPerBlock.add(bOne)), "Extending the reward per block was not successfull")
 		})
 
-		it("Should fail extentind the rewards pool if the end block is not in the future", async() => {
-			await assert.revertWith( RewardsPoolBaseInstance.extend(0,rewardPerBlock), "End block must be in the future")
+		it("Should fail extending the rewards pool if the end block is not in the future", async() => {
+			await assert.revertWith( RewardsPoolBaseInstance.extend(0,rewardPerBlock), "Extend::End block must be in the future")
 		})
 
 		it("Should fail extentind the rewards pool if the end block is not greater than the previous", async() => {
 			let currentEndBlock = await RewardsPoolBaseInstance.endBlock()
 			let newEndBlock = currentEndBlock.sub(1)
-			await assert.revertWith( RewardsPoolBaseInstance.extend(newEndBlock,rewardPerBlock), "End block must be after the current end block")
+			await assert.revertWith( RewardsPoolBaseInstance.extend(newEndBlock,rewardPerBlock), "Extend::End block must be after the current end block")
 		})
 
 		it("Should fail extentind the rewards pool if the rewards per block arrays is with different length", async() => {
@@ -388,7 +388,7 @@ describe('RewardsPoolBase', () => {
 				let parsedReward = await ethers.utils.parseEther(`${i+2}`);
 				newRewardsPerBlock.push(parsedReward);
 			}
-			await assert.revertWith( RewardsPoolBaseInstance.extend(newEndBlock,newRewardsPerBlock), "Rewards amounts length is less than expected")
+			await assert.revertWith( RewardsPoolBaseInstance.extend(newEndBlock,newRewardsPerBlock), "Extend::Rewards amounts length is less than expected")
 		})
 	})
 
