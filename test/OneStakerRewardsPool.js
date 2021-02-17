@@ -1,6 +1,6 @@
 const ethers = require('ethers');
 const etherlime = require('etherlime-lib');
-const OneStakerRewardsPool = require('../build/OneStakerRewardsPool.json');
+const OneStakerRewardsPool = require('../build/OneStakerRewardsPoolMock.json');
 const TestERC20 = require('../build/TestERC20.json');
 const { mineBlock } = require('./utils')
 
