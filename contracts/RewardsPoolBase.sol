@@ -93,7 +93,8 @@ contract RewardsPoolBase is ReentrancyGuard {
      * @param _tokenAmount The amount to be staked
      */
     function stake(uint256 _tokenAmount)
-        external
+        virtual
+        public
         nonReentrant
         onlyInsideBlockBounds
     {
