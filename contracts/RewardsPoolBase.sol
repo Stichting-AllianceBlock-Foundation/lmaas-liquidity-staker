@@ -92,10 +92,12 @@ contract RewardsPoolBase is ReentrancyGuard {
     /** @dev Providing LP tokens to stake, update rewards.
      * @param _tokenAmount The amount to be staked
      */
-    function stake(uint256 _tokenAmount)
-        virtual
-        public
-        nonReentrant
+    function stake(uint256 _tokenAmount) virtual public nonReentrant {
+        _stake(_tokenAmount);
+    }
+
+    function _stake(uint256 _tokenAmount)
+        internal
         onlyInsideBlockBounds
     {
         require(_tokenAmount > 0, "Stake::Cannot stake 0");
@@ -129,6 +131,9 @@ contract RewardsPoolBase is ReentrancyGuard {
     /** @dev Claiming accrued rewards.
      */
     function claim() public virtual nonReentrant {
+        _claim();
+    }
+    function _claim() internal {
         UserInfo storage user = userInfo[msg.sender];
         updateRewardMultipliers();
         updateUserAccruedReward(msg.sender);
@@ -146,6 +151,10 @@ contract RewardsPoolBase is ReentrancyGuard {
      * @param _tokenAmount The amount to be withdrawn
      */
     function withdraw(uint256 _tokenAmount) public virtual nonReentrant {
+        _withdraw(_tokenAmount);
+    }
+
+    function _withdraw(uint256 _tokenAmount) internal {
         require(_tokenAmount > 0, "Withdraw::Cannot withdraw 0");
 
         UserInfo storage user = userInfo[msg.sender];
@@ -169,10 +178,14 @@ contract RewardsPoolBase is ReentrancyGuard {
 
     /** @dev Claiming all rewards and withdrawing all staked tokens. Exits from the rewards pool
      */
-    function exit() public {
+    function exit() virtual public nonReentrant {
+        _exit();
+    }
+
+    function _exit() internal {
         UserInfo storage user = userInfo[msg.sender];
-        claim();
-        withdraw(user.amountStaked);
+        _claim();
+        _withdraw(user.amountStaked);
 
         emit Exited(msg.sender, user.amountStaked);
     }
