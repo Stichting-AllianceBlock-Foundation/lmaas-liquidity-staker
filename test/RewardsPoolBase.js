@@ -390,6 +390,11 @@ describe.only('RewardsPoolBase', () => {
 			}
 			await assert.revertWith( RewardsPoolBaseInstance.extend(newEndBlock,newRewardsPerBlock), "Extend::Rewards amounts length is less than expected")
 		})
+
+		it("Should fail extending the rewards pool if the end block is not in the future", async() => {
+			let newEndBlock = endBlock + 10
+			await assert.revertWith( RewardsPoolBaseInstance.from(bobAccount.signer.address).extend(newEndBlock,rewardPerBlock), "Caller is not RewardsPoolFactory contract")
+		})
 	})
 
 	describe('Withdrawing LP rewards', async function () {

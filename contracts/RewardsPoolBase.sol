@@ -402,6 +402,7 @@ contract RewardsPoolBase is ReentrancyGuard {
     function extend(uint256 _endBlock, uint256[] memory _rewardsPerBlock)
         external
         virtual
+        onlyFactory()
     {
         require(
             _endBlock > _getBlock(),
