@@ -4,7 +4,9 @@ const StakeLockingFeature = require('../build/StakeLockingRewardsPoolMock.json')
 const TestERC20 = require('../build/TestERC20.json');
 const { mineBlock } = require('./utils')
 
+
 describe('StakeLockingFeature', () => {
+
     let aliceAccount = accounts[3];
     let bobAccount = accounts[4];
     let carolAccount = accounts[5];
