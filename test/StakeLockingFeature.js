@@ -86,6 +86,16 @@ describe('StakeLockingFeature', () => {
 		await StakeLockingFeatureInstance.stake(standardStakingAmount);
 	});
 
+	it("Should not claim or withdraw", async() => {
+
+		await mineBlock(deployer.provider);
+		const userInitialBalance = await rewardTokensInstances[0].balanceOf(aliceAccount.signer.address);
+		const userRewards = await StakeLockingFeatureInstance.getUserAccumulatedReward(aliceAccount.signer.address, 0);
+
+		await assert.revertWith(StakeLockingFeatureInstance.claim(), "OnlyExitFeature::cannot claim from this contract. Only exit.");
+		await assert.revertWith(StakeLockingFeatureInstance.withdraw(bOne), "OnlyExitFeature::cannot withdraw from this contract. Only exit.");
+	})
+
 	it("Should not exit before end of campaign", async() => {
 		await assert.revertWith(StakeLockingFeatureInstance.exit(), "onlyUnlocked::cannot perform this action until the end of the campaign");
 	})

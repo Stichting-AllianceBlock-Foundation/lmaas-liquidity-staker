@@ -3,7 +3,7 @@ const etherlime = require('etherlime-lib');
 const StakingRewards = require('../build/StakingRewards.json');
 const TestERC20 = require('../build/TestERC20.json');
 
-describe('StakingRewards', () => {
+xdescribe('StakingRewards', () => {
     let aliceAccount = accounts[3];
     let bobAccount = accounts[4];
     let carolAccount = accounts[5];
