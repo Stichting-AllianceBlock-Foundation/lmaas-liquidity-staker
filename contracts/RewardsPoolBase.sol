@@ -188,6 +188,13 @@ contract RewardsPoolBase is ReentrancyGuard {
         emit Exited(msg.sender, user.amountStaked);
     }
 
+    /** @dev Returns the amount of tokens the user has staked
+     */
+    function balanceOf(address _userAddress) public view returns(uint256) {
+        UserInfo storage user = userInfo[_userAddress];
+        return user.amountStaked;
+    }
+
     /**
         @dev Execute logic on initial stake of the user.
         Could be overriden if needed by the later contracts.
