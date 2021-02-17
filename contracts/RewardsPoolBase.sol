@@ -169,7 +169,7 @@ contract RewardsPoolBase is ReentrancyGuard {
 
     /** @dev Claiming all rewards and withdrawing all staked tokens. Exits from the rewards pool
      */
-    function exit() public virtual {
+    function exit() external virtual {
         UserInfo storage user = userInfo[msg.sender];
         claim();
         withdraw(user.amountStaked);
@@ -305,7 +305,7 @@ contract RewardsPoolBase is ReentrancyGuard {
     }
 
     function getUserRewardDebt(address _userAddress, uint256 _index)
-        public
+        external
         view
         returns (uint256)
     {
@@ -315,7 +315,7 @@ contract RewardsPoolBase is ReentrancyGuard {
     }
 
     function getUserOwedTokens(address _userAddress, uint256 _index)
-        public
+        external
         view
         returns (uint256)
     {
@@ -352,7 +352,7 @@ contract RewardsPoolBase is ReentrancyGuard {
     }
 
     function getUserTokensOwedLength(address _userAddress)
-        public
+        external
         view
         returns (uint256)
     {
@@ -362,7 +362,7 @@ contract RewardsPoolBase is ReentrancyGuard {
     }
 
     function getUserRewardDebtLength(address _userAddress)
-        public
+        external
         view
         returns (uint256)
     {
@@ -377,7 +377,7 @@ contract RewardsPoolBase is ReentrancyGuard {
         @param _rewardsPerBlock array with new rewards per block for each token 
      */
     function extend(uint256 _endBlock, uint256[] memory _rewardsPerBlock)
-        public
+        external
         virtual
     {
         require(_endBlock > _getBlock(), "Extend::End block must be in the future");
