@@ -223,16 +223,24 @@ contract RewardsPoolBase is ReentrancyGuard {
         @dev updates the accumulated reward multipliers for everyone and each token
      */
     function updateRewardMultipliers() public {
-        if (_getBlock() <= lastRewardBlock) {
+        uint256 currentBlock = _getBlock();
+
+        if (currentBlock <= lastRewardBlock) {
+            return;
+        }
+
+        uint256 applicableBlock = (currentBlock < endBlock) ? currentBlock : endBlock;
+
+        uint256 blocksSinceLastReward = applicableBlock.sub(lastRewardBlock);
+
+        if(blocksSinceLastReward == 0) { // Nothing to update
             return;
         }
 
         if (totalStaked == 0) {
-            lastRewardBlock = _getBlock();
+            lastRewardBlock = applicableBlock;
             return;
         }
-
-        uint256 blocksSinceLastReward = _getBlock().sub(lastRewardBlock);
 
         for (uint256 i = 0; i < rewardsTokens.length; i++) {
             uint256 newReward = blocksSinceLastReward.mul(rewardPerBlock[i]); // Get newly accumulated reward
@@ -242,7 +250,7 @@ contract RewardsPoolBase is ReentrancyGuard {
                 rewardMultiplierIncrease
             ); // Add the multiplier increase to the accumulated multiplier
         }
-        lastRewardBlock = _getBlock();
+        lastRewardBlock = applicableBlock;
     }
 
     /**
