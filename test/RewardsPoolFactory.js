@@ -200,7 +200,6 @@ describe.only('RewardsPoolFactory', () => {
                     const RewardsPoolContract = await etherlime.ContractAt(RewardsPoolBase, rewardsPoolAddress);
                     const rewardTokenInstance = rewardTokensInstances[0];
                     let rewardsBalanceInitial = await rewardTokenInstance.balanceOf(RewardsPoolContract.contractAddress)
-                    console.log(rewardsBalanceInitial.toString())
 
                     let currentBlock = await deployer.provider.getBlock('latest');
                     let blocksDelta = (endBlock-currentBlock.number);
