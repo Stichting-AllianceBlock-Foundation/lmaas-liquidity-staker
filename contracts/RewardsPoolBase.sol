@@ -402,7 +402,7 @@ contract RewardsPoolBase is ReentrancyGuard {
     function extend(uint256 _endBlock, uint256[] memory _rewardsPerBlock)
         external
         virtual
-        onlyFactory()
+        onlyFactory
     {
         require(
             _endBlock > _getBlock(),
@@ -457,7 +457,7 @@ contract RewardsPoolBase is ReentrancyGuard {
     function withdrawLPRewards(address recipient, address lpTokenContract)
         external
         nonReentrant
-        onlyFactory()
+        onlyFactory
     {
         uint256 currentReward =
             IERC20Detailed(lpTokenContract).balanceOf(address(this));
