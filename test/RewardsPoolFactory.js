@@ -5,7 +5,7 @@ const TestERC20 = require('../build/TestERC20.json');
 const RewardsPool = require('../build/RewardsPool.json');
 
 
-describe.only('RewardsPoolFactory', () => {
+describe('RewardsPoolFactory', () => {
     let aliceAccount = accounts[3];
     let bobAccount = accounts[4];
     let carolAccount = accounts[5];
