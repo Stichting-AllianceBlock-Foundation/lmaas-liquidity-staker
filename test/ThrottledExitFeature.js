@@ -5,7 +5,7 @@ const TestERC20 = require('../build/TestERC20.json');
 const { mineBlock } = require('./utils')
 
 
-describe('ThrottledExitFeature', () => {
+describe.only('ThrottledExitFeature', () => {
 
     let aliceAccount = accounts[3];
     let bobAccount = accounts[4];
@@ -111,7 +111,7 @@ describe('ThrottledExitFeature', () => {
 		})
 
 		it("Should not exit before end of campaign", async() => {
-			await assert.revertWith(ThrottledExitFeatureInstance.exit(), "onlyUnlocked::cannot perform this action until the end of the campaign");
+			await assert.revertWith(ThrottledExitFeatureInstance.exit(), "onlyUnlocked::cannot perform this action until the end of the lock");
 		})
 
 
