@@ -99,7 +99,7 @@ describe('StakeLockingFeature', () => {
 	})
 
 	it("Should not exit before end of campaign", async() => {
-		await assert.revertWith(StakeLockingFeatureInstance.exit(), "onlyUnlocked::cannot perform this action until the end of the campaign");
+		await assert.revertWith(StakeLockingFeatureInstance.exit(), "onlyUnlocked::cannot perform this action until the end of the lock");
 	})
 
 
