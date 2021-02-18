@@ -28,8 +28,8 @@ abstract contract ThrottledExit {
 	event ExitCompleted(address user, uint256 stake);
 
 	function setThrottleParams(uint256 _throttleRoundBlocks, uint256 _throttleRoundCap, uint256 throttleStart) internal {
-		require(_throttleRoundBlocks > 0, "setThrottle::throttle rould must be more than 0");
-		require(_throttleRoundCap > 0, "setThrottle::throttle rould cap must be more than 0");
+		require(_throttleRoundBlocks > 0, "setThrottle::throttle round blocks must be more than 0");
+		require(_throttleRoundCap > 0, "setThrottle::throttle round cap must be more than 0");
 		require(throttleRoundBlocks == 0 && throttleRoundCap == 0, "setThrottle::throttle parameters were already set");
 		throttleRoundBlocks = _throttleRoundBlocks;
 		throttleRoundCap = _throttleRoundCap;
