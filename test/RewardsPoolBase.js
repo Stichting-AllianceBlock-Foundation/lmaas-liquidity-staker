@@ -4,7 +4,7 @@ const RewardsPoolBase = require('../build/RewardsPoolBase.json');
 const TestERC20 = require('../build/TestERC20.json');
 const { mineBlock } = require('./utils')
 
-describe.only('RewardsPoolBase', () => {
+describe('RewardsPoolBase', () => {
     let aliceAccount = accounts[3];
     let bobAccount = accounts[4];
     let carolAccount = accounts[5];

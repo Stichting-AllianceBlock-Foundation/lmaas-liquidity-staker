@@ -4,7 +4,7 @@ const StakingRewardsFactory = require('../build/StakingRewardsFactory.json');
 const TestERC20 = require('../build/TestERC20.json');
 const StakingRewards = require('../build/StakingRewards.json');
 
-describe('StakingRewardsFactory', () => {
+xdescribe('StakingRewardsFactory', () => {
     let aliceAccount = accounts[3];
     let bobAccount = accounts[4];
     let carolAccount = accounts[5];
