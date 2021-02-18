@@ -318,7 +318,7 @@ describe('ThrottledExitFeature', () => {
 
 			await ThrottledExitFeatureInstance.exit();
 			
-			await assert.revertWith(ThrottledExitFeatureInstance.completeExit(), "completeExit::Trying to exit too early");
+			await assert.revertWith(ThrottledExitFeatureInstance.completeExit(), "finalizeExit::Trying to exit too early");
 		})
 
 		it("Should complete succesfully", async() => {

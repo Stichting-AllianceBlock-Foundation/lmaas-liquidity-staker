@@ -15,7 +15,7 @@ contract ThrottledExitRewardsPoolMock is RewardsPoolBase, OnlyExitFeature, Throt
 		uint256 throttleRoundBlocks,
 		uint256 throttleRoundCap
     ) public RewardsPoolBase(_stakingToken, _startBlock, _endBlock, _rewardsTokens, _rewardPerBlock) {
-		setThrottleParams(throttleRoundBlocks, throttleRoundCap);
+		setThrottleParams(throttleRoundBlocks, throttleRoundCap, _endBlock);
 	}
 
 	function withdraw(uint256 _tokenAmount) public override(OnlyExitFeature, RewardsPoolBase) {
