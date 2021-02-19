@@ -104,29 +104,34 @@ contract RewardsPoolBase is ReentrancyGuard {
      * @param _tokenAmount The amount to be staked
      */
     function stake(uint256 _tokenAmount) virtual public nonReentrant {
-        _stake(_tokenAmount);
+        _stake(_tokenAmount, msg.sender, true);
     }
 
-    function _stake(uint256 _tokenAmount)
+    /** @dev Providing LP tokens to stake, update rewards.
+     * @param _tokenAmount The amount to be staked
+     * @param staker The staker to be associated with the stake
+     * @param chargeStaker Whether to draw from the staker or from the msg.sender
+     */
+    function _stake(uint256 _tokenAmount, address staker, bool chargeStaker)
         internal
         onlyInsideBlockBounds
     {
         require(_tokenAmount > 0, "Stake::Cannot stake 0");
 
-        UserInfo storage user = userInfo[msg.sender];
+        UserInfo storage user = userInfo[staker];
 
         // if no amount has been staked this is considered the initial stake
         if (user.amountStaked == 0) {
-            onInitialStake(msg.sender);
+            onInitialStake(staker);
         }
 
         updateRewardMultipliers(); // Update the accumulated multipliers for everyone
-        updateUserAccruedReward(msg.sender); // Update the accrued reward for this specific user
+        updateUserAccruedReward(staker); // Update the accrued reward for this specific user
 
         user.amountStaked = user.amountStaked.add(_tokenAmount);
         totalStaked = totalStaked.add(_tokenAmount);
         stakingToken.safeTransferFrom(
-            address(msg.sender),
+            address(chargeStaker ? staker : msg.sender),
             address(this),
             _tokenAmount
         );
@@ -136,26 +141,26 @@ contract RewardsPoolBase is ReentrancyGuard {
                 user.amountStaked.mul(accumulatedRewardMultiplier[i]).div(1e18); // Update user reward debt for each token
             user.rewardDebt[i] = totalDebt;
         }
-        emit Staked(msg.sender, _tokenAmount);
+        emit Staked(staker, _tokenAmount);
     }
 
     /** @dev Claiming accrued rewards.
      */
     function claim() public virtual nonReentrant {
-        _claim();
+        _claim(msg.sender);
     }
 
-    function _claim() internal {
-        UserInfo storage user = userInfo[msg.sender];
+    function _claim(address claimer) internal {
+        UserInfo storage user = userInfo[claimer];
         updateRewardMultipliers();
-        updateUserAccruedReward(msg.sender);
+        updateUserAccruedReward(claimer);
 
         for (uint256 i = 0; i < rewardsTokens.length; i++) {
             uint256 reward = user.tokensOwed[i];
             user.tokensOwed[i] = 0;
-            IERC20Detailed(rewardsTokens[i]).safeTransfer(msg.sender, reward);
+            IERC20Detailed(rewardsTokens[i]).safeTransfer(claimer, reward);
 
-            emit Claimed(msg.sender, reward, rewardsTokens[i]);
+            emit Claimed(claimer, reward, rewardsTokens[i]);
         }
     }
 
@@ -163,21 +168,21 @@ contract RewardsPoolBase is ReentrancyGuard {
      * @param _tokenAmount The amount to be withdrawn
      */
     function withdraw(uint256 _tokenAmount) public virtual nonReentrant {
-        _withdraw(_tokenAmount);
+        _withdraw(_tokenAmount, msg.sender);
     }
 
-    function _withdraw(uint256 _tokenAmount) internal {
+    function _withdraw(uint256 _tokenAmount, address withdrawer) internal {
         require(_tokenAmount > 0, "Withdraw::Cannot withdraw 0");
 
-        UserInfo storage user = userInfo[msg.sender];
+        UserInfo storage user = userInfo[withdrawer];
 
         updateRewardMultipliers(); // Update the accumulated multipliers for everyone
-        updateUserAccruedReward(msg.sender); // Update the accrued reward for this specific user
+        updateUserAccruedReward(withdrawer); // Update the accrued reward for this specific user
 
         user.amountStaked = user.amountStaked.sub(_tokenAmount);
         totalStaked = totalStaked.sub(_tokenAmount);
 
-        stakingToken.safeTransfer(address(msg.sender), _tokenAmount);
+        stakingToken.safeTransfer(address(withdrawer), _tokenAmount);
 
         for (uint256 i = 0; i < rewardsTokens.length; i++) {
             uint256 totalDebt =
@@ -185,21 +190,21 @@ contract RewardsPoolBase is ReentrancyGuard {
             user.rewardDebt[i] = totalDebt;
         }
 
-        emit Withdrawn(msg.sender, _tokenAmount);
+        emit Withdrawn(withdrawer, _tokenAmount);
     }
 
     /** @dev Claiming all rewards and withdrawing all staked tokens. Exits from the rewards pool
      */
     function exit() virtual public nonReentrant {
-        _exit();
+        _exit(msg.sender);
     }
 
-    function _exit() internal {
-        UserInfo storage user = userInfo[msg.sender];
-        _claim();
-        _withdraw(user.amountStaked);
+    function _exit(address exiter) internal {
+        UserInfo storage user = userInfo[exiter];
+        _claim(exiter);
+        _withdraw(user.amountStaked, exiter);
 
-        emit Exited(msg.sender, user.amountStaked);
+        emit Exited(exiter, user.amountStaked);
     }
 
     /** @dev Returns the amount of tokens the user has staked
