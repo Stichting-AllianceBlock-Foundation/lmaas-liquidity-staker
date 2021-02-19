@@ -101,10 +101,10 @@ contract AutoStake is ReentrancyGuard, StakeLock, ThrottledExit {
 		if (totalShares == 0) {
 			totalValue = 0;
 			valuePerShare = unit;
-		} else {
-			totalValue = stakingToken.balanceOf(address(this)).sub(exitStake);
-			valuePerShare = totalValue.mul(unit).div(totalShares);
+			return;
 		}
+		totalValue = stakingToken.balanceOf(address(this)).sub(exitStake);
+		valuePerShare = totalValue.mul(unit).div(totalShares);
 	}
 
 	function exitRewardPool() internal {
