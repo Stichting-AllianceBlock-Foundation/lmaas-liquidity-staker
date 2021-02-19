@@ -36,7 +36,7 @@ abstract contract ThrottledExit {
 		nextAvailableExitBlock = throttleStart.add(throttleRoundBlocks);
 	}
 
-	function initiateExit(uint256 amountStaked, address[] storage _rewardsTokens, uint256[] storage _tokensOwed) virtual internal {
+	function initiateExit(uint256 amountStaked, address[] memory _rewardsTokens, uint256[] memory _tokensOwed) virtual internal {
 		initialiseExitInfo(msg.sender, _rewardsTokens.length);
 
 		ExitInfo storage info = exitInfo[msg.sender];
@@ -50,7 +50,7 @@ abstract contract ThrottledExit {
 		emit ExitRequested(msg.sender, info.exitBlock);
 	}
 
-	function finalizeExit(address _stakingToken, address[] storage _rewardsTokens) virtual internal {
+	function finalizeExit(address _stakingToken, address[] memory _rewardsTokens) virtual internal {
 		ExitInfo storage info = exitInfo[msg.sender];
 		require(block.number > info.exitBlock, "finalizeExit::Trying to exit too early");
 

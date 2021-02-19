@@ -5,7 +5,7 @@ const TestERC20 = require('../build/TestERC20.json');
 const { mineBlock } = require('./utils')
 
 
-describe.only('ThrottledExitFeature', () => {
+describe('ThrottledExitFeature', () => {
 
     let aliceAccount = accounts[3];
     let bobAccount = accounts[4];
@@ -109,11 +109,6 @@ describe.only('ThrottledExitFeature', () => {
 			await assert.revertWith(ThrottledExitFeatureInstance.claim(), "OnlyExitFeature::cannot claim from this contract. Only exit.");
 			await assert.revertWith(ThrottledExitFeatureInstance.withdraw(bOne), "OnlyExitFeature::cannot withdraw from this contract. Only exit.");
 		})
-
-		it("Should not exit before end of campaign", async() => {
-			await assert.revertWith(ThrottledExitFeatureInstance.exit(), "onlyUnlocked::cannot perform this action until the end of the lock");
-		})
-
 
 		it("Should request exit successfully", async() => {
 			const currentBlock = await deployer.provider.getBlock('latest');
