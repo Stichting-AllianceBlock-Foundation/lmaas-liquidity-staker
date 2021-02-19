@@ -13,7 +13,7 @@ import "./ThrottledExit.sol";
 
 contract AutoStake is ReentrancyGuard, StakeLock, ThrottledExit {
 	using SafeMath for uint256;
-    using SafeERC20Detailed for IERC20Detailed;
+	using SafeERC20Detailed for IERC20Detailed;
 
 	OneStakerFeature public rewardPool;
 	IERC20Detailed public stakingToken;
