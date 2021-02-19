@@ -85,6 +85,8 @@ describe('StakeTransfer', () => {
             rewardPerBlock
 		);
 
+		await StakeTransfererInstance.setReceiverWhitelisted(StakeReceiverInstance.contractAddress, true);
+
 		await rewardTokensInstances[0].mint(StakeTransfererInstance.contractAddress,amount);
 		await rewardTokensInstances[0].mint(StakeReceiverInstance.contractAddress,amount);
 
@@ -125,6 +127,12 @@ describe('StakeTransfer', () => {
 		const userinfoInReceiverContract = await StakeReceiverInstance.userInfo(aliceAccount.signer.address);
 
 		assert(userInfoInitial.amountStaked.eq(userinfoInReceiverContract.amountStaked), "Receiver User staked amount is not updated properly")
+	})
+
+	it("Should not exit to non whitelisted contract", async() => {
+		await mineBlock(deployer.provider);
+
+		await assert.revertWith(StakeTransfererInstance.exitAndTransfer(bobAccount.signer.address), "exitAndTransfer::receiver is not whitelisted");
 	})
 
 });

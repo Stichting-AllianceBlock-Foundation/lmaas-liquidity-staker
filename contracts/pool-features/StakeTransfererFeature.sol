@@ -13,18 +13,26 @@ abstract contract StakeTransfererFeature is OnlyExitFeature, StakeTransferer {
 	using SafeMath for uint256;
 	using SafeERC20Detailed for IERC20Detailed;
 
-	// TODO add receivers whitelist
+	mapping(address => bool) public receiversWhitelist;
 
+	function setReceiverWhitelisted(address receiver, bool whitelisted) public onlyFactory {
+		receiversWhitelist[receiver] = whitelisted;
+	}
+
+	/** @dev exits the current campaign and trasnfers the stake to another whitelisted campaign
+		@param transferTo address of the receiver to transfer the stake to
+	 */
 	function exitAndTransfer(address transferTo) virtual public override nonReentrant {
+		require(receiversWhitelist[transferTo], "exitAndTransfer::receiver is not whitelisted");
 		UserInfo storage user = userInfo[msg.sender];
 		
 		updateRewardMultipliers(); // Update the accumulated multipliers for everyone
 
-        if (user.amountStaked == 0) {
-            return;
-        }
+		if (user.amountStaked == 0) {
+			return;
+		}
 
-        updateUserAccruedReward(msg.sender); // Update the accrued reward for this specific user
+		updateUserAccruedReward(msg.sender); // Update the accrued reward for this specific user
 
 		_claim(msg.sender);
 
@@ -38,7 +46,7 @@ abstract contract StakeTransfererFeature is OnlyExitFeature, StakeTransferer {
 		for (uint256 i = 0; i < rewardsTokens.length; i++) {
 			user.tokensOwed[i] = 0;
 			user.rewardDebt[i] = 0;
-        }
+		}
 	}
 
 }
