@@ -263,16 +263,5 @@ describe('AutoStake', () => {
 			})
 		})
 	})
-	
-
-
-
-		
-
-		// it("Should fail if amount to stake is not greater than zero", async() => {
-		// 	await assert.revertWith(OneStakerRewardsPoolInstance.from(bobAccount.signer).stake(standardStakingAmount), "onlyStaker::incorrect staker");
-		// })
-
-
 
 });
