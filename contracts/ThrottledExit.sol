@@ -28,15 +28,15 @@ abstract contract ThrottledExit {
 	event ExitCompleted(address user, uint256 stake);
 
 	function setThrottleParams(uint256 _throttleRoundBlocks, uint256 _throttleRoundCap, uint256 throttleStart) internal {
-		require(_throttleRoundBlocks > 0, "setThrottle::throttle rould must be more than 0");
-		require(_throttleRoundCap > 0, "setThrottle::throttle rould cap must be more than 0");
+		require(_throttleRoundBlocks > 0, "setThrottle::throttle round blocks must be more than 0");
+		require(_throttleRoundCap > 0, "setThrottle::throttle round cap must be more than 0");
 		require(throttleRoundBlocks == 0 && throttleRoundCap == 0, "setThrottle::throttle parameters were already set");
 		throttleRoundBlocks = _throttleRoundBlocks;
 		throttleRoundCap = _throttleRoundCap;
 		nextAvailableExitBlock = throttleStart.add(throttleRoundBlocks);
 	}
 
-	function initiateExit(uint256 amountStaked, address[] storage _rewardsTokens, uint256[] storage _tokensOwed) virtual internal {
+	function initiateExit(uint256 amountStaked, address[] memory _rewardsTokens, uint256[] memory _tokensOwed) virtual internal {
 		initialiseExitInfo(msg.sender, _rewardsTokens.length);
 
 		ExitInfo storage info = exitInfo[msg.sender];
@@ -50,7 +50,7 @@ abstract contract ThrottledExit {
 		emit ExitRequested(msg.sender, info.exitBlock);
 	}
 
-	function finalizeExit(address _stakingToken, address[] storage _rewardsTokens) virtual internal {
+	function finalizeExit(address _stakingToken, address[] memory _rewardsTokens) virtual internal {
 		ExitInfo storage info = exitInfo[msg.sender];
 		require(block.number > info.exitBlock, "finalizeExit::Trying to exit too early");
 
