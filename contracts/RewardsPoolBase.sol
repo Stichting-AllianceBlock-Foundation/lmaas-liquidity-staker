@@ -103,10 +103,12 @@ contract RewardsPoolBase is ReentrancyGuard {
     /** @dev Providing LP tokens to stake, update rewards.
      * @param _tokenAmount The amount to be staked
      */
-    function stake(uint256 _tokenAmount)
-        external
-        virtual
-        nonReentrant
+    function stake(uint256 _tokenAmount) virtual public nonReentrant {
+        _stake(_tokenAmount);
+    }
+
+    function _stake(uint256 _tokenAmount)
+        internal
         onlyInsideBlockBounds
     {
         require(_tokenAmount > 0, "Stake::Cannot stake 0");
@@ -140,6 +142,10 @@ contract RewardsPoolBase is ReentrancyGuard {
     /** @dev Claiming accrued rewards.
      */
     function claim() public virtual nonReentrant {
+        _claim();
+    }
+
+    function _claim() internal {
         UserInfo storage user = userInfo[msg.sender];
         updateRewardMultipliers();
         updateUserAccruedReward(msg.sender);
@@ -157,6 +163,10 @@ contract RewardsPoolBase is ReentrancyGuard {
      * @param _tokenAmount The amount to be withdrawn
      */
     function withdraw(uint256 _tokenAmount) public virtual nonReentrant {
+        _withdraw(_tokenAmount);
+    }
+
+    function _withdraw(uint256 _tokenAmount) internal {
         require(_tokenAmount > 0, "Withdraw::Cannot withdraw 0");
 
         UserInfo storage user = userInfo[msg.sender];
@@ -180,10 +190,14 @@ contract RewardsPoolBase is ReentrancyGuard {
 
     /** @dev Claiming all rewards and withdrawing all staked tokens. Exits from the rewards pool
      */
-    function exit() external virtual {
+    function exit() virtual public nonReentrant {
+        _exit();
+    }
+
+    function _exit() internal {
         UserInfo storage user = userInfo[msg.sender];
-        claim();
-        withdraw(user.amountStaked);
+        _claim();
+        _withdraw(user.amountStaked);
 
         emit Exited(msg.sender, user.amountStaked);
     }
@@ -209,16 +223,24 @@ contract RewardsPoolBase is ReentrancyGuard {
         @dev updates the accumulated reward multipliers for everyone and each token
      */
     function updateRewardMultipliers() public {
-        if (_getBlock() <= lastRewardBlock) {
+        uint256 currentBlock = _getBlock();
+
+        if (currentBlock <= lastRewardBlock) {
+            return;
+        }
+
+        uint256 applicableBlock = (currentBlock < endBlock) ? currentBlock : endBlock;
+
+        uint256 blocksSinceLastReward = applicableBlock.sub(lastRewardBlock);
+
+        if(blocksSinceLastReward == 0) { // Nothing to update
             return;
         }
 
         if (totalStaked == 0) {
-            lastRewardBlock = _getBlock();
+            lastRewardBlock = applicableBlock;
             return;
         }
-
-        uint256 blocksSinceLastReward = _getBlock().sub(lastRewardBlock);
 
         for (uint256 i = 0; i < rewardsTokens.length; i++) {
             uint256 newReward = blocksSinceLastReward.mul(rewardPerBlock[i]); // Get newly accumulated reward
@@ -228,7 +250,7 @@ contract RewardsPoolBase is ReentrancyGuard {
                 rewardMultiplierIncrease
             ); // Add the multiplier increase to the accumulated multiplier
         }
-        lastRewardBlock = _getBlock();
+        lastRewardBlock = applicableBlock;
     }
 
     /**
@@ -409,6 +431,7 @@ contract RewardsPoolBase is ReentrancyGuard {
     function extend(uint256 _endBlock, uint256[] memory _rewardsPerBlock)
         external
         virtual
+        onlyFactory
     {
         require(
             _endBlock > _getBlock(),
@@ -463,7 +486,7 @@ contract RewardsPoolBase is ReentrancyGuard {
     function withdrawLPRewards(address recipient, address lpTokenContract)
         external
         nonReentrant
-        onlyFactory()
+        onlyFactory
     {
         uint256 currentReward =
             IERC20Detailed(lpTokenContract).balanceOf(address(this));

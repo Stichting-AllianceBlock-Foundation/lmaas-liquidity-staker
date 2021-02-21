@@ -5,8 +5,7 @@ const TestERC20 = require('../build/TestERC20.json');
 const RewardsPoolBase = require('../build/RewardsPoolBase.json');
 const { mineBlock } = require('./utils')
 
-
-describe.only('RewardsPoolFactory', () => {
+describe('RewardsPoolFactory', () => {
     let aliceAccount = accounts[3];
     let bobAccount = accounts[4];
     let carolAccount = accounts[5];
@@ -234,13 +233,14 @@ describe.only('RewardsPoolFactory', () => {
                 });
 
 
-                it("Should extend the rewards pool successfully with the half of the rate", async () => {
+                it("Should extend the rewards pool successfully with the of the lower rate and return some money", async () => {
 
 					let rewardsPoolLength = await RewardsPoolFactoryInstance.getRewardsPoolNumber()
 					let rewardsPoolAddress = await RewardsPoolFactoryInstance.rewardsPools((rewardsPoolLength - 1))
                     const RewardsPoolContract = await etherlime.ContractAt(RewardsPoolBase, rewardsPoolAddress);
                     const rewardTokenInstance = rewardTokensInstances[0];
                     let rewardsBalanceInitial = await rewardTokenInstance.balanceOf(RewardsPoolContract.contractAddress)
+                    let factoryBalanceInitial = await rewardTokenInstance.balanceOf(RewardsPoolFactoryInstance.contractAddress)
 
                     let currentBlock = await deployer.provider.getBlock('latest');
                     let blocksDelta = (endBlock-currentBlock.number);
@@ -265,14 +265,22 @@ describe.only('RewardsPoolFactory', () => {
                     }
                     await RewardsPoolFactoryInstance.extendRewardPool(newEndBlock, newRewardPerBlock, rewardsPoolAddress);
                     let rewardsBalanceFinal = await rewardTokenInstance.balanceOf(RewardsPoolContract.contractAddress)
+                    let factoryBalanceFinal = await rewardTokenInstance.balanceOf(RewardsPoolFactoryInstance.contractAddress)
                     let finalEndBlock = await RewardsPoolContract.endBlock();
                     let finalRewardPerBlock = await RewardsPoolContract.rewardPerBlock(0);
                     
                     assert(finalEndBlock.eq(newEndBlock), "The endblock is different");
                     assert(finalRewardPerBlock.eq(newRewardPerBlock[0]), "The rewards amount is not correct");
                     assert(rewardsBalanceFinal.eq((rewardsBalanceInitial.sub(amountToTransfer[0]))), "The transfered amount is not correct")
+                    assert(factoryBalanceFinal.eq((factoryBalanceInitial.add(amountToTransfer[0]))), "The amount is not transferred to the factory")
 
                 });
+
+                it("Should fail trying to extend from not owner", async() => {
+                    let rewardsPoolAddress = await RewardsPoolFactoryInstance.rewardsPools(0)
+                    let newEndBlock = endBlock + 10
+                    await assert.revertWith(RewardsPoolFactoryInstance.from(bobAccount.signer.address).extendRewardPool(newEndBlock, rewardPerBlock, rewardsPoolAddress),"Ownable: caller is not the owner")
+                })
 
            
             describe('Withdrawing rewards', async function () {

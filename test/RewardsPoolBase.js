@@ -4,7 +4,7 @@ const RewardsPoolBase = require('../build/RewardsPoolBase.json');
 const TestERC20 = require('../build/TestERC20.json');
 const { mineBlock } = require('./utils')
 
-describe.only('RewardsPoolBase', () => {
+describe('RewardsPoolBase', () => {
     let aliceAccount = accounts[3];
     let bobAccount = accounts[4];
     let carolAccount = accounts[5];
@@ -390,6 +390,11 @@ describe.only('RewardsPoolBase', () => {
 			}
 			await assert.revertWith( RewardsPoolBaseInstance.extend(newEndBlock,newRewardsPerBlock), "Extend::Rewards amounts length is less than expected")
 		})
+
+		it("Should fail extending the rewards pool if the end block is not in the future", async() => {
+			let newEndBlock = endBlock + 10
+			await assert.revertWith( RewardsPoolBaseInstance.from(bobAccount.signer.address).extend(newEndBlock,rewardPerBlock), "Caller is not RewardsPoolFactory contract")
+		})
 	})
 
 	describe('Withdrawing LP rewards', async function () {
@@ -405,7 +410,61 @@ describe.only('RewardsPoolBase', () => {
 			
 			await assert.revert(RewardsPoolBaseInstance.withdrawLPRewards(carolAccount.signer.address,rewardTokensAddresses[0]));
 		});
-});
+	});
+
+	describe('Helper Methods Tests', async function () {
+
+		it("Should return true if staking has started", async () => {
+
+			const currentBlock = await deployer.provider.getBlock('latest');
+			const blocksDelta = (startBlock-currentBlock.number);
+
+				for (let i=0; i<blocksDelta; i++) {
+					await mineBlock(deployer.provider);
+				}
+			let hasStakingStarted = await RewardsPoolBaseInstance.hasStakingStarted()
+			assert.isTrue(hasStakingStarted, "Staking is not started")
+		});
+
+		it("Should return false if staking hasn't started", async () => {
+
+			let hasStakingStarted = await RewardsPoolBaseInstance.hasStakingStarted()
+			assert.isFalse(hasStakingStarted, "Staking has started")
+		});
+
+		it("Shoult return the tokens owed  and reward debt length for a valid user ", async() => {
+
+			const currentBlock = await deployer.provider.getBlock('latest');
+				const blocksDelta = (startBlock-currentBlock.number);
+
+				for (let i=0; i<blocksDelta; i++) {
+					await mineBlock(deployer.provider);
+				}
+				
+			await stakingTokenInstance.approve(RewardsPoolBaseInstance.contractAddress, standardStakingAmount);
+			await RewardsPoolBaseInstance.stake(standardStakingAmount);
+			
+			let tokensOwedLength = await RewardsPoolBaseInstance.getUserTokensOwedLength(aliceAccount.signer.address)
+			let rewardDebtLength = await RewardsPoolBaseInstance.getUserRewardDebtLength(aliceAccount.signer.address)
+
+			assert(tokensOwedLength.eq(rewardTokensCount), "The tokens owed lenght must the the same as the rewards tokens")
+			assert(rewardDebtLength.eq(rewardTokensCount), "The tokens owed lenght must the the same as the rewards tokens")
+		})
+
+		it("Shoult fail to return the lenght of token owed with zero address ", async() => {
+			
+			await assert.revertWith(RewardsPoolBaseInstance.getUserTokensOwedLength(ethers.constants.AddressZero), "GetUserTokensOwedLength::Invalid user address")
+		})
+
+		it("Shoult fail to return the lenght of token owed with zero address ", async() => {
+			
+			await assert.revertWith(RewardsPoolBaseInstance.getUserRewardDebtLength(ethers.constants.AddressZero), "GetUserRewardDebtLength::Invalid user address")
+		})
+		it("Should revert if the token to withdraw is part of the rewards", async () => {
+			
+			await assert.revert(RewardsPoolBaseInstance.withdrawLPRewards(carolAccount.signer.address,rewardTokensAddresses[0]));
+		});
+	});
 
 
 });
