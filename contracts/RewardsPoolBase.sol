@@ -20,6 +20,7 @@ contract RewardsPoolBase is ReentrancyGuard {
     uint256 public endBlock;
     uint256 public lastRewardBlock;
     uint256[] public accumulatedRewardMultiplier;
+    address public rewardsPoolFactory;
 
     struct UserInfo {
         uint256 firstStakedBlockNumber;
@@ -35,6 +36,7 @@ contract RewardsPoolBase is ReentrancyGuard {
     event Withdrawn(address indexed user, uint256 amount);
     event Exited(address indexed user, uint256 amount);
     event Extended(uint256 newEndBlock, uint256[] newRewardsPerBlock);
+    event WithdrawLPRewards(uint256 indexed rewardsAmount, address indexed recipient);
 
     constructor(
         IERC20Detailed _stakingToken,
@@ -74,6 +76,7 @@ contract RewardsPoolBase is ReentrancyGuard {
         endBlock = _endBlock;
         rewardsTokens = _rewardsTokens;
         lastRewardBlock = startBlock;
+        rewardsPoolFactory = msg.sender;
         for (uint256 i = 0; i < rewardsTokens.length; i++) {
             accumulatedRewardMultiplier.push(0);
         }
@@ -89,12 +92,23 @@ contract RewardsPoolBase is ReentrancyGuard {
         _;
     }
 
+    modifier onlyFactory() {
+        require(
+            msg.sender == rewardsPoolFactory,
+            "Caller is not RewardsPoolFactory contract"
+        );
+        _;
+    }
+
     /** @dev Providing LP tokens to stake, update rewards.
      * @param _tokenAmount The amount to be staked
      */
-    function stake(uint256 _tokenAmount)
-        external
-        nonReentrant
+    function stake(uint256 _tokenAmount) virtual public nonReentrant {
+        _stake(_tokenAmount);
+    }
+
+    function _stake(uint256 _tokenAmount)
+        internal
         onlyInsideBlockBounds
     {
         require(_tokenAmount > 0, "Stake::Cannot stake 0");
@@ -127,7 +141,11 @@ contract RewardsPoolBase is ReentrancyGuard {
 
     /** @dev Claiming accrued rewards.
      */
-    function claim() public nonReentrant {
+    function claim() public virtual nonReentrant {
+        _claim();
+    }
+
+    function _claim() internal {
         UserInfo storage user = userInfo[msg.sender];
         updateRewardMultipliers();
         updateUserAccruedReward(msg.sender);
@@ -144,7 +162,11 @@ contract RewardsPoolBase is ReentrancyGuard {
     /** @dev Withdrawing portion of staked tokens.
      * @param _tokenAmount The amount to be withdrawn
      */
-    function withdraw(uint256 _tokenAmount) public nonReentrant {
+    function withdraw(uint256 _tokenAmount) public virtual nonReentrant {
+        _withdraw(_tokenAmount);
+    }
+
+    function _withdraw(uint256 _tokenAmount) internal {
         require(_tokenAmount > 0, "Withdraw::Cannot withdraw 0");
 
         UserInfo storage user = userInfo[msg.sender];
@@ -168,10 +190,14 @@ contract RewardsPoolBase is ReentrancyGuard {
 
     /** @dev Claiming all rewards and withdrawing all staked tokens. Exits from the rewards pool
      */
-    function exit() public {
+    function exit() virtual public nonReentrant {
+        _exit();
+    }
+
+    function _exit() internal {
         UserInfo storage user = userInfo[msg.sender];
-        claim();
-        withdraw(user.amountStaked);
+        _claim();
+        _withdraw(user.amountStaked);
 
         emit Exited(msg.sender, user.amountStaked);
     }
@@ -197,16 +223,24 @@ contract RewardsPoolBase is ReentrancyGuard {
         @dev updates the accumulated reward multipliers for everyone and each token
      */
     function updateRewardMultipliers() public {
-        if (_getBlock() <= lastRewardBlock) {
+        uint256 currentBlock = _getBlock();
+
+        if (currentBlock <= lastRewardBlock) {
+            return;
+        }
+
+        uint256 applicableBlock = (currentBlock < endBlock) ? currentBlock : endBlock;
+
+        uint256 blocksSinceLastReward = applicableBlock.sub(lastRewardBlock);
+
+        if(blocksSinceLastReward == 0) { // Nothing to update
             return;
         }
 
         if (totalStaked == 0) {
-            lastRewardBlock = _getBlock();
+            lastRewardBlock = applicableBlock;
             return;
         }
-
-        uint256 blocksSinceLastReward = _getBlock().sub(lastRewardBlock);
 
         for (uint256 i = 0; i < rewardsTokens.length; i++) {
             uint256 newReward = blocksSinceLastReward.mul(rewardPerBlock[i]); // Get newly accumulated reward
@@ -216,7 +250,7 @@ contract RewardsPoolBase is ReentrancyGuard {
                 rewardMultiplierIncrease
             ); // Add the multiplier increase to the accumulated multiplier
         }
-        lastRewardBlock = _getBlock();
+        lastRewardBlock = applicableBlock;
     }
 
     /**
@@ -311,21 +345,27 @@ contract RewardsPoolBase is ReentrancyGuard {
     }
 
     function getUserRewardDebt(address _userAddress, uint256 _index)
-        public
+        external
         view
         returns (uint256)
     {
-        require(_userAddress != address(0), "Invalid user address");
+        require(
+            _userAddress != address(0),
+            "GetUserRewardDebt::Invalid user address"
+        );
         UserInfo storage user = userInfo[_userAddress];
         return user.rewardDebt[_index];
     }
 
     function getUserOwedTokens(address _userAddress, uint256 _index)
-        public
+        external
         view
         returns (uint256)
     {
-        require(_userAddress != address(0), "Invalid user address");
+        require(
+            _userAddress != address(0),
+            "GetUserOwedTokens::Invalid user address"
+        );
         UserInfo storage user = userInfo[_userAddress];
         return user.tokensOwed[_index];
     }
@@ -358,21 +398,27 @@ contract RewardsPoolBase is ReentrancyGuard {
     }
 
     function getUserTokensOwedLength(address _userAddress)
-        public
+        external
         view
         returns (uint256)
     {
-        require(_userAddress != address(0), "Invalid user address");
+        require(
+            _userAddress != address(0),
+            "GetUserTokensOwedLength::Invalid user address"
+        );
         UserInfo storage user = userInfo[_userAddress];
         return user.tokensOwed.length;
     }
 
     function getUserRewardDebtLength(address _userAddress)
-        public
+        external
         view
         returns (uint256)
     {
-        require(_userAddress != address(0), "Invalid user address");
+        require(
+            _userAddress != address(0),
+            "GetUserRewardDebtLength::Invalid user address"
+        );
         UserInfo storage user = userInfo[_userAddress];
         return user.rewardDebt.length;
     }
@@ -383,24 +429,96 @@ contract RewardsPoolBase is ReentrancyGuard {
         @param _rewardsPerBlock array with new rewards per block for each token 
      */
     function extend(uint256 _endBlock, uint256[] memory _rewardsPerBlock)
-        public
+        external
+        virtual
+        onlyFactory
     {
-        require(_endBlock > _getBlock(), "End block must be in the future");
+        require(
+            _endBlock > _getBlock(),
+            "Extend::End block must be in the future"
+        );
         require(
             _endBlock >= endBlock,
-            "End block must be after the current end block"
+            "Extend::End block must be after the current end block"
         );
         require(
             _rewardsPerBlock.length == rewardsTokens.length,
-            "Rewards amounts length is less than expected"
+            "Extend::Rewards amounts length is less than expected"
         );
         updateRewardMultipliers();
 
         for (uint256 i = 0; i < _rewardsPerBlock.length; i++) {
+            uint256 currentRemainingReward =
+                calculateRewardsAmount(
+                    _getBlock(),
+                    endBlock,
+                    rewardPerBlock[i]
+                );
+            uint256 newRemainingReward =
+                calculateRewardsAmount(
+                    _getBlock(),
+                    _endBlock,
+                    _rewardsPerBlock[i]
+                );
+
+            address rewardsToken = rewardsTokens[i];
+
+            if (currentRemainingReward > newRemainingReward) {
+                // Some reward leftover needs to be returned
+                IERC20Detailed(rewardsToken).safeTransfer(
+                    msg.sender,
+                    currentRemainingReward.sub(newRemainingReward)
+                );
+            }
+
             rewardPerBlock[i] = _rewardsPerBlock[i];
         }
+
         endBlock = _endBlock;
 
         emit Extended(_endBlock, _rewardsPerBlock);
+    }
+
+    /** @dev Withdrawing rewards acumulated from different pools for providing liquidity
+     * @param recipient The address to whom the rewards will be trasferred
+     * @param lpTokenContract The address of the rewards contract
+     */
+    function withdrawLPRewards(address recipient, address lpTokenContract)
+        external
+        nonReentrant
+        onlyFactory
+    {
+        uint256 currentReward =
+            IERC20Detailed(lpTokenContract).balanceOf(address(this));
+        require(
+            currentReward > 0,
+            "WithdrawLPRewards::There are no rewards from liquidity pools"
+        );
+
+        for (uint256 i = 0; i < rewardsTokens.length; i++) {
+            require(
+                lpTokenContract != rewardsTokens[i],
+                "WithdrawLPRewards::Cannot withdraw from token rewards"
+            );
+        }
+        IERC20Detailed(lpTokenContract).safeTransfer(recipient, currentReward);
+        emit WithdrawLPRewards(currentReward, recipient);
+    }
+
+    /** @dev Helper function to calculate how much tokens should be transffered to a rewards pool.
+     */
+    function calculateRewardsAmount(
+        uint256 _startBlock,
+        uint256 _endBlock,
+        uint256 _rewardPerBlock
+    ) internal pure returns (uint256) {
+        require(
+            _rewardPerBlock > 0,
+            "RewardsPoolBase::calculateRewardsAmount: Rewards per block must be greater than zero"
+        );
+
+        uint256 rewardsPeriod = _endBlock.sub(_startBlock);
+
+        return _rewardPerBlock.mul(rewardsPeriod);
     }
 }

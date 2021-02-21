@@ -2,5 +2,7 @@ node_modules
 build
 .etherlime-store
 coverage
-.prettierrc
 .DS_Store
+.prettierrc
+coverage.json
+coverage
