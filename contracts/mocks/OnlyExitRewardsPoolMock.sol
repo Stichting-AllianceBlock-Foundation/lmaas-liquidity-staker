@@ -16,11 +16,11 @@ contract OnlyExitRewardsPoolMock is RewardsPoolBase, OnlyExitFeature {
 
 	}
 
-	function withdraw(uint256 _tokenAmount) public override(OnlyExitFeature, RewardsPoolBase) {
+	function withdraw(uint256 _tokenAmount) public virtual override(OnlyExitFeature, RewardsPoolBase) {
 		OnlyExitFeature.withdraw(_tokenAmount);
 	}
 
-	function claim() public override(OnlyExitFeature, RewardsPoolBase) {
+	function claim() public virtual override(OnlyExitFeature, RewardsPoolBase) {
 		OnlyExitFeature.claim();
 	}
 }
