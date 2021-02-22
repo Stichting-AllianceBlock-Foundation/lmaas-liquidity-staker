@@ -37,22 +37,22 @@ contract CompoundingRewardsPoolFactory is AbstractPoolsFactory {
 
 		require(
 			_rewardPerBlock != 0,
-			"RewardsPoolFactory::deploy: Reward per block must be more than 0"
+			"CompoundingRewardsPoolFactory::deploy: Reward per block must be more than 0"
 		);
 
 		require(
 			_stakeLimit != 0,
-			"RewardsPoolFactory::deploy: Stake limit must be more than 0"
+			"CompoundingRewardsPoolFactory::deploy: Stake limit must be more than 0"
 		);
 
 		require(
 			_throttleRoundBlocks != 0,
-			"RewardsPoolFactory::deploy: Throttle round blocks must be more than 0"
+			"CompoundingRewardsPoolFactory::deploy: Throttle round blocks must be more than 0"
 		);
 
-				require(
+		require(
 			_throttleRoundCap != 0,
-			"RewardsPoolFactory::deploy: Throttle round cap must be more than 0"
+			"CompoundingRewardsPoolFactory::deploy: Throttle round cap must be more than 0"
 		);
 
 		CompoundingRewardsPoolStaker autoStaker = new CompoundingRewardsPoolStaker(
@@ -63,11 +63,11 @@ contract CompoundingRewardsPoolFactory is AbstractPoolsFactory {
 			_stakeLimit
 		);
 
-		address[] storage rewardTokens;
-		rewardTokens.push(_stakingToken);
+		address[] memory rewardTokens = new address[](1);
+		rewardTokens[0] = _stakingToken;
 
-		uint256[] storage rewardsPerBlock;
-		rewardsPerBlock.push(_rewardPerBlock);
+		uint256[] memory rewardsPerBlock = new uint256[](1);
+		rewardsPerBlock[0] = _rewardPerBlock;
 
 		CompoundingRewardsPool rewardsPool = new CompoundingRewardsPool(
 				IERC20Detailed(_stakingToken),
@@ -84,7 +84,11 @@ contract CompoundingRewardsPoolFactory is AbstractPoolsFactory {
 		uint256 rewardsAmount = calculateRewardsAmount(_startBlock, _endBlock, _rewardPerBlock);
 		IERC20Detailed(_stakingToken).safeTransfer(address(rewardsPool), rewardsAmount);
 
+		rewardsPools.push(address(autoStaker));
+
 		emit RewardsPoolDeployed(address(autoStaker), address(rewardsPool), _stakingToken);
 	}
+
+	// TODO Whitelisting
 
 }
