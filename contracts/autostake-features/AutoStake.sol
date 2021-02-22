@@ -5,7 +5,7 @@ pragma solidity 0.6.12;
 import "openzeppelin-solidity/contracts/math/Math.sol";
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import "openzeppelin-solidity/contracts/utils/ReentrancyGuard.sol";
-import "./../pool-features/OneStakerFeature.sol";
+import "./../interfaces/IRewardsPoolBase.sol";
 import "./../interfaces/IERC20Detailed.sol";
 import "./../SafeERC20Detailed.sol";
 import "./../StakeLock.sol";
@@ -17,7 +17,7 @@ contract AutoStake is ReentrancyGuard, StakeLock, ThrottledExit {
 	using SafeMath for uint256;
 	using SafeERC20Detailed for IERC20Detailed;
 
-	OneStakerFeature public rewardPool;
+	IRewardsPoolBase public rewardPool;
 	IERC20Detailed public stakingToken;
 	address public factory;
 	uint256 public unit = 1e18;
@@ -38,7 +38,7 @@ contract AutoStake is ReentrancyGuard, StakeLock, ThrottledExit {
 
 	function setPool(address pool) public {
 		require(address(rewardPool) == address(0x0), "Reward pool already set");
-		rewardPool = OneStakerFeature(pool);
+		rewardPool = IRewardsPoolBase(pool);
 	}
 
 	modifier onlyFactory() {
