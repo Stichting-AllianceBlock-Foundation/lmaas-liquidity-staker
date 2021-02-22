@@ -21,6 +21,7 @@ contract RewardsPoolBase is ReentrancyGuard {
     uint256 public lastRewardBlock;
     uint256[] public accumulatedRewardMultiplier;
     address public rewardsPoolFactory;
+    uint256 public stakeLimit;
 
     struct UserInfo {
         uint256 firstStakedBlockNumber;
@@ -43,7 +44,8 @@ contract RewardsPoolBase is ReentrancyGuard {
         uint256 _startBlock,
         uint256 _endBlock,
         address[] memory _rewardsTokens,
-        uint256[] memory _rewardPerBlock
+        uint256[] memory _rewardPerBlock,
+        uint256 _stakeLimit
     ) public {
         require(
             address(_stakingToken) != address(0),
@@ -69,6 +71,7 @@ contract RewardsPoolBase is ReentrancyGuard {
             _rewardPerBlock.length == _rewardsTokens.length,
             "Constructor::Rewards per block and rewards tokens must be with the same length."
         );
+        require(_stakeLimit > 0, "Constructor::Stake limit needs to be more than 0");
 
         stakingToken = _stakingToken;
         rewardPerBlock = _rewardPerBlock;
@@ -77,6 +80,7 @@ contract RewardsPoolBase is ReentrancyGuard {
         rewardsTokens = _rewardsTokens;
         lastRewardBlock = startBlock;
         rewardsPoolFactory = msg.sender;
+        stakeLimit = _stakeLimit;
         for (uint256 i = 0; i < rewardsTokens.length; i++) {
             accumulatedRewardMultiplier.push(0);
         }
@@ -100,6 +104,12 @@ contract RewardsPoolBase is ReentrancyGuard {
         _;
     }
 
+	modifier onlyUnderStakeLimit(address staker, uint256 newStake) {
+        UserInfo storage user = userInfo[staker];
+		require(user.amountStaked.add(newStake) <= stakeLimit, "onlyUnderStakeLimit::Stake limit reached");
+		_;
+	}
+
     /** @dev Providing LP tokens to stake, update rewards.
      * @param _tokenAmount The amount to be staked
      */
@@ -115,6 +125,7 @@ contract RewardsPoolBase is ReentrancyGuard {
     function _stake(uint256 _tokenAmount, address staker, bool chargeStaker)
         internal
         onlyInsideBlockBounds
+        onlyUnderStakeLimit(staker, _tokenAmount)
     {
         require(_tokenAmount > 0, "Stake::Cannot stake 0");
 
