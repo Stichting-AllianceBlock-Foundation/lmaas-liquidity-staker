@@ -71,7 +71,7 @@ contract RewardsPoolBase is ReentrancyGuard {
             _rewardPerBlock.length == _rewardsTokens.length,
             "Constructor::Rewards per block and rewards tokens must be with the same length."
         );
-        require(_stakeLimit > 0, "Constructor::Stake limit needs to be more than 0");
+        require(_stakeLimit != 0, "Constructor::Stake limit needs to be more than 0");
 
         stakingToken = _stakingToken;
         rewardPerBlock = _rewardPerBlock;

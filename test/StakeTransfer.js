@@ -138,4 +138,10 @@ describe('StakeTransfer', () => {
 		await assert.revertWith(StakeTransfererInstance.exitAndTransfer(bobAccount.signer.address), "exitAndTransfer::receiver is not whitelisted");
 	})
 
+	it("Should not set contract whitelisted by not deployer", async() => {
+		await mineBlock(deployer.provider);
+
+		await assert.revertWith(StakeTransfererInstance.from(bobAccount.signer.address).setReceiverWhitelisted(bobAccount.signer.address, true), "Caller is not RewardsPoolFactory contract");
+	})
+
 });
