@@ -1,13 +1,15 @@
+// SPDX-License-Identifier: MIT
+
 pragma solidity 0.6.12;
 
 import "openzeppelin-solidity/contracts/math/Math.sol";
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import "openzeppelin-solidity/contracts/utils/ReentrancyGuard.sol";
-import "./pool-features/OneStakerFeature.sol";
-import "./interfaces/IERC20Detailed.sol";
-import "./SafeERC20Detailed.sol";
-import "./StakeLock.sol";
-import "./ThrottledExit.sol";
+import "./../pool-features/OneStakerFeature.sol";
+import "./../interfaces/IERC20Detailed.sol";
+import "./../SafeERC20Detailed.sol";
+import "./../StakeLock.sol";
+import "./../ThrottledExit.sol";
 
 // Based on ideas here: https://github.com/harvest-finance/harvest/blob/7a455967e40e980d4cfb2115bd000fbd6b201cc1/contracts/AutoStake.sol
 
@@ -43,7 +45,7 @@ contract AutoStake is ReentrancyGuard, StakeLock, ThrottledExit {
 		restakeIntoRewardPool();
 	}
 
-	function stake(uint256 amount) public nonReentrant {
+	function stake(uint256 amount) public virtual nonReentrant {
 		exitRewardPool();
 		updateValuePerShare();
 
@@ -63,7 +65,7 @@ contract AutoStake is ReentrancyGuard, StakeLock, ThrottledExit {
 		restakeIntoRewardPool();
 	}
 
-	function exit() public onlyUnlocked nonReentrant {
+	function exit() public virtual onlyUnlocked nonReentrant {
 		exitRewardPool();
 		updateValuePerShare();
 

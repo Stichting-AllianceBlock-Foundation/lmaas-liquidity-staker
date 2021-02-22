@@ -12,8 +12,9 @@ contract OneStakerRewardsPoolMock is RewardsPoolBase, OneStakerFeature {
         uint256 _endBlock,
         address[] memory _rewardsTokens,
         uint256[] memory _rewardPerBlock,
+		uint256 _stakeLimit,
 		address _staker
-    ) public RewardsPoolBase(_stakingToken, _startBlock, _endBlock, _rewardsTokens, _rewardPerBlock) {
+    ) public RewardsPoolBase(_stakingToken, _startBlock, _endBlock, _rewardsTokens, _rewardPerBlock, _stakeLimit) {
 		setStaker(_staker);
 	}
 

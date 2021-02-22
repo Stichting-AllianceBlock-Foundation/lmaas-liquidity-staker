@@ -1,18 +1,18 @@
 const ethers = require('ethers');
 const etherlime = require('etherlime-lib');
-const StakeLockingFeature = require('../build/StakeLockingRewardsPoolMock.json');
+const StakeTransferer = require('../build/StakeTransfererRewardsPoolMock.json');
+const StakeReceiver = require('../build/StakeReceiverRewardsPoolMock.json');
 const TestERC20 = require('../build/TestERC20.json');
 const { mineBlock } = require('./utils')
 
-
-describe('StakeLockingFeature', () => {
-
+describe('StakeTransfer', () => {
     let aliceAccount = accounts[3];
     let bobAccount = accounts[4];
     let carolAccount = accounts[5];
     let deployer;
 
-    let StakeLockingFeatureInstance;
+    let StakeTransfererInstance;
+	let StakeReceiverInstance;
     let stakingTokenAddress;
 
     let rewardTokensInstances;
@@ -66,8 +66,8 @@ describe('StakeLockingFeature', () => {
 
         await setupRewardsPoolParameters(deployer)
 
-        StakeLockingFeatureInstance = await deployer.deploy(
-            StakeLockingFeature,
+        StakeTransfererInstance = await deployer.deploy(
+            StakeTransferer,
             {},
             stakingTokenAddress,
 			startBlock,
@@ -77,61 +77,65 @@ describe('StakeLockingFeature', () => {
 			stakeLimit
 		);
 
-		await rewardTokensInstances[0].mint(StakeLockingFeatureInstance.contractAddress,amount);
+		StakeReceiverInstance = await deployer.deploy(
+            StakeReceiver,
+            {},
+            stakingTokenAddress,
+			startBlock,
+			endBlock,
+            rewardTokensAddresses,
+            rewardPerBlock,
+			stakeLimit
+		);
 
-		await stakingTokenInstance.approve(StakeLockingFeatureInstance.contractAddress, standardStakingAmount);
-		await stakingTokenInstance.from(bobAccount.signer).approve(StakeLockingFeatureInstance.contractAddress, standardStakingAmount);
+		await StakeTransfererInstance.setReceiverWhitelisted(StakeReceiverInstance.contractAddress, true);
+
+		await rewardTokensInstances[0].mint(StakeTransfererInstance.contractAddress,amount);
+		await rewardTokensInstances[0].mint(StakeReceiverInstance.contractAddress,amount);
+
+		await stakingTokenInstance.approve(StakeTransfererInstance.contractAddress, standardStakingAmount);
+		await stakingTokenInstance.from(bobAccount.signer).approve(StakeTransfererInstance.contractAddress, standardStakingAmount);
 		const currentBlock = await deployer.provider.getBlock('latest');
 		const blocksDelta = (startBlock-currentBlock.number);
 
 		for (let i=0; i<blocksDelta; i++) {
 			await mineBlock(deployer.provider);
 		}
-		await StakeLockingFeatureInstance.stake(standardStakingAmount);
+		await StakeTransfererInstance.stake(standardStakingAmount);
 	});
 
-	it("Should not claim or withdraw", async() => {
-
+	it("Should exit to another contract", async() => {
 		await mineBlock(deployer.provider);
-		const userInitialBalance = await rewardTokensInstances[0].balanceOf(aliceAccount.signer.address);
-		const userRewards = await StakeLockingFeatureInstance.getUserAccumulatedReward(aliceAccount.signer.address, 0);
-
-		await assert.revertWith(StakeLockingFeatureInstance.claim(), "OnlyExitFeature::cannot claim from this contract. Only exit.");
-		await assert.revertWith(StakeLockingFeatureInstance.withdraw(bOne), "OnlyExitFeature::cannot withdraw from this contract. Only exit.");
-	})
-
-	it("Should not exit before end of campaign", async() => {
-		await assert.revertWith(StakeLockingFeatureInstance.exit(), "onlyUnlocked::cannot perform this action until the end of the lock");
-	})
-
-
-	it("Should exit successfully from the RewardsPool", async() => {
-		const currentBlock = await deployer.provider.getBlock('latest');
-		const blocksDelta = (endBlock-currentBlock.number);
-
-		for (let i=0; i<blocksDelta; i++) {
-			await mineBlock(deployer.provider);
-		}
 
 		const userInitialBalanceStaking = await stakingTokenInstance.balanceOf(aliceAccount.signer.address);
-		const userInfoInitial = await StakeLockingFeatureInstance.userInfo(aliceAccount.signer.address);
-		const initialTotalStakedAmount = await StakeLockingFeatureInstance.totalStaked();
+		const userInfoInitial = await StakeTransfererInstance.userInfo(aliceAccount.signer.address);
+		const initialTotalStakedAmount = await StakeTransfererInstance.totalStaked();
 		const userInitialBalanceRewards = await rewardTokensInstances[0].balanceOf(aliceAccount.signer.address);
-		const userRewards = await StakeLockingFeatureInstance.getUserAccumulatedReward(aliceAccount.signer.address, 0);
+		const userRewards = await StakeTransfererInstance.getUserAccumulatedReward(aliceAccount.signer.address, 0);
 
-		await StakeLockingFeatureInstance.exit();
+		await StakeTransfererInstance.exitAndTransfer(StakeReceiverInstance.contractAddress);
 		
 		const userFinalBalanceRewards = await rewardTokensInstances[0].balanceOf(aliceAccount.signer.address);
-		const userTokensOwed = await StakeLockingFeatureInstance.getUserOwedTokens(aliceAccount.signer.address, 0);
+		const userTokensOwed = await StakeTransfererInstance.getUserOwedTokens(aliceAccount.signer.address, 0);
 		const userFinalBalanceStaking = await stakingTokenInstance.balanceOf(aliceAccount.signer.address);
-		const userInfoFinal = await StakeLockingFeatureInstance.userInfo(aliceAccount.signer.address);
-		const finalTotalStkaedAmount = await StakeLockingFeatureInstance.totalStaked();
+		const userInfoFinal = await StakeTransfererInstance.userInfo(aliceAccount.signer.address);
+		const finalTotalStkaedAmount = await StakeTransfererInstance.totalStaked();
 
-		assert(userFinalBalanceRewards.gt(userInitialBalanceRewards), "Rewards claim was not successful")
+
+		assert(userFinalBalanceRewards.eq(userInitialBalanceRewards.add(userRewards.add(userRewards))), "Rewards claim was not successful")
 		assert(userTokensOwed.eq(0), "User tokens owed should be zero")
-		assert(userFinalBalanceStaking.eq(userInitialBalanceStaking.add(standardStakingAmount)), "Withdraw was not successfull")
-		assert(userInfoFinal.amountStaked.eq(userInfoInitial.amountStaked.sub(standardStakingAmount)), "User staked amount is not updated properly")
+		assert(userInfoFinal.amountStaked.eq(0), "User staked amount is not updated properly")
 		assert(finalTotalStkaedAmount.eq(initialTotalStakedAmount.sub(standardStakingAmount)), "Contract total staked amount is not updated properly")
+
+		const userinfoInReceiverContract = await StakeReceiverInstance.userInfo(aliceAccount.signer.address);
+
+		assert(userInfoInitial.amountStaked.eq(userinfoInReceiverContract.amountStaked), "Receiver User staked amount is not updated properly")
+	})
+
+	it("Should not exit to non whitelisted contract", async() => {
+		await mineBlock(deployer.provider);
+
+		await assert.revertWith(StakeTransfererInstance.exitAndTransfer(bobAccount.signer.address), "exitAndTransfer::receiver is not whitelisted");
 	})
 
 });
