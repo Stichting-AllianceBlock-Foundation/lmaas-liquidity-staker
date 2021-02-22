@@ -19,6 +19,7 @@ contract AutoStake is ReentrancyGuard, StakeLock, ThrottledExit {
 
 	OneStakerFeature public rewardPool;
 	IERC20Detailed public stakingToken;
+	address public factory;
 	uint256 public unit = 1e18;
 	uint256 public valuePerShare = unit;
 	uint256 public totalShares = 0;
@@ -29,6 +30,7 @@ contract AutoStake is ReentrancyGuard, StakeLock, ThrottledExit {
 	event Staked(address indexed user, uint256 amount, uint256 sharesIssued, uint256 oldShareVaule, uint256 newShareValue, uint256 balanceOf);
 
 	constructor(address token, uint256 _throttleRoundBlocks, uint256 _throttleRoundCap, uint256 stakeEnd) public {
+		factory = msg.sender;
 		stakingToken = IERC20Detailed(token);
 		setLockEnd(stakeEnd);
 		setThrottleParams(_throttleRoundBlocks, _throttleRoundCap, stakeEnd);
@@ -39,28 +41,40 @@ contract AutoStake is ReentrancyGuard, StakeLock, ThrottledExit {
 		rewardPool = OneStakerFeature(pool);
 	}
 
+	modifier onlyFactory() {
+        require(
+            msg.sender == factory,
+            "Caller is not the Factory contract"
+        );
+        _;
+    }
+
 	function refreshAutoStake() external {
 		exitRewardPool();
 		updateValuePerShare();
 		restakeIntoRewardPool();
 	}
 
-	function stake(uint256 amount) public virtual nonReentrant {
+	function stake(uint256 amount) public virtual {
+		_stake(amount, msg.sender, true);
+	}
+
+	function _stake(uint256 amount, address staker, bool chargeStaker) internal nonReentrant {
 		exitRewardPool();
 		updateValuePerShare();
 
 		// now we can issue shares
-		stakingToken.safeTransferFrom(msg.sender, address(this), amount);
+		stakingToken.safeTransferFrom(chargeStaker ? staker : msg.sender, address(this), amount);
 		uint256 sharesToIssue = amount.mul(unit).div(valuePerShare);
 		totalShares = totalShares.add(sharesToIssue);
-		share[msg.sender] = share[msg.sender].add(sharesToIssue);
+		share[staker] = share[staker].add(sharesToIssue);
 
 		uint256 oldValuePerShare = valuePerShare;
 
 		// Rate needs to be updated here, otherwise the valuePerShare would be incorrect.
 		updateValuePerShare();
 
-		emit Staked(msg.sender, amount, sharesToIssue, oldValuePerShare, valuePerShare, balanceOf(msg.sender));
+		emit Staked(staker, amount, sharesToIssue, oldValuePerShare, valuePerShare, balanceOf(staker));
 
 		restakeIntoRewardPool();
 	}
