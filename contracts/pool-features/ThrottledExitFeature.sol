@@ -38,7 +38,6 @@ abstract contract ThrottledExitFeature is StakeLockingFeature, ThrottledExit {
 
 	function completeExit() virtual public onlyUnlocked nonReentrant {
 		finalizeExit(address(stakingToken), rewardsTokens);
-
 	}
 
 }

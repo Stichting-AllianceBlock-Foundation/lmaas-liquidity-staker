@@ -2,9 +2,13 @@
 
 pragma solidity 0.6.12;
 
+import "./../RewardsPoolBase.sol";
+import "./../pool-features/OnlyExitFeature.sol";
 import "./../pool-features/ThrottledExitFeature.sol";
+import "./../pool-features/StakeTransfererFeature.sol";
+import "./../pool-features/StakeReceiverFeature.sol";
 
-contract ThrottledExitRewardsPoolMock is RewardsPoolBase, OnlyExitFeature, ThrottledExitFeature {
+contract NonCompoundingRewardsPool is RewardsPoolBase, OnlyExitFeature, ThrottledExitFeature, StakeTransfererFeature, StakeReceiverFeature {
 	constructor(
         IERC20Detailed _stakingToken,
         uint256 _startBlock,
