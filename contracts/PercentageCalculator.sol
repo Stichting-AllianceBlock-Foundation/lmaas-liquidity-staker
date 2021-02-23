@@ -1,7 +1,8 @@
-//"SPDX-License-Identifier: MIT"
+// SPDX-License-Identifier: MIT
 pragma solidity 0.6.12;
 
-import "@openzeppelin/contracts/math/SafeMath.sol";
+import "openzeppelin-solidity/contracts/math/Math.sol";
+import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 
 library PercentageCalculator {
 	using SafeMath for uint256;

@@ -1,31 +1,47 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.6.12;
 
+import "openzeppelin-solidity/contracts/math/Math.sol";
+import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import "./interfaces/IERC20Detailed.sol";
 import "./SafeERC20Detailed.sol";
 import "./PercentageCalculator.sol";
 
 contract LockScheme {
+
+    using SafeMath for uint256;
+    using SafeERC20Detailed for IERC20Detailed;
+
     uint256 public lockBlock; // The period of lock for this contract
     uint256 public rampUpBlock; // The period since the beginning of the lock that additions can be considered the same position.Might be 0 for the 0% lock periods
     address public stakingToken;
     uint256 public bonusPercent; // saved in thousands = ex 3% = 3000
     address public lmcContract; // The address of the lmc contract
+    uint256 public forfeitedBonuses;
+     //After the end of the LMC this bonuses would be available for withdrawal by the team;
 
     mapping(address=>uint256) balances; // IOU Balance for this lock contract
-    mapping(address=>uint256) accruedReward; // Reward accrued by an address from previous additions
+    mapping(address=>uint256[]) accruedReward; // Reward accrued by an address from previous additions
     mapping(address=>uint256) lockStartBlock;
-    mapping(address=>uint256) userBonuses; // Stores the bonus for each user
+    mapping(address=>uint256[]) userBonuses; // Stores the bonus for each user
 
 
-    event Lock(address indexed _userAddress, uint256 _amountLocked, uint256 _additionalReward);
-    event Exit(address indexed _userAddress, uint256 _userBonus);
-    // onlyLmc() // Ensures a function can only be triggered by the LMC contract
+    struct UserInfo {
+        uint256 balance;
+        uint256[] accruedReward; //
+        uint256[] userBonuses; // How many tokens the contract owes to the user.
+        uint256 lockStartBlock;
+    }
+
+    mapping(address => UserInfo) public userInfo;
+
+    event Lock(address indexed _userAddress, uint256 _amountLocked, uint256[] _additionalReward);
+    event Exit(address indexed _userAddress, uint256[] _userBonus);
 
     modifier onlyLmc() {
           require(
             msg.sender == lmcContract,
-            "Caller is not the LMC contract"
+            "onlyLmc::Caller is not the LMC contract"
         );
         _;
     }
@@ -34,35 +50,63 @@ contract LockScheme {
         uint256 _lockBlock,
         uint256 _rampUpBlock,
         uint256 _bonusPercent,
-        address _lmcContract
-    ) {
+        address _lmcContract,
+        address _stakingToken
+    ) public {
         lockBlock = _lockBlock;
         rampUpBlock = _rampUpBlock;
         bonusPercent = _bonusPercent;
         lmcContract = _lmcContract;
+        stakingToken = _stakingToken;
     }
 
-    function lock(address _userAddress, uint256 _amountToLock, uint256, _additionalAccruedRewards) public onlyLmc {
-        require(block.number < rampUpBlock, "LockScheme::The ramp up period has finished");
+    function lock(address _userAddress, uint256 _amountToLock, uint256[] memory _additionalAccruedRewards) public onlyLmc {
+        require(block.number < rampUpBlock, "lock::The ramp up period has finished");
 
+        UserInfo storage user = userInfo[_userAddress];
 
-        IERC20Detailed(stakingToken).transferFrom(lmcContract, address(this), _amountToLock);
+        IERC20Detailed(stakingToken).safeTransferFrom(lmcContract, address(this), _amountToLock);
 
-        lockStartBlock[_userAddress] = block.number;
-        balances[_userAddress] = balances[_userAddress].add(_amountToLock);
-        accruedReward[_userAddress] = accruedReward[_userAddress].add(_amountToLock);
+        user.lockStartBlock = block.number;
+        user.balance = user.balance.add(_amountToLock);
+        user.accruedReward = _additionalAccruedRewards;
 
-        emit Lock(_userAddress, _amountToLock, _additionalAccruedRewards);
+        emit Lock(_userAddress, _amountToLock, user.accruedReward);
     }
 
-    function exit(address _userAddres,uint256 _additionalAccruedReward) public onlyLmc {
-        require(block.number > lockBlock, "Lock:Scheme:: The lock period hasn't ended");
+    function exit(address _userAddress, uint256[] memory _additionalAccruedReward) public onlyLmc {
 
-        uint256 bonus = PercentageCalculator(_additionalAccruedReward,bonusPercent);
-        userBonuses[_userAddres] = bonus;
-        balances[_userAddress] = 0;
-        accruedReward[_userAddress] = 0;
+        UserInfo storage user = userInfo[_userAddress];
+        require(user.balance > 0, "exit::The user hasn't locked");
+        
+        for (uint256 i = 0; i < _additionalAccruedReward.length; i++) {
+            uint256 bonus = PercentageCalculator.div(_additionalAccruedReward[i],bonusPercent);
+        
+            if (block.number >= lockBlock) {
+                user.userBonuses.push(bonus);
+            } 
 
-        emit Exit(_userAddres, bonus);
+            if (block.number < lockBlock) {
+                forfeitedBonuses = forfeitedBonuses.add(bonus);
+            }
+
+             user.accruedReward[i] = 0;
+        }
+        uint256 userBalance = user.balance;
+        user.balance = 0;
+       
+        IERC20Detailed(stakingToken).safeTransfer(lmcContract, userBalance);
+
+        emit Exit(_userAddress, user.userBonuses);
+    }
+
+    function getUserBonuses(address _userAddress) public view returns( uint256[] memory) {
+        UserInfo storage user = userInfo[_userAddress];
+        return user.userBonuses;
+    }
+
+    function getUserAccruedReward(address _userAddress) public view returns( uint256[] memory) {
+        UserInfo storage user = userInfo[_userAddress];
+        return user.accruedReward;
     }
 }
