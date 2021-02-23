@@ -35,7 +35,9 @@ contract NonCompoundingRewardsPoolFactory is AbstractPoolsFactory, StakeTransfer
         uint256[] memory _rewardPerBlock,
         uint256 _stakeLimit,
         uint256 _throttleRoundBlocks,
-		uint256 _throttleRoundCap
+		uint256 _throttleRoundCap,
+        address _treasury,
+		address _externalRewardToken
     ) external onlyOwner {
         require(
             _stakingToken != address(0),
@@ -75,6 +77,16 @@ contract NonCompoundingRewardsPoolFactory is AbstractPoolsFactory, StakeTransfer
 			"NonCompoundingRewardsPoolFactory::deploy: Throttle round cap must be more than 0"
 		);
 
+        require(
+            _treasury != address(0),
+            "NonCompoundingRewardsPoolFactory::deploy: Treasury address can't be zero address"
+        );
+
+        require(
+            _externalRewardToken != address(0),
+            "NonCompoundingRewardsPoolFactory::deploy: External reward address can't be zero address"
+        );
+
         address rewardPool =
             address(
                 new NonCompoundingRewardsPool(
@@ -85,7 +97,9 @@ contract NonCompoundingRewardsPoolFactory is AbstractPoolsFactory, StakeTransfer
                     _rewardPerBlock,
                     _stakeLimit, 
                     _throttleRoundBlocks,
-                    _throttleRoundCap
+                    _throttleRoundCap,
+                    _treasury,
+                    _externalRewardToken
                 )
             );
 
