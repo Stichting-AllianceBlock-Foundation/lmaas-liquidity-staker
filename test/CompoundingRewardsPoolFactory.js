@@ -11,6 +11,7 @@ describe('CompoundingRewardsPoolFactory', () => { // These tests must be skipped
     let aliceAccount = accounts[3];
     let bobAccount = accounts[4];
     let carolAccount = accounts[5];
+    let treasury = accounts[8];
     let deployer;
     let CompoundingRewardsPoolFactoryInstance;
     let stakingTokenInstance;
@@ -37,14 +38,17 @@ describe('CompoundingRewardsPoolFactory', () => { // These tests must be skipped
     beforeEach(async () => {
          const defaultConfigs = {
             gasPrice: 20000000000,
-            gasLimit: 6700000,
+            gasLimit: 100000000,
             chainId: 0 // Suitable for deploying on private networks like Quorum
         }
         deployer = new etherlime.EtherlimeGanacheDeployer(aliceAccount.secretKey);
         deployer.setDefaultOverrides(defaultConfigs);
+
+        externalRewardsTokenInstance = await deployer.deploy(TestERC20, {}, ethers.utils.parseEther("300000"));
+        externalRewardsTokenAddress = externalRewardsTokenInstance.contractAddress;
     
         await setupRewardsPoolParameters(deployer)
-        CompoundingRewardsPoolFactoryInstance = await deployer.deploy(CompoundingRewardsPoolFactory, {});
+        CompoundingRewardsPoolFactoryInstance = await deployer.deploy(CompoundingRewardsPoolFactory, {}, treasury.signer.address, externalRewardsTokenAddress);
     });
 
     it('should deploy valid rewards pool factory contract', async () => {
@@ -56,6 +60,7 @@ describe('CompoundingRewardsPoolFactory', () => { // These tests must be skipped
         beforeEach(async () => {
             stakingTokenInstance = await deployer.deploy(TestERC20, {}, ethers.utils.parseEther("300000"));
             stakingTokenAddress = stakingTokenInstance.contractAddress;
+
         });
 
         it('Should deploy base rewards pool successfully', async () => {
@@ -146,7 +151,7 @@ describe('CompoundingRewardsPoolFactory', () => { // These tests must be skipped
             });
 
             it('Should fail whitelisting if not called by the owner', async () => {
-                await assert.revertWith(CompoundingRewardsPoolFactoryInstance.from(bobAccount.signer).enableReceivers(transferer.contractAddress, [receiver.contractAddress]), "Ownable: caller is not the owner");
+                await assert.revertWith(CompoundingRewardsPoolFactoryInstance.from(bobAccount.signer).enableReceivers(transferer.contractAddress, [receiver.contractAddress]), "onlyOwner:: The caller is not the owner");
             });
         });
 

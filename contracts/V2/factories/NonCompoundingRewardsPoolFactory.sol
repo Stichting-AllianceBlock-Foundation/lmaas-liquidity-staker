@@ -12,6 +12,23 @@ contract NonCompoundingRewardsPoolFactory is AbstractPoolsFactory, StakeTransfer
     using SafeMath for uint256;
     using SafeERC20Detailed for IERC20Detailed;
 
+    address public treasury;
+	address public externalRewardToken;
+
+	constructor(address _treasury, address _externalRewardToken) public {
+        require(
+            _treasury != address(0),
+            "NonCompoundingRewardsPoolFactory:: Treasury address can't be zero address"
+        );
+
+        require(
+            _externalRewardToken != address(0),
+            "NonCompoundingRewardsPoolFactory:: External reward address can't be zero address"
+        );
+		treasury = _treasury;
+		externalRewardToken = _externalRewardToken;
+	}
+
     event RewardsPoolDeployed(
         address indexed rewardsPoolAddress,
         address indexed stakingToken
@@ -35,9 +52,7 @@ contract NonCompoundingRewardsPoolFactory is AbstractPoolsFactory, StakeTransfer
         uint256[] memory _rewardPerBlock,
         uint256 _stakeLimit,
         uint256 _throttleRoundBlocks,
-		uint256 _throttleRoundCap,
-        address _treasury,
-		address _externalRewardToken
+		uint256 _throttleRoundCap
     ) external onlyOwner {
         require(
             _stakingToken != address(0),
@@ -77,16 +92,6 @@ contract NonCompoundingRewardsPoolFactory is AbstractPoolsFactory, StakeTransfer
 			"NonCompoundingRewardsPoolFactory::deploy: Throttle round cap must be more than 0"
 		);
 
-        require(
-            _treasury != address(0),
-            "NonCompoundingRewardsPoolFactory::deploy: Treasury address can't be zero address"
-        );
-
-        require(
-            _externalRewardToken != address(0),
-            "NonCompoundingRewardsPoolFactory::deploy: External reward address can't be zero address"
-        );
-
         address rewardPool =
             address(
                 new NonCompoundingRewardsPool(
@@ -98,8 +103,8 @@ contract NonCompoundingRewardsPoolFactory is AbstractPoolsFactory, StakeTransfer
                     _stakeLimit, 
                     _throttleRoundBlocks,
                     _throttleRoundCap,
-                    _treasury,
-                    _externalRewardToken
+                    treasury,
+                    externalRewardToken
                 )
             );
 

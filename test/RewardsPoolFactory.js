@@ -281,7 +281,7 @@ describe('RewardsPoolFactory', () => {
                 it("Should fail trying to extend from not owner", async() => {
                     let rewardsPoolAddress = await RewardsPoolFactoryInstance.rewardsPools(0)
                     let newEndBlock = endBlock + 10
-                    await assert.revertWith(RewardsPoolFactoryInstance.from(bobAccount.signer.address).extendRewardPool(newEndBlock, rewardPerBlock, rewardsPoolAddress),"Ownable: caller is not the owner")
+                    await assert.revertWith(RewardsPoolFactoryInstance.from(bobAccount.signer.address).extendRewardPool(newEndBlock, rewardPerBlock, rewardsPoolAddress),"onlyOwner:: The caller is not the owner")
                 })
 
            

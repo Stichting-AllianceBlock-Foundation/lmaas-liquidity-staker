@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.6.12;
 
-import "openzeppelin-solidity/contracts/math/Math.sol";
-import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import "./../../interfaces/IERC20Detailed.sol";
 import "./../../SafeERC20Detailed.sol";
 import "./../CompoundingRewardsPool.sol";
@@ -10,14 +8,24 @@ import "./../CompoundingRewardsPoolStaker.sol";
 import "./StakeTransferEnabledFactory.sol";
 
 contract CompoundingRewardsPoolFactory is AbstractPoolsFactory, StakeTransferEnabledFactory {
-	using SafeMath for uint256;
 	using SafeERC20Detailed for IERC20Detailed;
 
-	event RewardsPoolDeployed(
-		address indexed autostakerAddress,
-		address indexed rewardsPoolAddress,
-		address indexed stakingToken
-	);
+	address public treasury;
+	address public externalRewardToken;
+
+	constructor(address _treasury, address _externalRewardToken) public {
+		require(
+            _treasury != address(0),
+            "CompoundingRewardsPoolFactory:: Treasury address can't be zero address"
+        );
+
+        require(
+            _externalRewardToken != address(0),
+            "CompoundingRewardsPoolFactory:: External reward address can't be zero address"
+        );
+		treasury = _treasury;
+		externalRewardToken = _externalRewardToken;
+	}
 
 	/* ========== Permissioned FUNCTIONS ========== */
 
@@ -76,7 +84,9 @@ contract CompoundingRewardsPoolFactory is AbstractPoolsFactory, StakeTransferEna
 				rewardTokens,
 				rewardsPerBlock,
 				uint256(-1),
-				address(autoStaker)
+				address(autoStaker),
+				treasury,
+				externalRewardToken
 			);
 
 		autoStaker.setPool(address(rewardsPool));
@@ -86,9 +96,5 @@ contract CompoundingRewardsPoolFactory is AbstractPoolsFactory, StakeTransferEna
 
 		rewardsPools.push(address(autoStaker));
 
-		emit RewardsPoolDeployed(address(autoStaker), address(rewardsPool), _stakingToken);
 	}
-
-	// TODO Whitelisting
-
 }
