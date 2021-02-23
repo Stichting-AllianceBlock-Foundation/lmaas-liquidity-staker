@@ -228,6 +228,16 @@ describe.only('LMC', () => {
 				assert(userBonuses[0].eq(bonus), "User bonuses are not calculated properly");
 
 			})
+
+			it("Should fail calling the exit function only", async() => {
+
+				await assert.revertWith(LmcInstance.exit(),"exit:cannot exit from this contract. Only exit and Unlock.");
+			})
+
+			it("Should fail calling the claim function only", async() => {
+
+				await assert.revertWith(LmcInstance.claim(),"claim:cannot claim from this contract. Only exit and Unlock.");
+			})
 		})
 
 

@@ -61,6 +61,14 @@ contract LiquidityMiningCampaign is RewardsPoolBase   {
 			emit ExitedAndUnlocked(msg.sender, _lockScheme);
 	}
 
+	function exit() public override {
+		revert("exit:cannot exit from this contract. Only exit and Unlock.");
+	}
+
+	function claim() public override {
+		revert("claim:cannot claim from this contract. Only exit and Unlock.");
+	}
+
 	function checkBonus(address _lockScheme, address _userAddress) public view returns(uint256[] memory) {
 		uint256[] memory userBonuses =  LockScheme(_lockScheme).getUserBonuses(_userAddress);
 
