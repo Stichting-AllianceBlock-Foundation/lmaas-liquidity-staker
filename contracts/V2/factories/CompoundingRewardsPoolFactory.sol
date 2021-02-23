@@ -3,13 +3,13 @@ pragma solidity 0.6.12;
 
 import "openzeppelin-solidity/contracts/math/Math.sol";
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
-import "./../interfaces/IERC20Detailed.sol";
-import "./../SafeERC20Detailed.sol";
-import "./CompoundingRewardsPool.sol";
-import "./CompoundingRewardsPoolStaker.sol";
-import "./../AbstractPoolsFactory.sol";
+import "./../../interfaces/IERC20Detailed.sol";
+import "./../../SafeERC20Detailed.sol";
+import "./../CompoundingRewardsPool.sol";
+import "./../CompoundingRewardsPoolStaker.sol";
+import "./StakeTransferEnabledFactory.sol";
 
-contract CompoundingRewardsPoolFactory is AbstractPoolsFactory {
+contract CompoundingRewardsPoolFactory is AbstractPoolsFactory, StakeTransferEnabledFactory {
 	using SafeMath for uint256;
 	using SafeERC20Detailed for IERC20Detailed;
 

@@ -53,11 +53,9 @@ describe('CompoundingRewardsPoolFactory', () => { // These tests must be skipped
 
     describe('Deploying CompoundingStaker and CompoundingRewardsPoolFactory', async function () {
         
-
         beforeEach(async () => {
             stakingTokenInstance = await deployer.deploy(TestERC20, {}, ethers.utils.parseEther("300000"));
             stakingTokenAddress = stakingTokenInstance.contractAddress;
-            
         });
 
         it('Should deploy base rewards pool successfully', async () => {
@@ -103,8 +101,56 @@ describe('CompoundingRewardsPoolFactory', () => { // These tests must be skipped
             await assert.revertWith(CompoundingRewardsPoolFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock, bOne, standardStakingAmount, 20, standardStakingAmount), "SafeERC20: low-level call failed");
         });
 
+        describe('Whitelisting', async function () {
+
+            let transferer;
+            let receiver;
+            beforeEach(async () => {
+                await stakingTokenInstance.mint(CompoundingRewardsPoolFactoryInstance.contractAddress, amount);
+                await CompoundingRewardsPoolFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock, bOne, standardStakingAmount, 20, standardStakingAmount);
+                await CompoundingRewardsPoolFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock+10, bOne, standardStakingAmount, 20, standardStakingAmount);
+                const transfererAddress = await CompoundingRewardsPoolFactoryInstance.rewardsPools(0);
+                const receiverAddress = await CompoundingRewardsPoolFactoryInstance.rewardsPools(1);
+                transferer = await etherlime.ContractAt(CompoundingRewardsPoolStaker, transfererAddress);
+                receiver = await etherlime.ContractAt(CompoundingRewardsPoolStaker, receiverAddress);
+
+                const currentBlock = await deployer.provider.getBlock('latest');
+                const blocksDelta = (endBlock-currentBlock.number);
+
+                for (let i=0; i<blocksDelta; i++) {
+                    await mineBlock(deployer.provider);
+                }
+            });
+
+            it('Should fail transfer if receiver not whitelisted', async () => {
+                await assert.revertWith(transferer.exitAndTransfer(receiver.contractAddress), "exitAndTransfer::receiver is not whitelisted");
+            });
+
+            it('Should successfully exit and transfer if receiver whitelisted', async () => {
+                const transfererSharesBefore = await transferer.totalShares();
+                const receiverSharesBefore = await receiver.totalShares();
+
+                await CompoundingRewardsPoolFactoryInstance.enableReceivers(transferer.contractAddress, [receiver.contractAddress]);
+                await transferer.exitAndTransfer(receiver.contractAddress);
+
+                const transfererSharesAfter = await transferer.totalShares();
+                const receiverSharesAfter = await receiver.totalShares();
+
+                assert(transfererSharesBefore.eq(receiverSharesAfter), "Shares were not tranferred correctly");
+                assert(receiverSharesBefore.eq(transfererSharesAfter), "Shares were cleared correctly");
+            });
+
+            it('Should fail whitelisting if called with wrong params', async () => {
+                await assert.revertWith(CompoundingRewardsPoolFactoryInstance.enableReceivers(ethers.constants.AddressZero, [receiver.contractAddress]), "enableReceivers::Transferer cannot be 0");
+                await assert.revertWith(CompoundingRewardsPoolFactoryInstance.enableReceivers(transferer.contractAddress, [ethers.constants.AddressZero]), "enableReceivers::Receiver cannot be 0");
+            });
+
+            it('Should fail whitelisting if not called by the owner', async () => {
+                await assert.revertWith(CompoundingRewardsPoolFactoryInstance.from(bobAccount.signer).enableReceivers(transferer.contractAddress, [receiver.contractAddress]), "Ownable: caller is not the owner");
+            });
+        });
+
     });
 
-    describe('Whitelisting', async function () {
-    });
+    
 });

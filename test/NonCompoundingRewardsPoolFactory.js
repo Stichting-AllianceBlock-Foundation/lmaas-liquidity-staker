@@ -2,7 +2,7 @@ const ethers = require('ethers');
 const etherlime = require('etherlime-lib');
 const NonCompoundingRewardsPoolFactory = require('../build/NonCompoundingRewardsPoolFactory.json');
 const TestERC20 = require('../build/TestERC20.json');
-const RewardsPoolBase = require('../build/RewardsPoolBase.json');
+const NonCompoundingRewardsPool = require('../build/NonCompoundingRewardsPool.json');
 const { mineBlock } = require('./utils')
 
 describe('NonCompoundingRewardsPoolFactory', () => {
@@ -61,7 +61,7 @@ describe('NonCompoundingRewardsPoolFactory', () => {
         }
     });
 
-    describe('Deploying RewardsPoolBase', async function () {
+    describe('Deploying NonCompoundingRewardsPool', async function () {
         let stakingTokenAddress;
 
         beforeEach(async () => {
@@ -78,7 +78,7 @@ describe('NonCompoundingRewardsPoolFactory', () => {
             await NonCompoundingRewardsPoolFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock, rewardTokensAddresses, rewardPerBlock, stakeLimit, 10, stakeLimit);
 
             const firstRewardsPool = await NonCompoundingRewardsPoolFactoryInstance.rewardsPools(0);
-			const RewardsPoolContract = await etherlime.ContractAt(RewardsPoolBase, firstRewardsPool);
+			const RewardsPoolContract = await etherlime.ContractAt(NonCompoundingRewardsPool, firstRewardsPool);
 			const stakingToken = await  RewardsPoolContract.stakingToken(); 
 
 			assert.strictEqual(stakingTokenAddress.toLowerCase(), stakingToken.toLowerCase(), "The saved staking token was not the same as the inputted one");
@@ -96,7 +96,7 @@ describe('NonCompoundingRewardsPoolFactory', () => {
 			let rewardsPoolAddress = await NonCompoundingRewardsPoolFactoryInstance.rewardsPools((rewardsPoolLength - 1) )
 
             // check if correctly stored in staking contract
-            const RewardsPoolContract = await etherlime.ContractAt(RewardsPoolBase, rewardsPoolAddress);
+            const RewardsPoolContract = await etherlime.ContractAt(NonCompoundingRewardsPool, rewardsPoolAddress);
 
             for (i = 0; i < rewardTokensAddresses.length; i++) {
                 const tokenAddress = await RewardsPoolContract.rewardsTokens(i);
@@ -152,6 +152,57 @@ describe('NonCompoundingRewardsPoolFactory', () => {
         it('Should fail on deploying with wrong throttle params', async () => {
             await assert.revertWith(NonCompoundingRewardsPoolFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock, rewardTokensAddresses,rewardPerBlock, stakeLimit, 0, stakeLimit), "NonCompoundingRewardsPoolFactory::deploy: Throttle round blocks must be more than 0");
             await assert.revertWith(NonCompoundingRewardsPoolFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock, rewardTokensAddresses,rewardPerBlock, stakeLimit, 10, 0), "NonCompoundingRewardsPoolFactory::deploy: Throttle round cap must be more than 0");
+        });
+
+        describe('Whitelisting', async function () {
+
+            let transferer;
+            let receiver;
+            beforeEach(async () => {
+                for (i = 0; i < rewardTokensAddresses.length; i++) {
+                    await rewardTokensInstances[i].transfer(NonCompoundingRewardsPoolFactoryInstance.contractAddress, amountToTransfer);
+                }
+                await NonCompoundingRewardsPoolFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock, rewardTokensAddresses, rewardPerBlock, stakeLimit, 10, stakeLimit);
+                await NonCompoundingRewardsPoolFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock+10, rewardTokensAddresses, rewardPerBlock, stakeLimit, 10, stakeLimit);
+                const transfererAddress = await NonCompoundingRewardsPoolFactoryInstance.rewardsPools(0);
+                const receiverAddress = await NonCompoundingRewardsPoolFactoryInstance.rewardsPools(1);
+                transferer = await etherlime.ContractAt(NonCompoundingRewardsPool, transfererAddress);
+                receiver = await etherlime.ContractAt(NonCompoundingRewardsPool, receiverAddress);
+
+                const currentBlock = await deployer.provider.getBlock('latest');
+                const blocksDelta = (endBlock-currentBlock.number);
+
+                for (let i=0; i<blocksDelta; i++) {
+                    await mineBlock(deployer.provider);
+                }
+            });
+
+            it('Should fail transfer if receiver not whitelisted', async () => {
+                await assert.revertWith(transferer.exitAndTransfer(receiver.contractAddress), "exitAndTransfer::receiver is not whitelisted");
+            });
+
+            it('Should successfully exit and transfer if receiver whitelisted', async () => {
+                const transfererStakesBefore = await transferer.totalStaked();
+                const receiverStakesBefore = await receiver.totalStaked();
+
+                await NonCompoundingRewardsPoolFactoryInstance.enableReceivers(transferer.contractAddress, [receiver.contractAddress]);
+                await transferer.exitAndTransfer(receiver.contractAddress);
+
+                const transfererSharesAfter = await transferer.totalStaked();
+                const receiverSharesAfter = await receiver.totalStaked();
+
+                assert(transfererStakesBefore.eq(receiverSharesAfter), "Shares were not tranferred correctly");
+                assert(receiverStakesBefore.eq(transfererSharesAfter), "Shares were cleared correctly");
+            });
+
+            it('Should fail whitelisting if called with wrong params', async () => {
+                await assert.revertWith(NonCompoundingRewardsPoolFactoryInstance.enableReceivers(ethers.constants.AddressZero, [receiver.contractAddress]), "enableReceivers::Transferer cannot be 0");
+                await assert.revertWith(NonCompoundingRewardsPoolFactoryInstance.enableReceivers(transferer.contractAddress, [ethers.constants.AddressZero]), "enableReceivers::Receiver cannot be 0");
+            });
+
+            it('Should fail whitelisting if not called by the owner', async () => {
+                await assert.revertWith(NonCompoundingRewardsPoolFactoryInstance.from(bobAccount.signer).enableReceivers(transferer.contractAddress, [receiver.contractAddress]), "Ownable: caller is not the owner");
+            });
         });
 
     });
