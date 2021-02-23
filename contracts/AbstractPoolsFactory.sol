@@ -2,15 +2,29 @@
 pragma solidity 0.6.12;
 
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
-import "openzeppelin-solidity/contracts/access/Ownable.sol";
 import "./interfaces/IRewardsPoolBase.sol";
 
-abstract contract AbstractPoolsFactory is Ownable {
+abstract contract AbstractPoolsFactory {
     using SafeMath for uint256;
 
     /** @dev all rewards pools
      */
     address[] public rewardsPools;
+    address public owner;
+
+    constructor() public {
+        owner = msg.sender;
+    }
+
+    modifier onlyOwner() {
+        require(msg.sender == owner, "onlyOwner:: The caller is not the owner");
+        _;
+    }
+
+    function transferOwnership(address newOwner) public onlyOwner {
+        require(newOwner != address(0x0), "Cannot set owner to 0 address");
+        owner = newOwner;
+    }
 
     /** @dev Returns the total number of rewards pools.
      */
@@ -27,7 +41,7 @@ abstract contract AbstractPoolsFactory is Ownable {
     ) public pure returns (uint256) {
         require(
             _rewardPerBlock > 0,
-            "RewardsPoolFactory::calculateRewardsAmount: Rewards per block must be greater than zero"
+            "calculateRewardsAmount:: Rewards per block must be greater than zero"
         );
 
         uint256 rewardsPeriod = _endBlock.sub(_startBlock);
@@ -47,7 +61,7 @@ abstract contract AbstractPoolsFactory is Ownable {
 	) external onlyOwner {
 		require(
 			rewardsPoolAddress != address(0),
-			"RewardsPoolFactory::startStaking: not deployed"
+			"startStaking:: not deployed"
 		);
 		IRewardsPoolBase pool = IRewardsPoolBase(rewardsPoolAddress);
 		pool.withdrawLPRewards(recipient, lpTokenContract);

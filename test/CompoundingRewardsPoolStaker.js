@@ -10,6 +10,7 @@ describe('CompoundingRewardsPoolStaker', () => {
     let aliceAccount = accounts[3];
     let bobAccount = accounts[4];
     let carolAccount = accounts[5];
+	let treasury = accounts[8];
     let deployer;
 
     let StakeTransfererAutoStakeInstance;
@@ -47,6 +48,10 @@ describe('CompoundingRewardsPoolStaker', () => {
 
         stakingTokenAddress = stakingTokenInstance.contractAddress;
 
+		externalRewardsTokenInstance = await deployer.deploy(TestERC20, {}, ethers.utils.parseEther("300000"));
+        externalRewardsTokenAddress = externalRewardsTokenInstance.contractAddress;
+    
+
         await setupRewardsPoolParameters(deployer)
 
 		StakeTransfererAutoStakeInstance = await deployer.deploy(StakeTransfererAutoStake, {}, stakingTokenAddress, throttleRoundBlocks, bOne, endBlock, standardStakingAmount.mul(2));
@@ -60,7 +65,9 @@ describe('CompoundingRewardsPoolStaker', () => {
 			[stakingTokenAddress],
 			[bOne],
 			ethers.constants.MaxUint256,
-			StakeTransfererAutoStakeInstance.contractAddress
+			StakeTransfererAutoStakeInstance.contractAddress, 
+			treasury.signer.address, 
+			externalRewardsTokenAddress
 		);
 
 		await StakeTransfererAutoStakeInstance.setPool(CompoundingRewardsPoolInstance.contractAddress);
@@ -77,7 +84,9 @@ describe('CompoundingRewardsPoolStaker', () => {
 			[stakingTokenAddress],
 			[bOne],
 			ethers.constants.MaxUint256,
-			StakeReceiverAutoStakeInstance.contractAddress
+			StakeReceiverAutoStakeInstance.contractAddress,
+			treasury.signer.address, 
+			externalRewardsTokenAddress
 		);
 
 		await StakeReceiverAutoStakeInstance.setPool(CompoundingRewardsPoolInstance.contractAddress);

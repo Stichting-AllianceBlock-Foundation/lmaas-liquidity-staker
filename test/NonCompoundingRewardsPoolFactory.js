@@ -9,6 +9,7 @@ describe('NonCompoundingRewardsPoolFactory', () => {
     let aliceAccount = accounts[3];
     let bobAccount = accounts[4];
     let carolAccount = accounts[5];
+    let treasury = accounts[8];
     let deployer;
     let NonCompoundingRewardsPoolFactoryInstance;
     let rewardTokensInstances;
@@ -48,9 +49,12 @@ describe('NonCompoundingRewardsPoolFactory', () => {
 
     beforeEach(async () => {
         deployer = new etherlime.EtherlimeGanacheDeployer(aliceAccount.secretKey);
+
+        externalRewardsTokenInstance = await deployer.deploy(TestERC20, {}, ethers.utils.parseEther("300000"));
+        externalRewardsTokenAddress = externalRewardsTokenInstance.contractAddress;
     
         await setupRewardsPoolParameters(deployer)
-        NonCompoundingRewardsPoolFactoryInstance = await deployer.deploy(NonCompoundingRewardsPoolFactory, {});
+        NonCompoundingRewardsPoolFactoryInstance = await deployer.deploy(NonCompoundingRewardsPoolFactory, {}, treasury.signer.address, externalRewardsTokenAddress);
     });
 
     it('should deploy valid rewards pool factory contract', async () => {
@@ -68,6 +72,7 @@ describe('NonCompoundingRewardsPoolFactory', () => {
 
             stakingTokenInstance = await deployer.deploy(TestERC20, {}, ethers.utils.parseEther("300000"));
             stakingTokenAddress = stakingTokenInstance.contractAddress;
+
         });
 
         it('Should deploy base rewards pool successfully', async () => {
@@ -201,7 +206,7 @@ describe('NonCompoundingRewardsPoolFactory', () => {
             });
 
             it('Should fail whitelisting if not called by the owner', async () => {
-                await assert.revertWith(NonCompoundingRewardsPoolFactoryInstance.from(bobAccount.signer).enableReceivers(transferer.contractAddress, [receiver.contractAddress]), "Ownable: caller is not the owner");
+                await assert.revertWith(NonCompoundingRewardsPoolFactoryInstance.from(bobAccount.signer).enableReceivers(transferer.contractAddress, [receiver.contractAddress]), "onlyOwner:: The caller is not the owner");
             });
         });
 
