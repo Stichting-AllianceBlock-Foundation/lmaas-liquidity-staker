@@ -14,7 +14,8 @@ contract LiquidityMiningCampaign is RewardsPoolBase   {
 	using SafeMath for uint256;
     using SafeERC20Detailed for IERC20Detailed;
 
-
+	event StakedAndLocked(address indexed _userAddress, uint256 _tokenAmount, address _lockScheme);
+	event ExitedAndUnlocked(address indexed _userAddress, address _lockScheme);
 	event BonusTransferred(address indexed _userAddress, uint256[] _bonusAmount);
 
 		constructor(
@@ -38,6 +39,8 @@ contract LiquidityMiningCampaign is RewardsPoolBase   {
 		stakingToken.safeApprove(_lockScheme, _tokenAmount);
 		_stake(_tokenAmount, msg.sender, false);
 		lockToScheme(_lockScheme,address(msg.sender), _tokenAmount, user.tokensOwed);
+
+		emit StakedAndLocked( msg.sender, _tokenAmount, _lockScheme);
 	}
 
 	function lockToScheme(address _lockScheme, address _userAddress, uint256  _tokenAmount, uint256[] memory _additionalRewards) internal nonReentrant {
@@ -54,6 +57,8 @@ contract LiquidityMiningCampaign is RewardsPoolBase   {
 			LockScheme(_lockScheme).exit(msg.sender, user.tokensOwed);
 			claimBonus(_lockScheme, msg.sender);
 			_exit(msg.sender);
+
+			emit ExitedAndUnlocked(msg.sender, _lockScheme);
 	}
 
 	function checkBonus(address _lockScheme, address _userAddress) public view returns(uint256[] memory) {

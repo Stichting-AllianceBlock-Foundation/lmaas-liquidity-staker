@@ -18,18 +18,11 @@ contract LockScheme {
     uint256 public bonusPercent; // saved in thousands = ex 3% = 3000
     address public lmcContract; // The address of the lmc contract
     uint256 public forfeitedBonuses;
-     //After the end of the LMC this bonuses would be available for withdrawal by the team;
-
-    mapping(address=>uint256) balances; // IOU Balance for this lock contract
-    mapping(address=>uint256[]) accruedReward; // Reward accrued by an address from previous additions
-    mapping(address=>uint256) lockStartBlock;
-    mapping(address=>uint256[]) userBonuses; // Stores the bonus for each user
-
 
     struct UserInfo {
-        uint256 balance;
-        uint256[] accruedReward; //
-        uint256[] userBonuses; // How many tokens the contract owes to the user.
+        uint256 balance; // IOU Balance for this lock contract
+        uint256[] accruedReward; // Reward accrued by an address from previous additions
+        uint256[] userBonuses; // Stores the bonus for a user.
         uint256 lockStartBlock;
     }
 
