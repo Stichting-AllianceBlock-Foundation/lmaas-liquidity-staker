@@ -7,14 +7,11 @@ import "openzeppelin-solidity/contracts/access/Ownable.sol";
 import "./interfaces/IERC20Detailed.sol";
 import "./SafeERC20Detailed.sol";
 import "./RewardsPoolBase.sol";
+import "./AbstractPoolsFactory.sol";
 
-contract RewardsPoolFactory is Ownable {
+contract RewardsPoolFactory is AbstractPoolsFactory {
     using SafeMath for uint256;
     using SafeERC20Detailed for IERC20Detailed;
-
-    /** @dev all rewards pools
-     */
-    address[] public rewardsPools;
 
     event RewardsPoolDeployed(
         address indexed rewardsPoolAddress,
@@ -129,46 +126,4 @@ contract RewardsPoolFactory is Ownable {
 
     }
 
-
-    //TODO: Refactor the withdraw function, add it into the rewards base pool
-    /** @dev Triggers the withdrawal of LP rewards from the rewards pool contract to the given recipient address
-     * @param rewardsPoolAddress The address of the token being staked
-     * @param recipient The address to whom the rewards will be trasferred
-     * @param lpTokenContract The address of the rewards contract
-     */
-    function withdrawLPRewards(
-        address rewardsPoolAddress,
-        address recipient,
-        address lpTokenContract
-    ) external onlyOwner {
-        require(
-            rewardsPoolAddress != address(0),
-            "RewardsPoolFactory::startStaking: not deployed"
-        );
-        RewardsPoolBase pool = RewardsPoolBase(rewardsPoolAddress);
-        pool.withdrawLPRewards(recipient, lpTokenContract);
-    }
-
-    /** @dev Returns the total number of rewards pools.
-     */
-    function getRewardsPoolNumber() public view returns (uint256) {
-        return rewardsPools.length;
-    }
-
-    /** @dev Helper function to calculate how much tokens should be transffered to a rewards pool.
-     */
-    function calculateRewardsAmount(
-        uint256 _startBlock,
-        uint256 _endBlock,
-        uint256 _rewardPerBlock
-    ) public pure returns (uint256) {
-        require(
-            _rewardPerBlock > 0,
-            "RewardsPoolFactory::calculateRewardsAmount: Rewards per block must be greater than zero"
-        );
-
-        uint256 rewardsPeriod = _endBlock.sub(_startBlock);
-
-        return _rewardPerBlock.mul(rewardsPeriod);
-    }
 }
