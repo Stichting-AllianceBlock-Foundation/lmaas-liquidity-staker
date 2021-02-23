@@ -23,7 +23,7 @@ abstract contract TreasuryOperated {
 	}
 
 	function setTreasury(address _treasury) internal {
-		require(_treasury != address(0x0), "Treasury cannot be 0");
+		require(_treasury != address(0x0), "setTreasury::Treasury cannot be 0");
 		treasury = _treasury;
 	}
 

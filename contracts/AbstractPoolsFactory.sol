@@ -41,7 +41,7 @@ abstract contract AbstractPoolsFactory {
     ) public pure returns (uint256) {
         require(
             _rewardPerBlock > 0,
-            "RewardsPoolFactory::calculateRewardsAmount: Rewards per block must be greater than zero"
+            "calculateRewardsAmount:: Rewards per block must be greater than zero"
         );
 
         uint256 rewardsPeriod = _endBlock.sub(_startBlock);
@@ -61,7 +61,7 @@ abstract contract AbstractPoolsFactory {
 	) external onlyOwner {
 		require(
 			rewardsPoolAddress != address(0),
-			"RewardsPoolFactory::startStaking: not deployed"
+			"startStaking:: not deployed"
 		);
 		IRewardsPoolBase pool = IRewardsPoolBase(rewardsPoolAddress);
 		pool.withdrawLPRewards(recipient, lpTokenContract);
