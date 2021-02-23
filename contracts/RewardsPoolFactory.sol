@@ -29,13 +29,15 @@ contract RewardsPoolFactory is Ownable {
      * @param _endBlock The end block of the rewards pool
      * @param _rewardsTokens The addresses of the tokens the rewards will be paid in
      * @param _rewardPerBlock Rewards per block
+     * @param _stakeLimit The stake limit per user
      */
     function deploy(
         address _stakingToken,
         uint256 _startBlock,
         uint256 _endBlock,
         address[] memory _rewardsTokens,
-        uint256[] memory _rewardPerBlock
+        uint256[] memory _rewardPerBlock,
+        uint256 _stakeLimit
     ) external onlyOwner {
         require(
             _stakingToken != address(0),
@@ -60,6 +62,10 @@ contract RewardsPoolFactory is Ownable {
                 "RewardsPoolFactory::deploy: Reward per block must be greater than zero"
             );
         }
+         require(
+            _stakeLimit != 0,
+            "RewardsPoolFactory::deploy: Stake limit must be more than 0"
+        );
 
         address rewardsPoolBase =
             address(
@@ -68,7 +74,8 @@ contract RewardsPoolFactory is Ownable {
                     _startBlock,
                     _endBlock,
                     _rewardsTokens,
-                    _rewardPerBlock
+                    _rewardPerBlock,
+                    _stakeLimit
                 )
             );
 

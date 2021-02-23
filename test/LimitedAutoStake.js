@@ -1,11 +1,11 @@
 const ethers = require('ethers');
 const etherlime = require('etherlime-lib');
 const OneStakerRewardsPool = require('../build/OneStakerRewardsPoolMock.json');
-const AutoStake = require('../build/AutoStake.json');
+const LimitedAutoStake = require('../build/LimitedAutoStake.json');
 const TestERC20 = require('../build/TestERC20.json');
 const { mineBlock } = require('./utils')
 
-describe('AutoStake', () => {
+describe('LimitedAutoStake', () => {
     let aliceAccount = accounts[3];
     let bobAccount = accounts[4];
     let carolAccount = accounts[5];
@@ -24,6 +24,7 @@ describe('AutoStake', () => {
 
     const day = 60 * 24 * 60;
 	const amount = ethers.utils.parseEther("5184000");
+	const stakeLimit = amount;
 	const bOne = ethers.utils.parseEther("1");
 	const standardStakingAmount = ethers.utils.parseEther('5') // 5 tokens
 
@@ -44,7 +45,7 @@ describe('AutoStake', () => {
 
 			await setupRewardsPoolParameters(deployer)
 
-			AutoStakingInstance = await deployer.deploy(AutoStake, {}, stakingTokenAddress, throttleRoundBlocks, bOne, endBlock);
+			AutoStakingInstance = await deployer.deploy(LimitedAutoStake, {}, stakingTokenAddress, throttleRoundBlocks, bOne, endBlock, stakeLimit);
 
 			OneStakerRewardsPoolInstance = await deployer.deploy(
 				OneStakerRewardsPool,
@@ -66,6 +67,18 @@ describe('AutoStake', () => {
 			const rewardPool = await AutoStakingInstance.rewardPool();
 			assert.equal(rewardPool, OneStakerRewardsPoolInstance.contractAddress, "The rewards pool was not set correctly");
 		});
+
+		it("Should fail to deploy RewardsPoolBase with 0 staking limit", async() => {
+
+			deployer = new etherlime.EtherlimeGanacheDeployer(aliceAccount.secretKey);
+
+			stakingTokenInstance = await deployer.deploy(TestERC20, {}, amount);
+			stakingTokenAddress = stakingTokenInstance.contractAddress;
+
+			await setupRewardsPoolParameters(deployer)
+
+			await assert.revertWith(deployer.deploy(LimitedAutoStake, {}, stakingTokenAddress, throttleRoundBlocks, bOne, endBlock, 0), "LimitedAutoStake:constructor::stake limit should not be 0")
+		})
 	})
 
 	describe("Staking", async function(){
@@ -77,7 +90,7 @@ describe('AutoStake', () => {
 
 			await setupRewardsPoolParameters(deployer)
 
-			AutoStakingInstance = await deployer.deploy(AutoStake, {}, stakingTokenAddress, throttleRoundBlocks, bOne, endBlock);
+			AutoStakingInstance = await deployer.deploy(LimitedAutoStake, {}, stakingTokenAddress, throttleRoundBlocks, bOne, endBlock, stakeLimit);
 
 			OneStakerRewardsPoolInstance = await deployer.deploy(
 				OneStakerRewardsPool,
@@ -127,42 +140,8 @@ describe('AutoStake', () => {
 
 		})
 
-		it("Should accumulate reward", async() => {
-				
-			await AutoStakingInstance.from(staker.signer).stake(standardStakingAmount);
-
-			await mineBlock(deployer.provider);
-
-			const accumulatedReward = await OneStakerRewardsPoolInstance.getUserAccumulatedReward(AutoStakingInstance.contractAddress, 0);
-			assert(accumulatedReward.eq(bOne), "The reward accrued was not 1 token");
-
-			await AutoStakingInstance.refreshAutoStake();
-
-			const userBalance = await AutoStakingInstance.balanceOf(staker.signer.address);
-			const userShares = await AutoStakingInstance.share(staker.signer.address);
-
-			assert(userBalance.eq(standardStakingAmount.add(bOne.mul(2))), "The user balance was not correct")
-			assert(userShares.eq(standardStakingAmount), "The user share balance was not correct")
-		})
-
-		it("Should accumulate with two stakers", async() => {
-				
-			await AutoStakingInstance.from(staker.signer).stake(standardStakingAmount);
-			await AutoStakingInstance.from(bobAccount.signer).stake(standardStakingAmount);
-
-			await AutoStakingInstance.refreshAutoStake();
-
-			const userBalance = await AutoStakingInstance.balanceOf(staker.signer.address);
-			const bobBalance = await AutoStakingInstance.balanceOf(bobAccount.signer.address);
-			const userShares = await AutoStakingInstance.share(staker.signer.address);
-			const bobShares = await AutoStakingInstance.share(bobAccount.signer.address);
-			const valuePerShare = await AutoStakingInstance.valuePerShare();
-
-			assert(userBalance.gt(standardStakingAmount.add(bOne)), "Staker balance was not correct")
-			assert(bobBalance.gt(standardStakingAmount), "Bobs balance was not correct")
-			assert(userShares.eq(standardStakingAmount), "The user share balance was not correct")
-			assert(bobShares.lt(standardStakingAmount), "Bob share balance was not correct")
-			assert(valuePerShare.gt(bOne), "Value per share has not increased");
+		it("Should fail if amount to stake is more than limit", async() => {
+			await assert.revertWith(AutoStakingInstance.from(staker.signer).stake(stakeLimit.mul(2)), "onlyUnderStakeLimit::Stake limit reached");
 		})
 
 		describe("Exiting", async function() {

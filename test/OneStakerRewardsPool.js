@@ -25,6 +25,7 @@ describe('OneStakerRewardsPool', () => {
     const rewardTokensCount = 1; // 5 rewards tokens for tests
     const day = 60 * 24 * 60;
 	const amount = ethers.utils.parseEther("5184000");
+	const stakeLimit = ethers.constants.MaxUint256;
 	const bOne = ethers.utils.parseEther("1");
 	const standardStakingAmount = ethers.utils.parseEther('5') // 5 tokens
 
@@ -72,6 +73,7 @@ describe('OneStakerRewardsPool', () => {
 			endBlock,
             rewardTokensAddresses,
             rewardPerBlock,
+			stakeLimit,
 			staker.signer.address
 		);
 

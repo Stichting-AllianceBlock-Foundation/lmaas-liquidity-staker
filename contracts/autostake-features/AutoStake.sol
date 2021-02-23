@@ -1,13 +1,15 @@
+// SPDX-License-Identifier: MIT
+
 pragma solidity 0.6.12;
 
 import "openzeppelin-solidity/contracts/math/Math.sol";
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import "openzeppelin-solidity/contracts/utils/ReentrancyGuard.sol";
-import "./pool-features/OneStakerFeature.sol";
-import "./interfaces/IERC20Detailed.sol";
-import "./SafeERC20Detailed.sol";
-import "./StakeLock.sol";
-import "./ThrottledExit.sol";
+import "./../interfaces/IRewardsPoolBase.sol";
+import "./../interfaces/IERC20Detailed.sol";
+import "./../SafeERC20Detailed.sol";
+import "./../StakeLock.sol";
+import "./../ThrottledExit.sol";
 
 // Based on ideas here: https://github.com/harvest-finance/harvest/blob/7a455967e40e980d4cfb2115bd000fbd6b201cc1/contracts/AutoStake.sol
 
@@ -15,8 +17,9 @@ contract AutoStake is ReentrancyGuard, StakeLock, ThrottledExit {
 	using SafeMath for uint256;
 	using SafeERC20Detailed for IERC20Detailed;
 
-	OneStakerFeature public rewardPool;
+	IRewardsPoolBase public rewardPool;
 	IERC20Detailed public stakingToken;
+	address public factory;
 	uint256 public unit = 1e18;
 	uint256 public valuePerShare = unit;
 	uint256 public totalShares = 0;
@@ -27,6 +30,7 @@ contract AutoStake is ReentrancyGuard, StakeLock, ThrottledExit {
 	event Staked(address indexed user, uint256 amount, uint256 sharesIssued, uint256 oldShareVaule, uint256 newShareValue, uint256 balanceOf);
 
 	constructor(address token, uint256 _throttleRoundBlocks, uint256 _throttleRoundCap, uint256 stakeEnd) public {
+		factory = msg.sender;
 		stakingToken = IERC20Detailed(token);
 		setLockEnd(stakeEnd);
 		setThrottleParams(_throttleRoundBlocks, _throttleRoundCap, stakeEnd);
@@ -34,8 +38,16 @@ contract AutoStake is ReentrancyGuard, StakeLock, ThrottledExit {
 
 	function setPool(address pool) public {
 		require(address(rewardPool) == address(0x0), "Reward pool already set");
-		rewardPool = OneStakerFeature(pool);
+		rewardPool = IRewardsPoolBase(pool);
 	}
+
+	modifier onlyFactory() {
+        require(
+            msg.sender == factory,
+            "Caller is not the Factory contract"
+        );
+        _;
+    }
 
 	function refreshAutoStake() external {
 		exitRewardPool();
@@ -43,27 +55,31 @@ contract AutoStake is ReentrancyGuard, StakeLock, ThrottledExit {
 		restakeIntoRewardPool();
 	}
 
-	function stake(uint256 amount) public nonReentrant {
+	function stake(uint256 amount) public virtual {
+		_stake(amount, msg.sender, true);
+	}
+
+	function _stake(uint256 amount, address staker, bool chargeStaker) internal nonReentrant {
 		exitRewardPool();
 		updateValuePerShare();
 
 		// now we can issue shares
-		stakingToken.safeTransferFrom(msg.sender, address(this), amount);
+		stakingToken.safeTransferFrom(chargeStaker ? staker : msg.sender, address(this), amount);
 		uint256 sharesToIssue = amount.mul(unit).div(valuePerShare);
 		totalShares = totalShares.add(sharesToIssue);
-		share[msg.sender] = share[msg.sender].add(sharesToIssue);
+		share[staker] = share[staker].add(sharesToIssue);
 
 		uint256 oldValuePerShare = valuePerShare;
 
 		// Rate needs to be updated here, otherwise the valuePerShare would be incorrect.
 		updateValuePerShare();
 
-		emit Staked(msg.sender, amount, sharesToIssue, oldValuePerShare, valuePerShare, balanceOf(msg.sender));
+		emit Staked(staker, amount, sharesToIssue, oldValuePerShare, valuePerShare, balanceOf(staker));
 
 		restakeIntoRewardPool();
 	}
 
-	function exit() public onlyUnlocked nonReentrant {
+	function exit() public virtual onlyUnlocked nonReentrant {
 		exitRewardPool();
 		updateValuePerShare();
 
