@@ -1,17 +1,18 @@
+// SPDX-License-Identifier: MIT
 pragma solidity 0.6.12;
 
 import "openzeppelin-solidity/contracts/math/Math.sol";
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
-import "./../../interfaces/IERC20Detailed.sol";
-import "./../../SafeERC20Detailed.sol";
+import "./interfaces/IERC20Detailed.sol";
+import "./SafeERC20Detailed.sol";
 import "./AbstractPoolsFactory.sol";
-import "./LiquidityMiningCampaign.sol"
+import "./LiquidityMiningCampaign.sol";
 
 
 contract LiquidityMiningCampaignFactory is AbstractPoolsFactory {
 
 
-	   using SafeMath for uint256;
+	using SafeMath for uint256;
     using SafeERC20Detailed for IERC20Detailed;
 
     event RewardsPoolDeployed(

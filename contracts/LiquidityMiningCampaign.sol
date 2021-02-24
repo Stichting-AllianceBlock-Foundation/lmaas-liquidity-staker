@@ -8,8 +8,8 @@ import "./interfaces/IERC20Detailed.sol";
 import "./SafeERC20Detailed.sol";
 import "./RewardsPoolBase.sol";
 import "./LockScheme.sol";
-import "./StakeTransferer";
-import "./../StakeReceiver.sol";
+import "./StakeTransferer.sol";
+import "./StakeReceiver.sol";
 
 
 contract LiquidityMiningCampaign is RewardsPoolBase, StakeTransferer {
@@ -114,7 +114,7 @@ contract LiquidityMiningCampaign is RewardsPoolBase, StakeTransferer {
 	/** @dev exits the current campaign and trasnfers the stake to another whitelisted campaign
 		@param transferTo address of the receiver to transfer the stake to
 	 */
-	function exitAndTransfer(address transferTo) virtual public override onlyWhitelistedReceiver(transferTo) nonReentrant {
+	function exitAndTransfer(address transferTo, address _lockScheme) virtual public onlyWhitelistedReceiver(transferTo) nonReentrant {
 		UserInfo storage user = userInfo[msg.sender];
 		
 		updateRewardMultipliers(); // Update the accumulated multipliers for everyone
@@ -125,9 +125,9 @@ contract LiquidityMiningCampaign is RewardsPoolBase, StakeTransferer {
 
 		updateUserAccruedReward(msg.sender); // Update the accrued reward for this specific user
 
-		LockScheme(_lockScheme).exit(_userAddress);
-		claimBonus(_lockScheme, _userAddress);
-		_claim(_userAddress);
+		LockScheme(_lockScheme).exit(msg.sender);
+		claimBonus(_lockScheme, msg.sender);
+		_claim(msg.sender);
 		stakingToken.safeApprove(transferTo, user.amountStaked);
 
 		StakeReceiver(transferTo).delegateStake(msg.sender, user.amountStaked);
@@ -141,8 +141,8 @@ contract LiquidityMiningCampaign is RewardsPoolBase, StakeTransferer {
 		}
 	}
 
-	
-	function exitAndStake(address _stakePool) public onlyWhitelistedReceiver(transferTo) nonReentrant{
+
+	function exitAndStake(address _stakePool, address _lockScheme) public onlyWhitelistedReceiver(_stakePool) nonReentrant{
 			
 		UserInfo storage user = userInfo[msg.sender];
 		
@@ -155,28 +155,28 @@ contract LiquidityMiningCampaign is RewardsPoolBase, StakeTransferer {
 		updateUserAccruedReward(msg.sender); // Update the accrued reward for this specific user
 		
 		updateRewardMultipliers();
-        updateUserAccruedReward(_userAddress);
+        updateUserAccruedReward(msg.sender);
 			//todo check how to secure that 0 is the albt
-			uint256 finalRewards = user.tokensOwed[0].sub(userAccruedRewads[_userAddress]);
-			uint256 userBonus ;
+			uint256 finalRewards = user.tokensOwed[0].sub(userAccruedRewads[msg.sender]);
+			uint256 userBonus;
 			for (uint256 i = 0; i < lockSchemes.length; i++) {
 
-				uint256 additionalRewards = calculateProportionalRewards(_userAddress, finalRewards, lockSchemes[i]);
+				uint256 additionalRewards = calculateProportionalRewards(msg.sender, finalRewards, lockSchemes[i]);
 				if(additionalRewards > 0) {
 
-				LockScheme(lockSchemes[i]).updateUserAccruedRewards(_userAddress, additionalRewards);
+				LockScheme(lockSchemes[i]).updateUserAccruedRewards(msg.sender, additionalRewards);
 				}
-				userBonus = userBonuse.add(LockScheme(lockSchemes[i]).getUserBonus(_userAddress));
+				userBonus = userBonus.add(LockScheme(lockSchemes[i]).getUserBonus(msg.sender));
 			}
 
-		LockScheme(_lockScheme).exit(_userAddress);
+		LockScheme(_lockScheme).exit(msg.sender);
 
-		uint256 amountToStake = getUserAccumulatedReward(_userAddress, 0).add(userBonus);
-		_exit(_userAddress);
+		uint256 amountToStake = getUserAccumulatedReward(msg.sender, 0).add(userBonus);
+		_exit(msg.sender);
 
-		stakingToken.safeApprove(transferTo, amountToStake);
+		stakingToken.safeApprove(_stakePool, amountToStake);
 
-		StakeReceiver(transferTo).delegateStake(_userAddress, amountToStake);
+		StakeReceiver(_stakePool).delegateStake(msg.sender, amountToStake);
 
 	}
 
