@@ -23,6 +23,7 @@ describe.only('LMC', () => {
     let rewardTokensInstances;
     let rewardTokensAddresses;
 	let rewardPerBlock;
+	let lockSchemеs;
 
 
 
@@ -43,6 +44,7 @@ describe.only('LMC', () => {
 		rewardTokensInstances = [];
         rewardTokensAddresses = [];
 		rewardPerBlock = [];
+		lockSchemеs =[];
 		for (i = 0; i < rewardTokensCount; i++) {
             const tknInst = await deployer.deploy(TestERC20, {}, amount);
 
@@ -93,6 +95,9 @@ describe.only('LMC', () => {
 
 
 		LockSchemeInstance = await deployer.deploy(LockScheme, libraries, lockBlock, rampUpBlock, bonusPercet, LmcInstance.contractAddress, stakingTokenAddress);
+		lockSchemеs.push(LockSchemeInstance.contractAddress);
+
+		await LmcInstance.setLockSchemes(lockSchemеs);
 		await rewardTokensInstances[0].mint(LmcInstance.contractAddress,amount);
 
 	});
@@ -120,7 +125,6 @@ describe.only('LMC', () => {
 
 				let initialContractBalance = await stakingTokenInstance.balanceOf(LockSchemeInstance.contractAddress);
 				let currentBlock = await deployer.provider.getBlock('latest');
-
 				await LmcInstance.stakeAndLock(bTen,LockSchemeInstance.contractAddress);
 				let finalContractBalance = await stakingTokenInstance.balanceOf(LockSchemeInstance.contractAddress);
 
@@ -130,19 +134,18 @@ describe.only('LMC', () => {
 				const userOwedToken = await LmcInstance.getUserOwedTokens(aliceAccount.signer.address, 0);
 
 				let userInfoLock= await LockSchemeInstance.userInfo(aliceAccount.signer.address);
-				let userBonuses = await LockSchemeInstance.getUserBonuses(aliceAccount.signer.address);
-				let bonusLength = ethers.utils.bigNumberify(userBonuses.length);
+				let userBonus = await LockSchemeInstance.getUserBonus(aliceAccount.signer.address);
 				let userAccruedRewards = await LockSchemeInstance.getUserAccruedReward(aliceAccount.signer.address);
 				currentBlock = await deployer.provider.getBlock('latest');
 
 				assert(finalContractBalance.eq(initialContractBalance.add(bTen)), "The balance of the contract was not incremented properly");
 				assert(userInfoLock.balance.eq(bTen), "The transferred amount is not corrent");
-				assert(userInfoLock.lockStartBlock.eq(currentBlock.number), "The lock block is not set properly");
-				assert(userAccruedRewards[0].eq(0), "The rewards were not set properly");
-				assert(bonusLength.eq(0), "User bonuses should be equal to zero");
+				assert(userInfoLock.lockInitialStakeBlock.eq(currentBlock.number), "The lock block is not set properly");
+				assert(userAccruedRewards.eq(0), "The rewards were not set properly");
+				assert(userBonus.eq(0), "User bonuses should be equal to zero");
 				assert(totalStakedAmount.eq(bTen), "The stake was not successful")
 				assert(userInfo.amountStaked.eq(bTen), "User's staked amount is not correct")
-				assert(userInfo.firstStakedBlockNumber.eq(startBlock+1), "User's first block is not correct")
+				assert(userInfo.firstStakedBlockNumber.eq(startBlock+2), "User's first block is not correct")
 				assert(userRewardDebt.eq(0), "User's reward debt is not correct")
 				assert(userOwedToken.eq(0), "User's reward debt is not correct")
 
@@ -196,16 +199,16 @@ describe.only('LMC', () => {
 	
 				const userInitialBalanceStaking = await stakingTokenInstance.balanceOf(aliceAccount.signer.address);
 				const userInfoInitial = await LmcInstance.userInfo(aliceAccount.signer.address);
+
 				const initialTotalStakedAmount = await LmcInstance.totalStaked();
 				const userInitialBalanceRewards = await rewardTokensInstances[0].balanceOf(aliceAccount.signer.address);
 				const userRewards = await LmcInstance.getUserAccumulatedReward(aliceAccount.signer.address, 0);
-				
-				await LmcInstance.exitAndUnlock(LockSchemeInstance.contractAddress);
-				let finalContractBalance = await stakingTokenInstance.balanceOf(LockSchemeInstance.contractAddress);
 
 				let userInfo = await LockSchemeInstance.userInfo(aliceAccount.signer.address);
-				let userBonuses = await LockSchemeInstance.getUserBonuses(aliceAccount.signer.address);
-				let bonusLength = ethers.utils.bigNumberify(userBonuses.length);
+				await LmcInstance.exitAndUnlock();
+				let finalContractBalance = await stakingTokenInstance.balanceOf(LockSchemeInstance.contractAddress);
+			
+				let userBonus = await LockSchemeInstance.getUserBonus(aliceAccount.signer.address);
 				let userAccruedRewards = await LockSchemeInstance.getUserAccruedReward(aliceAccount.signer.address);
 				let bonus = userRewards.add(bOne).div(10)
 
@@ -215,17 +218,19 @@ describe.only('LMC', () => {
 				const userInfoFinal = await LmcInstance.userInfo(aliceAccount.signer.address);
 				const finalTotalStkaedAmount = await LmcInstance.totalStaked();
 				assert(userFinalBalanceRewards.gt(userInitialBalanceRewards), "Rewards claim was not successful")
-				assert(userFinalBalanceRewards.eq(userInitialBalanceRewards.add(userRewards.add(bOne).add(userBonuses[0]))), "User rewards were not calculated properly")
+				assert(userFinalBalanceRewards.eq(userInitialBalanceRewards.add(userRewards.add(bOne).add(userBonus))), "User rewards were not calculated properly")
 				assert(userTokensOwed.eq(0), "User tokens owed should be zero")
 				assert(userFinalBalanceStaking.eq(userInitialBalanceStaking.add(standardStakingAmount)), "Withdraw was not successfull")
 				assert(userInfoFinal.amountStaked.eq(userInfoInitial.amountStaked.sub(standardStakingAmount)), "User staked amount is not updated properly")
 				assert(finalTotalStkaedAmount.eq(initialTotalStakedAmount.sub(standardStakingAmount)), "Contract total staked amount is not updated properly")
 	
 				assert(finalContractBalance.eq(initialContractBalance.sub(standardStakingAmount)), "The balance of the contract was not changed properly");
+				console.log(userInfo.balance.toString())
 				assert(userInfo.balance.eq(0), "The transferred amount is not corrent");
-				assert(userAccruedRewards[0].eq(0), "The rewards were not set properly");
-				assert(bonusLength.eq(1), "User bonuses length should be equal to 1");
-				assert(userBonuses[0].eq(bonus), "User bonuses are not calculated properly");
+				assert(userAccruedRewards.eq(0), "The rewards were not set properly");
+				console.log(userBonus.toString())
+				console.log(bonus.toString())
+				assert(userBonus.eq(bonus), "User bonuses are not calculated properly");
 
 			})
 

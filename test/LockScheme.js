@@ -5,7 +5,7 @@ const TestERC20 = require('../build/TestERC20.json');
 const PercentageCalculator = require('../build/PercentageCalculator.json')
 const { mineBlock } = require('./utils')
 
-describe.only('LockScheme', () => {
+describe('LockScheme', () => {
     let aliceAccount = accounts[3];
     let bobAccount = accounts[4];
     let carolAccount = accounts[5];
@@ -26,7 +26,7 @@ describe.only('LockScheme', () => {
 	const bOne = ethers.utils.parseEther("1");
 	const bTen = ethers.utils.parseEther("10")
 	const standardStakingAmount = ethers.utils.parseEther('5') // 5 tokens
-	const additionalRewards = [bTen]
+	const additionalRewards = bTen
 
 
 	const setupRewardsPoolParameters = async (deployer) => {
@@ -73,16 +73,16 @@ describe.only('LockScheme', () => {
 			let finalContractBalance = await stakingTokenInstance.balanceOf(LockSchemeInstance.contractAddress);
 
 			let userInfo = await LockSchemeInstance.userInfo(aliceAccount.signer.address);
-			let userBonuses = await LockSchemeInstance.getUserBonuses(aliceAccount.signer.address);
-			let bonusLength = ethers.utils.bigNumberify(userBonuses.length);
+			let userBonuses = await LockSchemeInstance.getUserBonus(aliceAccount.signer.address);
 			let userAccruedRewards = await LockSchemeInstance.getUserAccruedReward(aliceAccount.signer.address);
 			const currentBlock = await deployer.provider.getBlock('latest');
+			
 
 			assert(finalContractBalance.eq(initialContractBalance.add(bOne)), "The balance of the contract was not incremented properly");
 			assert(userInfo.balance.eq(bOne), "The transferred amount is not corrent");
-			assert(userInfo.lockStartBlock.eq(currentBlock.number), "The lock block is not set properly");
-			assert(userAccruedRewards[0].eq(additionalRewards[0]), "The rewards were not set properly");
-			assert(bonusLength.eq(0), "User bonuses should be equal to zero");
+			assert(userInfo.lockInitialStakeBlock.eq(currentBlock.number), "The lock block is not set properly");
+			assert(userAccruedRewards.eq(additionalRewards), "The rewards were not set properly");
+			assert(userBonuses.eq(0), "The rewards were not set properly");
 		})
 
 
@@ -115,18 +115,16 @@ describe.only('LockScheme', () => {
 			for (let i = 0; i <= blockDelta; i++) {
 				await mineBlock(deployer.provider);
 			}	
-			await LockSchemeInstance.exit(aliceAccount.signer.address,additionalRewards);
+			await LockSchemeInstance.exit(aliceAccount.signer.address);
 			let finalContractBalance = await stakingTokenInstance.balanceOf(LockSchemeInstance.contractAddress);
 			let userInfo = await LockSchemeInstance.userInfo(aliceAccount.signer.address);
-			let userBonuses = await LockSchemeInstance.getUserBonuses(aliceAccount.signer.address);
-			let bonusLength = ethers.utils.bigNumberify(userBonuses.length);
+			let userBonus = await LockSchemeInstance.getUserBonus(aliceAccount.signer.address);
 			let userAccruedRewards = await LockSchemeInstance.getUserAccruedReward(aliceAccount.signer.address);
 
 			assert(finalContractBalance.eq(initialContractBalance), "The balance of the contract was not changed properly");
 			assert(userInfo.balance.eq(0), "The transferred amount is not corrent");
-			assert(userAccruedRewards[0].eq(0), "The rewards were not set properly");
-			assert(bonusLength.eq(1), "User bonuses length should be equal to 1");
-			assert(userBonuses[0].eq(bOne), "User bonuses are not calculated properly");
+			assert(userAccruedRewards.eq(0), "The rewards were not set properly");
+			assert(userBonus.eq(bOne), "User bonuses are not calculated properly");
 		})
 
 
@@ -137,31 +135,26 @@ describe.only('LockScheme', () => {
 			
 			await stakingTokenInstance.approve(LockSchemeInstance.contractAddress, amount);
 			await LockSchemeInstance.lock(aliceAccount.signer.address,bOne,additionalRewards);
-			await LockSchemeInstance.exit(aliceAccount.signer.address,additionalRewards);
+			await LockSchemeInstance.exit(aliceAccount.signer.address);
 
 			let finalContractBalance = await stakingTokenInstance.balanceOf(LockSchemeInstance.contractAddress);
 			let userInfo = await LockSchemeInstance.userInfo(aliceAccount.signer.address);
-			let userBonuses = await LockSchemeInstance.getUserBonuses(aliceAccount.signer.address);
-			let bonusLength = ethers.utils.bigNumberify(userBonuses.length);
+			let userBonus = await LockSchemeInstance.getUserBonus(aliceAccount.signer.address);
 			let userAccruedRewards = await LockSchemeInstance.getUserAccruedReward(aliceAccount.signer.address);
 			let forfeitedBonuses = await LockSchemeInstance.forfeitedBonuses();
 
 			assert(finalContractBalance.eq(initialContractBalance), "The balance of the contract was not changed properly");
 			assert(userInfo.balance.eq(0), "The transferred amount is not corrent");
-			assert(userAccruedRewards[0].eq(0), "The rewards were not set properly");
-			assert(bonusLength.eq(0), "User bonuses length should be equal to 1");
+			assert(userAccruedRewards.eq(0), "The rewards were not set properly");
+			assert(userBonus.eq(0), "User bonuses are not calculated properly");
 			assert(forfeitedBonuses.eq(bOne), "Forfeited bonuses are not calculated properly");
 		})
 
-		it("Should fail if the user hasn't locked", async() => {
-
-			await assert.revertWith(LockSchemeInstance.exit(aliceAccount.signer.address,additionalRewards), "exit::The user hasn't locked")
-		})
 
 		it("Should fail trying to exit from non lmc address", async() => {
 			await stakingTokenInstance.approve(LockSchemeInstance.contractAddress, amount);
 			await LockSchemeInstance.lock(aliceAccount.signer.address,bOne,additionalRewards);
-			await assert.revertWith(LockSchemeInstance.from(bobAccount.signer.address).exit(aliceAccount.signer.address,additionalRewards), "onlyLmc::Caller is not the LMC contract")
+			await assert.revertWith(LockSchemeInstance.from(bobAccount.signer.address).exit(aliceAccount.signer.address), "onlyLmc::Caller is not the LMC contract")
 		})
 
 	

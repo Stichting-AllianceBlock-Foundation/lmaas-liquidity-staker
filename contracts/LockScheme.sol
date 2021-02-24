@@ -6,13 +6,14 @@ import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import "./interfaces/IERC20Detailed.sol";
 import "./SafeERC20Detailed.sol";
 import "./PercentageCalculator.sol";
+import "openzeppelin-solidity/contracts/utils/ReentrancyGuard.sol";
 
-contract LockScheme {
+contract LockScheme is ReentrancyGuard {
 
     using SafeMath for uint256;
     using SafeERC20Detailed for IERC20Detailed;
 
-    // uint256 public lockBlock; // The period of lock for this contract
+    uint256 public lockEndBlock; // The period of lock for this contract
     uint256 public rampUpPeriod; // The period since the beginning of the lock that additions can be considered the same position.Might be 0 for the 0% lock periods
     address public stakingToken;
     uint256 public bonusPercent; // saved in thousands = ex 3% = 3000
@@ -22,14 +23,14 @@ contract LockScheme {
     struct UserInfo {
         uint256 balance; // IOU Balance for this lock contract
         uint256 accruedReward; // Reward accrued by an address from previous additions
-        uint256 userBonuses; // Stores the bonus for a user.
+        uint256 userBonus; // Stores the bonus for a user.
         uint256 lockInitialStakeBlock;
     }
 
     mapping(address => UserInfo) public userInfo;
 
-    event Lock(address indexed _userAddress, uint256 _amountLocked, uint256[] _additionalReward);
-    event Exit(address indexed _userAddress, uint256[] _userBonus);
+    event Lock(address indexed _userAddress, uint256 _amountLocked, uint256 _additionalReward);
+    event Exit(address indexed _userAddress, uint256 _userBonus);
 
     modifier onlyLmc() {
           require(
@@ -40,20 +41,20 @@ contract LockScheme {
     }
 
     constructor(
-        uint256 _lockBlock,
-        uint256 _rampUpBlock,
+        uint256 _lockEndBlock,
+        uint256 _rampUpPeriod,
         uint256 _bonusPercent,
         address _lmcContract,
         address _stakingToken
     ) public {
-        lockBlock = _lockBlock;
-        rampUpBlock = _rampUpBlock;
+        lockEndBlock = _lockEndBlock;
+        rampUpPeriod = _rampUpPeriod;
         bonusPercent = _bonusPercent;
         lmcContract = _lmcContract;
         stakingToken = _stakingToken;
     }
 
-    function lock(address _userAddress, uint256 _amountToLock, uint256[] memory _additionalAccruedRewards) public onlyLmc {
+    function lock(address _userAddress, uint256 _amountToLock, uint256 _additionalAccruedReward) public onlyLmc {
 
         UserInfo storage user = userInfo[_userAddress];
         uint256 userLockStartBlock = user.lockInitialStakeBlock + rampUpPeriod;
@@ -68,23 +69,23 @@ contract LockScheme {
         IERC20Detailed(stakingToken).safeTransferFrom(lmcContract, address(this), _amountToLock);
 
         user.balance = user.balance.add(_amountToLock);
-        user.accruedReward = _additionalAccruedRewards;
+        user.accruedReward = _additionalAccruedReward;
 
         emit Lock(_userAddress, _amountToLock, user.accruedReward);
     }
 
-    function exit(address _userAddress, uint256[] memory _additionalAccruedReward) public onlyLmc {
+    function exit(address _userAddress) public onlyLmc {
 
         UserInfo storage user = userInfo[_userAddress];
         if(user.balance > 0) {
         
             uint256 bonus = PercentageCalculator.div(user.accruedReward,bonusPercent);
         
-            if (block.number >= lockBlock) {
-                user.userBonuses = bonus;
+            if (block.number >= lockEndBlock) {
+                user.userBonus = bonus;
             } 
 
-            if (block.number < lockBlock) {
+            if (block.number < lockEndBlock) {
                 forfeitedBonuses = forfeitedBonuses.add(bonus);
             }
 
@@ -95,23 +96,23 @@ contract LockScheme {
        
         IERC20Detailed(stakingToken).safeTransfer(lmcContract, userBalance);
 
-        emit Exit(_userAddress, user.userBonuses);
-       }
+        emit Exit(_userAddress, user.userBonus);
     }
+    
 
-    function updateUserAccruedRewards(address _userAddress, uint256 _rewards) public onlyLmc {
+    function updateUserAccruedRewards(address _userAddress, uint256 _rewards) public nonReentrant onlyLmc {
         UserInfo storage user = userInfo[_userAddress];
         if(user.balance > 0) {
          user.accruedReward.add(_rewards);
         }
     }
 
-    function getUserBonuses(address _userAddress) public view returns( uint256[] memory) {
+    function getUserBonus(address _userAddress) public view returns( uint256 ) {
         UserInfo storage user = userInfo[_userAddress];
-        return user.userBonuses;
+        return user.userBonus;
     }
 
-    function getUserAccruedReward(address _userAddress) public view returns( uint256[] memory) {
+    function getUserAccruedReward(address _userAddress) public view returns( uint256 ) {
         UserInfo storage user = userInfo[_userAddress];
         return user.accruedReward;
     }
@@ -119,5 +120,11 @@ contract LockScheme {
     function getUserStakedBalance(address _userAddress) public view returns(uint256) {
         UserInfo storage user = userInfo[_userAddress];
         return user.balance;
+    }
+
+     function hasUserRampUpEnded(address _userAddress) public view returns(bool) {
+        UserInfo storage user = userInfo[_userAddress];
+        uint256 userLockStartBlock = user.lockInitialStakeBlock + rampUpPeriod;
+        return userLockStartBlock < block.number;
     }
 }
