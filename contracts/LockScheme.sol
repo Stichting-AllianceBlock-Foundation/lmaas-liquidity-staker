@@ -12,8 +12,8 @@ contract LockScheme {
     using SafeMath for uint256;
     using SafeERC20Detailed for IERC20Detailed;
 
-    uint256 public lockBlock; // The period of lock for this contract
-    uint256 public rampUpBlock; // The period since the beginning of the lock that additions can be considered the same position.Might be 0 for the 0% lock periods
+    // uint256 public lockBlock; // The period of lock for this contract
+    uint256 public rampUpPeriod; // The period since the beginning of the lock that additions can be considered the same position.Might be 0 for the 0% lock periods
     address public stakingToken;
     uint256 public bonusPercent; // saved in thousands = ex 3% = 3000
     address public lmcContract; // The address of the lmc contract
@@ -21,9 +21,9 @@ contract LockScheme {
 
     struct UserInfo {
         uint256 balance; // IOU Balance for this lock contract
-        uint256[] accruedReward; // Reward accrued by an address from previous additions
-        uint256[] userBonuses; // Stores the bonus for a user.
-        uint256 lockStartBlock;
+        uint256 accruedReward; // Reward accrued by an address from previous additions
+        uint256 userBonuses; // Stores the bonus for a user.
+        uint256 lockInitialStakeBlock;
     }
 
     mapping(address => UserInfo) public userInfo;
@@ -54,13 +54,19 @@ contract LockScheme {
     }
 
     function lock(address _userAddress, uint256 _amountToLock, uint256[] memory _additionalAccruedRewards) public onlyLmc {
-        require(block.number < rampUpBlock, "lock::The ramp up period has finished");
 
         UserInfo storage user = userInfo[_userAddress];
+        uint256 userLockStartBlock = user.lockInitialStakeBlock + rampUpPeriod;
+
+
+        require(userLockStartBlock > block.number , "lock::The ramp up period has finished");
+
+        if(user.lockInitialStakeBlock == 0) {
+            user.lockInitialStakeBlock = block.number;
+        }
 
         IERC20Detailed(stakingToken).safeTransferFrom(lmcContract, address(this), _amountToLock);
 
-        user.lockStartBlock = block.number;
         user.balance = user.balance.add(_amountToLock);
         user.accruedReward = _additionalAccruedRewards;
 
@@ -70,20 +76,19 @@ contract LockScheme {
     function exit(address _userAddress, uint256[] memory _additionalAccruedReward) public onlyLmc {
 
         UserInfo storage user = userInfo[_userAddress];
-        require(user.balance > 0, "exit::The user hasn't locked");
+        if(user.balance > 0) {
         
-        for (uint256 i = 0; i < _additionalAccruedReward.length; i++) {
-            uint256 bonus = PercentageCalculator.div(_additionalAccruedReward[i],bonusPercent);
+            uint256 bonus = PercentageCalculator.div(user.accruedReward,bonusPercent);
         
             if (block.number >= lockBlock) {
-                user.userBonuses.push(bonus);
+                user.userBonuses = bonus;
             } 
 
             if (block.number < lockBlock) {
                 forfeitedBonuses = forfeitedBonuses.add(bonus);
             }
 
-             user.accruedReward[i] = 0;
+             user.accruedReward = 0;
         }
         uint256 userBalance = user.balance;
         user.balance = 0;
@@ -91,6 +96,14 @@ contract LockScheme {
         IERC20Detailed(stakingToken).safeTransfer(lmcContract, userBalance);
 
         emit Exit(_userAddress, user.userBonuses);
+       }
+    }
+
+    function updateUserAccruedRewards(address _userAddress, uint256 _rewards) public onlyLmc {
+        UserInfo storage user = userInfo[_userAddress];
+        if(user.balance > 0) {
+         user.accruedReward.add(_rewards);
+        }
     }
 
     function getUserBonuses(address _userAddress) public view returns( uint256[] memory) {
@@ -101,5 +114,10 @@ contract LockScheme {
     function getUserAccruedReward(address _userAddress) public view returns( uint256[] memory) {
         UserInfo storage user = userInfo[_userAddress];
         return user.accruedReward;
+    }
+
+    function getUserStakedBalance(address _userAddress) public view returns(uint256) {
+        UserInfo storage user = userInfo[_userAddress];
+        return user.balance;
     }
 }

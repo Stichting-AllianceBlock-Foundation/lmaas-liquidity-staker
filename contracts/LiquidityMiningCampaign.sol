@@ -14,6 +14,9 @@ contract LiquidityMiningCampaign is RewardsPoolBase   {
 	using SafeMath for uint256;
     using SafeERC20Detailed for IERC20Detailed;
 
+	address[] lockSchemes;
+	mapping(address => uint256) userAccruedRewads;
+
 	event StakedAndLocked(address indexed _userAddress, uint256 _tokenAmount, address _lockScheme);
 	event ExitedAndUnlocked(address indexed _userAddress, address _lockScheme);
 	event BonusTransferred(address indexed _userAddress, uint256[] _bonusAmount);
@@ -24,21 +27,39 @@ contract LiquidityMiningCampaign is RewardsPoolBase   {
         uint256 _endBlock,
         address[] memory _rewardsTokens,
         uint256[] memory _rewardPerBlock,
-		uint256 _stakeLimit
+		uint256 _stakeLimit,
+		address[] _lockSchemes
     ) public RewardsPoolBase(_stakingToken, _startBlock, _endBlock, _rewardsTokens, _rewardPerBlock,_stakeLimit) {
 
+		lockSchemes = _lockSchemes;
 	}
 
 
-	function stakeAndLock(uint256 _tokenAmount, address _lockScheme) public {
+	function  stakeAndLock( uint256 _tokenAmount, address _lockScheme) public nonReentrant{
+		_stakeAndLock(msg.sender,_tokenAmount, _lockScheme);
+
+	}
+
+	function _stakeAndLock(address _userAddress ,uint256 _tokenAmount, address _lockScheme) internal {
 		require(_tokenAmount > 0, "stakeAndLock::Cannot stake 0");
 		uint256 rampUpBlock = LockScheme(_lockScheme).rampUpBlock();
 
 		require(rampUpBlock > block.number, "stakeAndLock::The ramp up period has finished");
-		UserInfo storage user = userInfo[msg.sender];
+		UserInfo storage user = userInfo[_userAddress];
+	
+		userAccruedRewads[_userAddress]	= userAccruedRewads[_userAddress].add(user.tokensOwed);
+		for (uint256 index = 0; index < lockSchemes.length; index++) {
+
+			uint256 additionalRewards = calculateProportionalRewards(msg.sender, userAccruedRewads[_userAddress], _lockScheme[i]);
+			LockScheme( _lockScheme[i]).updateUserAccruedRewards(_userAddress, additionalRewards);
+		}
+
 		stakingToken.safeApprove(_lockScheme, _tokenAmount);
-		_stake(_tokenAmount, msg.sender, false);
-		lockToScheme(_lockScheme,address(msg.sender), _tokenAmount, user.tokensOwed);
+		_stake(_tokenAmount, _userAddress, false);
+
+
+		lockToScheme(_lockScheme,address(_userAddress), _tokenAmount, user.tokensOwed);
+
 
 		emit StakedAndLocked( msg.sender, _tokenAmount, _lockScheme);
 	}
@@ -47,10 +68,25 @@ contract LiquidityMiningCampaign is RewardsPoolBase   {
 		LockScheme(_lockScheme).lock(_userAddress, _tokenAmount, _additionalRewards );
 	}
 
+	function exitAndUnlock() public nonReentrant {
 
-	function exitAndUnlock(address _lockScheme) public nonReentrant {
+
+		for (uint256 index = 0; index < lockSchemes.length; index++) {
+			_exitAndUnlock(msg.sender, lockSchemes[i]);
+		}
+		
+	}
+
+	function _exitAndUnlock(address _userAddress ,address _lockScheme) internal {
 			UserInfo storage user = userInfo[msg.sender];
-			
+
+			uint256 finalRewards = user.tokensOwed.sub(userAccruedRewads[_userAddress]);
+			for (uint256 index = 0; index < lockSchemes.length; index++) {
+
+				uint256 additionalRewards = calculateProportionalRewards(msg.sender, finalRewards, _lockScheme[i]);
+				LockScheme( _lockScheme[i]).updateUserAccruedRewards(_userAddress, additionalRewards);
+		}
+
 			updateRewardMultipliers();
         	updateUserAccruedReward(msg.sender);
 
@@ -60,6 +96,13 @@ contract LiquidityMiningCampaign is RewardsPoolBase   {
 
 			emit ExitedAndUnlocked(msg.sender, _lockScheme);
 	}
+
+	function migrateToLMC(address _newLmc, address _newLockScheme, address _currentLockScheme, uint256 _tokenAmount) public {
+
+			_exitAndUnlock(msg.sender, _currentLockScheme);
+			LiquidityMiningCampaign(_newLmc).stakeAndLock(_tokenAmount,_newLockScheme );
+	}
+
 
 	function exit() public override {
 		revert("exit:cannot exit from this contract. Only exit and Unlock.");
@@ -85,6 +128,14 @@ contract LiquidityMiningCampaign is RewardsPoolBase   {
 
 			emit BonusTransferred(msg.sender,userBonuses);
 		}
+	}
+
+	function calculateProportionalRewards(address _userAddress, uint256 _accruedRewards, address _lockScheme) internal returns (uint256) {
+			
+			uint256 userStakedBalance = LockScheme(_lockScheme).getUserStakedBalance(_userAddress);
+
+			uint256 ratio = userStakedBalance.div(totalStaked);
+			return _accruedRewards.mul(ratio);
 	}
 
 }
