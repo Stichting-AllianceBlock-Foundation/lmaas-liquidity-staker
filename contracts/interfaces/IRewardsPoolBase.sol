@@ -11,6 +11,7 @@ interface IRewardsPoolBase{
 	function getUserRewardDebtLength(address _userAddress) external view returns (uint256);
 	function calculateRewardsAmount(uint256 _startBlock, uint256 _endBlock, uint256 _rewardPerBlock) external pure returns (uint256);
 	function balanceOf(address _userAddress) external view returns(uint256);
+	function stakingToken() external view returns(address);
 
 	function updateRewardMultipliers() external;
 	function initialiseUserTokensOwed(address _userAddress) external;
