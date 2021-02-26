@@ -15,7 +15,6 @@ contract LockScheme is ReentrancyGuard {
 
     uint256 public lockEndBlock; // The period of lock for this contract
     uint256 public rampUpPeriod; // The period since the beginning of the lock that additions can be considered the same position.Might be 0 for the 0% lock periods
-    address public stakingToken;
     uint256 public bonusPercent; // saved in thousands = ex 3% = 3000
     address public lmcContract; // The address of the lmc contract
     uint256 public forfeitedBonuses;
@@ -44,14 +43,12 @@ contract LockScheme is ReentrancyGuard {
         uint256 _lockEndBlock,
         uint256 _rampUpPeriod,
         uint256 _bonusPercent,
-        address _lmcContract,
-        address _stakingToken
+        address _lmcContract
     ) public {
         lockEndBlock = _lockEndBlock;
         rampUpPeriod = _rampUpPeriod;
         bonusPercent = _bonusPercent;
         lmcContract = _lmcContract;
-        stakingToken = _stakingToken;
     }
 
     function lock(address _userAddress, uint256 _amountToLock, uint256 _additionalAccruedReward) public onlyLmc {
@@ -66,8 +63,6 @@ contract LockScheme is ReentrancyGuard {
             user.lockInitialStakeBlock = block.number;
         }
 
-        IERC20Detailed(stakingToken).safeTransferFrom(lmcContract, address(this), _amountToLock);
-
         user.balance = user.balance.add(_amountToLock);
         user.accruedReward = _additionalAccruedReward;
 
@@ -77,25 +72,23 @@ contract LockScheme is ReentrancyGuard {
     function exit(address _userAddress) public onlyLmc {
 
         UserInfo storage user = userInfo[_userAddress];
-        if(user.balance > 0) {
-        
-            uint256 bonus = PercentageCalculator.div(user.accruedReward,bonusPercent);
-        
-            if (block.number >= lockEndBlock) {
-                user.userBonus = bonus;
-            } 
-
-            if (block.number < lockEndBlock) {
-                forfeitedBonuses = forfeitedBonuses.add(bonus);
-            }
-
-             user.accruedReward = 0;
+        if(user.balance == 0) {
+            return;
+         
         }
-        uint256 userBalance = user.balance;
-        user.balance = 0;
-       
-        IERC20Detailed(stakingToken).safeTransfer(lmcContract, userBalance);
+        uint256 bonus = PercentageCalculator.div(user.accruedReward,bonusPercent);
+         
+        if (block.number >= lockEndBlock) {
+             user.userBonus = bonus;
+         } 
 
+        if (block.number < lockEndBlock) {
+            forfeitedBonuses = forfeitedBonuses.add(bonus);
+         }
+
+        user.accruedReward = 0;
+        user.balance = 0;
+    
         emit Exit(_userAddress, user.userBonus);
     }
     
