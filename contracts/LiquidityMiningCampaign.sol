@@ -75,7 +75,6 @@ contract LiquidityMiningCampaign is StakeTransferer, OnlyExitFeature {
 	}
 
 	function exitAndUnlock() public nonReentrant {
-
 			_exitAndUnlock(msg.sender);
 	}
 
@@ -96,8 +95,9 @@ contract LiquidityMiningCampaign is StakeTransferer, OnlyExitFeature {
 				LockScheme(lockSchemes[i]).updateUserAccruedRewards(_userAddress, additionalRewards);
 				}
 
-				LockScheme(lockSchemes[i]).exit(_userAddress);
-				claimBonus(lockSchemes[i], _userAddress);
+				uint256 bonus = LockScheme(lockSchemes[i]).exit(_userAddress);
+				IERC20Detailed(rewarsToken).safeTransfer(address(msg.sender), bonus);
+				
 			}
 			_exit(_userAddress);
 
@@ -123,8 +123,8 @@ contract LiquidityMiningCampaign is StakeTransferer, OnlyExitFeature {
 
 		updateUserAccruedReward(msg.sender); // Update the accrued reward for this specific user
 
-		LockScheme(_lockScheme).exit(msg.sender);
-		claimBonus(_lockScheme, msg.sender);
+		uint256 bonus = LockScheme(_lockScheme).exit(msg.sender);
+		IERC20Detailed(rewarsToken).safeTransfer(address(msg.sender), bonus);
 		_claim(msg.sender);
 		stakingToken.safeApprove(transferTo, user.amountStaked);
 
@@ -190,16 +190,6 @@ contract LiquidityMiningCampaign is StakeTransferer, OnlyExitFeature {
 		uint256 userBonus =  LockScheme(_lockScheme).getUserBonus(_userAddress);
 
 		return userBonus;
-	}
-
-	function claimBonus(address _lockScheme, address _userAddress) internal {
-
-		uint256 userBonus = checkBonus(_lockScheme, _userAddress);
-
-		IERC20Detailed(rewarsToken).safeTransfer(address(msg.sender), userBonus);
-
-		emit BonusTransferred(msg.sender, userBonus);
-	
 	}
 
 	function calculateProportionalRewards(address _userAddress, uint256 _accruedRewards, address _lockScheme) internal returns (uint256) {
