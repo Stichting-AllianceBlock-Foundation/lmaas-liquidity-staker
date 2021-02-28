@@ -15,7 +15,7 @@ import "./pool-features/OnlyExitFeature.sol";
 
 contract LiquidityMiningCampaign is StakeTransferer, OnlyExitFeature {
 	using SafeMath for uint256;
-    using SafeERC20Detailed for IERC20Detailed;
+	using SafeERC20Detailed for IERC20Detailed;
 
 	address[] lockSchemes;
 	address rewarsToken;
@@ -26,13 +26,13 @@ contract LiquidityMiningCampaign is StakeTransferer, OnlyExitFeature {
 	event BonusTransferred(address indexed _userAddress, uint256 _bonusAmount);
 
 		constructor(
-        IERC20Detailed _stakingToken,
-        uint256 _startBlock,
-        uint256 _endBlock,
-        address[] memory _rewardsTokens,
-        uint256[] memory _rewardPerBlock,
+		IERC20Detailed _stakingToken,
+		uint256 _startBlock,
+		uint256 _endBlock,
+		address[] memory _rewardsTokens,
+		uint256[] memory _rewardPerBlock,
 		uint256 _stakeLimit
-    ) public RewardsPoolBase(_stakingToken, _startBlock, _endBlock, _rewardsTokens, _rewardPerBlock,_stakeLimit) {
+	) public RewardsPoolBase(_stakingToken, _startBlock, _endBlock, _rewardsTokens, _rewardPerBlock,_stakeLimit) {
 
 		rewarsToken = _rewardsTokens[0];
 	}
@@ -84,7 +84,7 @@ contract LiquidityMiningCampaign is StakeTransferer, OnlyExitFeature {
 			
 			
 			updateRewardMultipliers();
-        	updateUserAccruedReward(_userAddress);
+			updateUserAccruedReward(_userAddress);
 			//todo check how to secure that 0 is the albt
 			uint256 finalRewards = user.tokensOwed[0].sub(userAccruedRewads[_userAddress]);
 		
@@ -139,46 +139,43 @@ contract LiquidityMiningCampaign is StakeTransferer, OnlyExitFeature {
 		}
 	}
 
-		function exitAndUnlock(address, _stakePool) public nonReentrant {
+	// function exitAndStake(address, _stakePool) public nonReentrant {
 
-			_exitAndUnlock(msg.sender, _stakePool);
-	}
+	// 		_exitAndStake(msg.sender, _stakePool);
+	// }
 
-	function _exitAndStake(address _userAddress,address _stakePool) public onlyWhitelistedReceiver(_stakePool) nonReentrant{
+	// function _exitAndStake(address _userAddress,address _stakePool) public onlyWhitelistedReceiver(_stakePool) nonReentrant{
 			
-		UserInfo storage user = userInfo[msg.sender];
+	// 	UserInfo storage user = userInfo[_userAddress];
 		
-		if (user.amountStaked == 0) {
-			return;
-		}
+	// 	if (user.amountStaked == 0) {
+	// 		return;
+	// 	}
 
-		updateRewardMultipliers();
-        updateUserAccruedReward(msg.sender);
-			//todo check how to secure that 0 is the albt
-			uint256 finalRewards = user.tokensOwed[0].sub(userAccruedRewads[msg.sender]);
-			uint256 userBonus;
-			for (uint256 i = 0; i < lockSchemes.length; i++) {
+	// 	updateRewardMultipliers();
+	// 	updateUserAccruedReward(_userAddress);
+	// 		//todo check how to secure that 0 is the albt
+	// 		uint256 finalRewards = user.tokensOwed[0].sub(userAccruedRewads[_userAddress]);
+	// 		uint256 userBonus;
+	// 		for (uint256 i = 0; i < lockSchemes.length; i++) {
 
-				uint256 additionalRewards = calculateProportionalRewards(msg.sender, finalRewards, lockSchemes[i]);
-				if(additionalRewards > 0) {
+	// 			uint256 additionalRewards = calculateProportionalRewards(_userAddress, finalRewards, lockSchemes[i]);
+	// 			if(additionalRewards > 0) {
 
-				LockScheme(lockSchemes[i]).updateUserAccruedRewards(msg.sender, additionalRewards);
-				}
-				userBonus = userBonus.add(LockScheme(lockSchemes[i]).getUserBonus(msg.sender));
-			}
+	// 			LockScheme(lockSchemes[i]).updateUserAccruedRewards(_userAddress, additionalRewards);
+	// 			}
+	// 			userBonus = userBonus.add(LockScheme(lockSchemes[i]).getUserBonus(_userAddress));
+	// 		}
 
-			
+	// 	LockScheme(_lockScheme).exit(_userAddress);
 
-		LockScheme(_lockScheme).exit(msg.sender);
+	// 	uint256 amountToStake = user.tokensOwed[0].add(userBonus);
+	// 	_exit(_userAddress);
 
-		uint256 amountToStake = getUserAccumulatedReward(msg.sender, 0).add(userBonus);
-		_exit(msg.sender);
+	// 	stakingToken.safeApprove(_stakePool, amountToStake);
 
-		stakingToken.safeApprove(_stakePool, amountToStake);
-
-		StakeReceiver(_stakePool).delegateStake(msg.sender, amountToStake);
-
-	}
+	// 	StakeReceiver(_stakePool).delegateStake(msg.sender, amountToStake);
+	// }
 
 
 	function exit() public override {

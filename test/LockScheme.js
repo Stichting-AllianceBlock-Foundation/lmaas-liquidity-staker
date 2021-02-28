@@ -16,7 +16,7 @@ describe.only('LockScheme', () => {
     let stakingTokenAddress;
 
 	let rampUpBlock;
-	let lockBlock;
+	let lockEndPeriod;
 
 
 
@@ -31,8 +31,8 @@ describe.only('LockScheme', () => {
 
 	const setupRewardsPoolParameters = async (deployer) => {
 		const currentBlock = await deployer.provider.getBlock('latest');
-		rampUpBlock = currentBlock.number + 15;
-		lockBlock = rampUpBlock + 30;
+		rampUpBlock = 15;
+		lockEndPeriod = 30;
 
 	}
 
@@ -54,7 +54,7 @@ describe.only('LockScheme', () => {
 			PercentageCalculator: percentageCalculator.contractAddress
 		}
 
-		LockSchemeInstance = await deployer.deploy(LockScheme, libraries, lockBlock, rampUpBlock, bonusPercet, aliceAccount.signer.address);
+		LockSchemeInstance = await deployer.deploy(LockScheme, libraries, lockEndPeriod, rampUpBlock, bonusPercet, aliceAccount.signer.address);
 
 	});
 
@@ -116,10 +116,14 @@ describe.only('LockScheme', () => {
 
 
 			it("Should revert if the ramp up block has passed" , async() => {
+				await LockSchemeInstance.lock(aliceAccount.signer.address,bOne);
+				
 				const currentBlock = await deployer.provider.getBlock('latest');
-				const blockDelta = (rampUpBlock - currentBlock.number);
+				const userInfo = await LockSchemeInstance.userInfo(aliceAccount.signer.address)
+				const userInitialLockEndperiod = userInfo.lockInitialStakeBlock
+				const blockDelta = (userInitialLockEndperiod.add(rampUpBlock).sub(currentBlock.number));
 
-				for (let i = 0; i <= blockDelta; i++) {
+				for (let i = 0; i <= blockDelta.toString(); i++) {
 					await mineBlock(deployer.provider);
 				}	
 				await stakingTokenInstance.approve(LockSchemeInstance.contractAddress, amount);
@@ -139,7 +143,7 @@ describe.only('LockScheme', () => {
 				await LockSchemeInstance.lock(aliceAccount.signer.address,bOne);
 
 				const currentBlock = await deployer.provider.getBlock('latest');
-				const blockDelta = (lockBlock - currentBlock.number);
+				const blockDelta = (lockEndPeriod - currentBlock.number);
 
 				for (let i = 0; i <= blockDelta; i++) {
 					await mineBlock(deployer.provider);

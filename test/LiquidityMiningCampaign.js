@@ -6,7 +6,7 @@ const PercentageCalculator = require('../build/PercentageCalculator.json')
 const LMC = require("../build/LiquidityMiningCampaign.json")
 const { mineBlock } = require('./utils')
 
-describe.only('LMC', () => {
+describe('LMC', () => {
     let aliceAccount = accounts[3];
     let bobAccount = accounts[4];
     let carolAccount = accounts[5];
@@ -316,6 +316,63 @@ describe.only('LMC', () => {
 				assert(userFinalBalanceRewards.eq(userInitialBalanceRewards.add(bonus6).add(bonus3).add(userTokensOwedInitial)), "The rewards balance is not correct")
 				assert(totalStakedAmount.eq(bTen.add(bTwenty)), "The stake was not successful")
 				assert(userInfo.amountStaked.eq(bTen.add(bTwenty)), "User's staked amount is not correct")
+			})
+
+			xit("Should exit and stake sucessfully", async() => {
+
+				//Prepare new Contracts
+				await setupRewardsPoolParameters(deployer)
+				LmcInstance = await deployer.deploy(
+					LMC,
+					{},
+					stakingTokenAddress,
+					startBlock,
+					endBlock,
+					rewardTokensAddresses,
+					rewardPerBlock,
+					stakeLimit
+				);
+		
+				LockSchemeInstance = await deployer.deploy(LockScheme, libraries, lockBlock, rampUpBlock, bonusPercet, LmcInstance.contractAddress);
+				lockSchemеs.push(LockSchemeInstance.contractAddress);
+		
+				await LmcInstance.setLockSchemes(lockSchemеs);
+				await rewardTokensInstances[0].mint(LmcInstance.contractAddress,amount);
+
+				const userInitialBalanceStaking = await stakingTokenInstance.balanceOf(aliceAccount.signer.address);
+				const userInfoInitial = await LmcInstance.userInfo(aliceAccount.signer.address);
+				const userTokensOwedInitial = await LmcInstance.getUserAccumulatedReward(aliceAccount.signer.address, 0);
+				const initialTotalStakedAmount = await LmcInstance.totalStaked();
+				const userInitialBalanceRewards = await rewardTokensInstances[0].balanceOf(aliceAccount.signer.address);
+				const userRewards = await LmcInstance.getUserAccumulatedReward(aliceAccount.signer.address, 0);
+				
+				await LmcInstance.exitAndUnlock();
+
+				const bonus = await LockSchemeInstance6.getUserBonus(aliceAccount.signer.address);
+				let userInfo = await LockSchemeInstance6.userInfo(aliceAccount.signer.address);
+				let userAccruedRewards = await LockSchemeInstance6.getUserAccruedReward(aliceAccount.signer.address);
+				let userBonus = await LockSchemeInstance6.getUserBonus(aliceAccount.signer.address);
+				const userFinalBalanceRewards = await rewardTokensInstances[0].balanceOf(aliceAccount.signer.address);
+				console.log(userFinalBalanceRewards.toString())
+				console.log(userInitialBalanceRewards.toString())
+				console.log(bonus.toString())
+				console.log(userRewards.toString())
+
+				const userTokensOwed = await LmcInstance.getUserOwedTokens(aliceAccount.signer.address, 0);
+				const userFinalBalanceStaking = await stakingTokenInstance.balanceOf(aliceAccount.signer.address);
+				const userInfoFinal = await LmcInstance.userInfo(aliceAccount.signer.address);
+				const finalTotalStkaedAmount = await LmcInstance.totalStaked();
+				assert(userFinalBalanceRewards.gt(userInitialBalanceRewards), "Rewards claim was not successful")
+				assert(userFinalBalanceRewards.eq(userInitialBalanceRewards.add(userRewards.add(bonus))), "User rewards were not calculated properly")
+				assert(userTokensOwed.eq(0), "User tokens owed should be zero")
+				assert(userFinalBalanceStaking.eq(userInitialBalanceStaking.add(standardStakingAmount)), "Withdraw was not successfull")
+				assert(userInfoFinal.amountStaked.eq(userInfoInitial.amountStaked.sub(standardStakingAmount)), "User staked amount is not updated properly")
+				assert(finalTotalStkaedAmount.eq(initialTotalStakedAmount.sub(standardStakingAmount)), "Contract total staked amount is not updated properly")
+	
+				assert(userInfo.balance.eq(0), "The transferred amount is not corrent");
+				assert(userAccruedRewards.eq(0), "The rewards were not set properly");
+				assert(userBonus.eq(bonus), "User bonuses are not calculated properly");
+
 			})
 
 			it("Should fail calling the exit function only", async() => {
