@@ -51,6 +51,10 @@ contract LockScheme is ReentrancyGuard {
 		lmcContract = _lmcContract;
 	}
 
+	/** @dev Locks the tokens into the current scheme, and updates user information
+	@param _userAddress address of the staker
+	@param _amountToLock the amount to be locked
+	 */
 	function lock(address _userAddress, uint256 _amountToLock) public onlyLmc {
 
 		UserInfo storage user = userInfo[_userAddress];
@@ -68,6 +72,10 @@ contract LockScheme is ReentrancyGuard {
 		emit Lock(_userAddress, _amountToLock, user.accruedReward);
 	}
 
+	/** @dev Exits the current lock scheme, calculates the bonus, updates user information
+	@param _userAddress address of the user
+	@return bonus the bonus of the user
+	 */
 	function exit(address _userAddress) public onlyLmc returns(uint256 bonus) {
 
 		UserInfo storage user = userInfo[_userAddress];
@@ -92,7 +100,10 @@ contract LockScheme is ReentrancyGuard {
 		return bonus;
 	}
 		
-
+	/** @dev Updates the accrued rewards of the user
+	@param _userAddress address of the user
+	@param _rewards the rewards that will be added
+	 */
 	function updateUserAccruedRewards(address _userAddress, uint256 _rewards) public nonReentrant onlyLmc {
 		UserInfo storage user = userInfo[_userAddress];
 		if(user.balance > 0) {
@@ -121,6 +132,10 @@ contract LockScheme is ReentrancyGuard {
 		return user.balance;
 	}
 
+	/** @dev Returns whether the rampup period for a given user has ended
+	@param _userAddress address of the user
+	@return has the rapm up period has ended or not
+	 */
 	function hasUserRampUpEnded(address _userAddress) public view returns(bool) {
 		UserInfo storage user = userInfo[_userAddress];
 		uint256 userLockStartBlock = user.lockInitialStakeBlock + rampUpPeriod;

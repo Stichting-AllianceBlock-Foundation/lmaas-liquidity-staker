@@ -42,6 +42,11 @@ contract LiquidityMiningCampaign is StakeTransferer, OnlyExitFeature {
 
 	}
 
+	/** @dev Stakes LP tokens to the campaing and lockes them to a specific lockScheme contract to earn bonuses
+	@param _userAddress the address of the staker
+	@param _tokenAmount the amount to be staked
+	@param _lockScheme the address of the lock scheme 
+	 */
 	function _stakeAndLock(address _userAddress ,uint256 _tokenAmount, address _lockScheme) internal nonReentrant {
 		require(_tokenAmount > 0, "stakeAndLock::Cannot stake 0");
 
@@ -71,6 +76,9 @@ contract LiquidityMiningCampaign is StakeTransferer, OnlyExitFeature {
 			_exitAndUnlock(msg.sender);
 	}
 
+	/** @dev Exits the current campaing and claims the bonuses
+	@param _userAddress the address of the staker
+	 */
 	function _exitAndUnlock(address _userAddress) internal {
 			UserInfo storage user = userInfo[_userAddress];
 
@@ -106,14 +114,14 @@ contract LiquidityMiningCampaign is StakeTransferer, OnlyExitFeature {
 		StakeTransferer.setReceiverWhitelisted(receiver, whitelisted);
 	}
 
-	/** @dev exits the current campaign and migrates the stake to another whitelisted campaign
+	/** @dev Exits the current campaign and migrates the stake to another whitelisted campaign
 	@param _migrateTo address of the receiver to transfer the stake to
 	 */
-	function exitAndMigrate(address _migrateTo, address _stakingToken) public {
-		_exitAndMigrate(_migrateTo, msg.sender, _stakingToken);
+	function exitAndMigrate(address _migrateTo) public {
+		_exitAndMigrate(_migrateTo, msg.sender);
 	}
 
-	function _exitAndMigrate(address _migrateTo, address _userAddress, address _stakingToken) internal onlyWhitelistedReceiver(_migrateTo) nonReentrant {
+	function _exitAndMigrate(address _migrateTo, address _userAddress) internal onlyWhitelistedReceiver(_migrateTo) nonReentrant {
 		UserInfo storage user = userInfo[_userAddress];
 		
 		if (user.amountStaked == 0) {
@@ -139,8 +147,7 @@ contract LiquidityMiningCampaign is StakeTransferer, OnlyExitFeature {
 		}
 
 		_claim(_userAddress);
-		// stakingToken.safeApprove(_migrateTo, user.amountStaked);
-		IERC20Detailed(_stakingToken).safeApprove(_migrateTo, user.amountStaked);
+		stakingToken.safeApprove(_migrateTo, user.amountStaked);
 		StakeReceiver(_migrateTo).delegateStake(_userAddress, user.amountStaked);
 
 		totalStaked = totalStaked.sub(user.amountStaked);
@@ -158,6 +165,10 @@ contract LiquidityMiningCampaign is StakeTransferer, OnlyExitFeature {
 			_exitAndStake(msg.sender, _stakePool);
 	}
 
+	/** @dev Exits the current campaing, claims the bonus and stake all rewards to ALBT staking contract
+	@param _userAddress the address of the staker
+	@param _stakePool the address of the pool where the tokens will be staked
+	 */
 	function _exitAndStake(address _userAddress,address _stakePool) internal onlyWhitelistedReceiver(_stakePool) {
 			
 		UserInfo storage user = userInfo[_userAddress];
@@ -193,7 +204,7 @@ contract LiquidityMiningCampaign is StakeTransferer, OnlyExitFeature {
 		userAccruedRewads[_userAddress] = 0;
 	}
 
-
+	
 	function exit() public override {
 		_exitAndUnlock(msg.sender);
 	}
@@ -202,7 +213,12 @@ contract LiquidityMiningCampaign is StakeTransferer, OnlyExitFeature {
 	// 	revert("stake:cannot stake from this contract. Only stake and lock.");
 	// }
 
-	function calculateProportionalRewards(address _userAddress, uint256 _accruedRewards, address _lockScheme) internal returns (uint256) {
+	/** @dev Function calculating the proportional rewards between all lock schemes where the user has locked tokens
+	@param _userAddress the address of the staker
+	@param _accruedRewards all unAccruedRewards that needs to be split
+	@param _lockScheme the address of the lock scheme
+	 */
+	function calculateProportionalRewards(address _userAddress, uint256 _accruedRewards, address _lockScheme) internal view returns (uint256) {
 			
 			uint256 userLockedStake = LockScheme(_lockScheme).getUserLockedStake(_userAddress);
 
@@ -213,6 +229,9 @@ contract LiquidityMiningCampaign is StakeTransferer, OnlyExitFeature {
 			
 	}
 
+	/** @dev Sets all schemes that are part of the current LMC
+	@param _lockSchemes the address of the staker
+	 */
 	function setLockSchemes(address[] memory _lockSchemes) public {
 		lockSchemes = _lockSchemes;
 	}
