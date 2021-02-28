@@ -15,7 +15,7 @@ import "./pool-features/OnlyExitFeature.sol";
 
 contract LiquidityMiningCampaign is StakeTransferer, OnlyExitFeature {
 	using SafeMath for uint256;
-    using SafeERC20Detailed for IERC20Detailed;
+	using SafeERC20Detailed for IERC20Detailed;
 
 	address[] lockSchemes;
 	address rewarsToken;
@@ -26,13 +26,13 @@ contract LiquidityMiningCampaign is StakeTransferer, OnlyExitFeature {
 	event BonusTransferred(address indexed _userAddress, uint256 _bonusAmount);
 
 		constructor(
-        IERC20Detailed _stakingToken,
-        uint256 _startBlock,
-        uint256 _endBlock,
-        address[] memory _rewardsTokens,
-        uint256[] memory _rewardPerBlock,
+		IERC20Detailed _stakingToken,
+		uint256 _startBlock,
+		uint256 _endBlock,
+		address[] memory _rewardsTokens,
+		uint256[] memory _rewardPerBlock,
 		uint256 _stakeLimit
-    ) public RewardsPoolBase(_stakingToken, _startBlock, _endBlock, _rewardsTokens, _rewardPerBlock,_stakeLimit) {
+	) public RewardsPoolBase(_stakingToken, _startBlock, _endBlock, _rewardsTokens, _rewardPerBlock,_stakeLimit) {
 
 		rewarsToken = _rewardsTokens[0];
 	}
@@ -84,7 +84,7 @@ contract LiquidityMiningCampaign is StakeTransferer, OnlyExitFeature {
 			
 			
 			updateRewardMultipliers();
-        	updateUserAccruedReward(_userAddress);
+			updateUserAccruedReward(_userAddress);
 			//todo check how to secure that 0 is the albt
 			uint256 finalRewards = user.tokensOwed[0].sub(userAccruedRewads[_userAddress]);
 		
@@ -153,7 +153,7 @@ contract LiquidityMiningCampaign is StakeTransferer, OnlyExitFeature {
 		}
 
 		updateRewardMultipliers();
-        updateUserAccruedReward(msg.sender);
+		updateUserAccruedReward(msg.sender);
 			//todo check how to secure that 0 is the albt
 			uint256 finalRewards = user.tokensOwed[0].sub(userAccruedRewads[msg.sender]);
 			uint256 userBonus;
