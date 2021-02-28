@@ -13,7 +13,7 @@ contract LockScheme is ReentrancyGuard {
 	using SafeMath for uint256;
 	using SafeERC20Detailed for IERC20Detailed;
 
-	uint256 public lockEndPeriod; // The period of lock for this contract
+	uint256 public lockPeriod; // The period of blocks that the stake is locked for this contract
 	uint256 public rampUpPeriod; // The period since the beginning of the lock that additions can be considered the same position.Might be 0 for the 0% lock periods
 	uint256 public bonusPercent; // saved in thousands = ex 3% = 3000
 	address public lmcContract; // The address of the lmc contract
@@ -22,7 +22,6 @@ contract LockScheme is ReentrancyGuard {
 	struct UserInfo {
 		uint256 balance; // IOU Balance for this lock contract
 		uint256 accruedReward; // Reward accrued by an address from previous additions
-		uint256 userBonus; // Stores the bonus for a user.
 		uint256 lockInitialStakeBlock;
         uint256 userEndBlock;
 	}
@@ -30,7 +29,7 @@ contract LockScheme is ReentrancyGuard {
 	mapping(address => UserInfo) public userInfo;
 
 	event Lock(address indexed _userAddress, uint256 _amountLocked, uint256 _additionalReward);
-	event Exit(address indexed _userAddress, uint256 _userBonus);
+	event Exit(address indexed _userAddress, uint256 bonus);
 
 	modifier onlyLmc() {
 		  require(
@@ -41,12 +40,12 @@ contract LockScheme is ReentrancyGuard {
 	}
 
 	constructor(
-		uint256 _lockEndPeriod,
+		uint256 _lockPeriod,
 		uint256 _rampUpPeriod,
 		uint256 _bonusPercent,
 		address _lmcContract
 	) public {
-		lockEndPeriod = _lockEndPeriod;
+		lockPeriod = _lockPeriod;
 		rampUpPeriod = _rampUpPeriod;
 		bonusPercent = _bonusPercent;
 		lmcContract = _lmcContract;
@@ -58,7 +57,6 @@ contract LockScheme is ReentrancyGuard {
 
         if(user.lockInitialStakeBlock == 0) {
 			user.lockInitialStakeBlock = block.number;
-            user.userEndBlock = block.number + lockEndPeriod;
 		}
         
 		uint256 userLockStartBlock = user.lockInitialStakeBlock + rampUpPeriod;
@@ -70,40 +68,47 @@ contract LockScheme is ReentrancyGuard {
 		emit Lock(_userAddress, _amountToLock, user.accruedReward);
 	}
 
-	function exit(address _userAddress) public onlyLmc {
+	function exit(address _userAddress) public onlyLmc returns(uint256 bonus) {
 
 		UserInfo storage user = userInfo[_userAddress];
 		if(user.balance == 0) {
-			return;
+			return 0;
 		 
 		}
-		uint256 bonus = PercentageCalculator.div(user.accruedReward,bonusPercent);
-		
-		if (block.number >= user.userEndBlock) {
-			 user.userBonus = bonus;
-		 } 
+		bonus = PercentageCalculator.div(user.accruedReward,bonusPercent);
+		uint userLockEnd = user.lockInitialStakeBlock.add(lockPeriod);
 
-		if (block.number < user.userEndBlock) {
+		if(block.number < userLockEnd) {
 			forfeitedBonuses = forfeitedBonuses.add(bonus);
-		 }
+			bonus = 0;
+		}
 
 		user.accruedReward = 0;
 		user.balance = 0;
+		user.lockInitialStakeBlock = 0;
 	
-		emit Exit(_userAddress, user.userBonus);
+		emit Exit(_userAddress, bonus);
+
+		return bonus;
 	}
 		
 
 	function updateUserAccruedRewards(address _userAddress, uint256 _rewards) public nonReentrant onlyLmc {
 		UserInfo storage user = userInfo[_userAddress];
 		if(user.balance > 0) {
-		user.accruedReward = user.accruedReward.add(_rewards);
+			user.accruedReward = user.accruedReward.add(_rewards);
 		}
 	}
 
-	function getUserBonus(address _userAddress) public view returns( uint256 ) {
+	function getUserBonus(address _userAddress) public view returns(uint256 bonus) {
 		UserInfo storage user = userInfo[_userAddress];
-		return user.userBonus;
+		uint userLockEnd = user.lockInitialStakeBlock.add(lockPeriod);
+
+		if(block.number < userLockEnd) {
+			return 0;
+		}
+
+		return PercentageCalculator.div(user.accruedReward,bonusPercent);
 	}
 
 	function getUserAccruedReward(address _userAddress) public view returns( uint256 ) {
@@ -121,4 +126,5 @@ contract LockScheme is ReentrancyGuard {
 		uint256 userLockStartBlock = user.lockInitialStakeBlock + rampUpPeriod;
 		return userLockStartBlock < block.number;
 	}
+
 }
