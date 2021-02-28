@@ -41,7 +41,7 @@ contract LiquidityMiningCampaign is StakeTransferer, OnlyExitFeature {
 		_stakeAndLock(msg.sender,_tokenAmount, _lockScheme);
 
 	}
-
+	
 	function _stakeAndLock(address _userAddress ,uint256 _tokenAmount, address _lockScheme) internal {
 		require(_tokenAmount > 0, "stakeAndLock::Cannot stake 0");
 

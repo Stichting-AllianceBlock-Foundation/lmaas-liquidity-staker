@@ -90,7 +90,7 @@ contract LockScheme is ReentrancyGuard {
     
         emit Exit(_userAddress, user.userBonus);
     }
-    
+        
 
     function updateUserAccruedRewards(address _userAddress, uint256 _rewards) public nonReentrant onlyLmc {
         UserInfo storage user = userInfo[_userAddress];
