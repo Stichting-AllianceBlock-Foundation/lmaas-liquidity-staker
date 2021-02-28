@@ -167,6 +167,8 @@ contract LiquidityMiningCampaign is StakeTransferer, OnlyExitFeature {
 				userBonus = userBonus.add(LockScheme(lockSchemes[i]).getUserBonus(msg.sender));
 			}
 
+			
+
 		LockScheme(_lockScheme).exit(msg.sender);
 
 		uint256 amountToStake = getUserAccumulatedReward(msg.sender, 0).add(userBonus);
