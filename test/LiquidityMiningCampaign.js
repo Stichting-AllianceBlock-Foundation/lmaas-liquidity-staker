@@ -7,7 +7,7 @@ const LMC = require("../build/LiquidityMiningCampaign.json")
 const NonCompoundingRewardsPool = require('../build/NonCompoundingRewardsPool.json');
 const { mineBlock } = require('./utils')
 
-describe('LMC', () => {
+describe.only('LMC', () => {
     let aliceAccount = accounts[3];
     let bobAccount = accounts[4];
     let carolAccount = accounts[5];
@@ -213,12 +213,12 @@ describe('LMC', () => {
 
 			it("Should fail staking and locking if the ramp up period has finished", async() => {
 
-				const currentBlock = await deployer.provider.getBlock('latest');
-				const blocksDelta = (rampUpBlock-currentBlock.number);
-				for (let i=0; i<blocksDelta; i++) {
+				await LmcInstance.stakeAndLock(bTen,LockSchemeInstance6.contractAddress);
+				
+				for (let i=0; i<25 ; i++) {
 					await mineBlock(deployer.provider);
 				}
-				await assert.revertWith(LmcInstance.stakeAndLock(bTen,LockSchemeInstance.contractAddress), "lock::The ramp up period has finished");
+				await assert.revertWith(LmcInstance.stakeAndLock(bTen,LockSchemeInstance6.contractAddress), "lock::The ramp up period has finished");
 			})
 		})
 
@@ -290,16 +290,20 @@ describe('LMC', () => {
 				let contractInitialBalance = await stakingTokenInstance.balanceOf(LmcInstance.contractAddress);
 
 				const userInitialBalanceRewards = await rewardTokensInstances[0].balanceOf(aliceAccount.signer.address);
-				const userTokensOwedInitial = await LmcInstance.getUserAccumulatedReward(aliceAccount.signer.address, 0);
-
-
-				const totalStakedAmount = await LmcInstance.totalStaked();
+			
+  				const totalStakedAmount = await LmcInstance.totalStaked();
 				const userInfo = await LmcInstance.userInfo(aliceAccount.signer.address)
 				
 				let userInfoLock3 = await LockSchemeInstance3.userInfo(aliceAccount.signer.address);
 				let userInfoLock6 = await LockSchemeInstance6.userInfo(aliceAccount.signer.address);
+
 				currentBlock = await deployer.provider.getBlock('latest');
+				const blocksDelta2 = (endBlock-currentBlock.number);
 				
+				for (let i=0; i<blocksDelta2; i++) {
+					await mineBlock(deployer.provider);
+				}
+				const userTokensOwedInitial = await LmcInstance.getUserAccumulatedReward(aliceAccount.signer.address, 0);
 				await LmcInstance.exitAndUnlock();
 				let contractFinalBalance = await stakingTokenInstance.balanceOf(LmcInstance.contractAddress);
 
@@ -311,19 +315,20 @@ describe('LMC', () => {
 				//  For the bonus for 6 months we calculate 12 (11 + 1) + 20% of 12 = 2.4
 				//  For the bonus for 3 omnths we calculate 22  + 10% of 22 = 2.2
 				// Totwal reward should be 38.6 tokens;
-				let bonus6 =  await LockSchemeInstance6.getUserBonus(aliceAccount.signer.address)
-				let bonus3 =  await LockSchemeInstance3.getUserBonus(aliceAccount.signer.address)
+				let bonus6 = await ethers.utils.parseEther("2.4")
+				let bonus3 =  await ethers.utils.parseEther("2.2")
 				const userFinalBalanceRewards = await rewardTokensInstances[0].balanceOf(aliceAccount.signer.address);
-
+				const userAccruedRewards = await LmcInstance.userAccruedRewads(aliceAccount.signer.address);
 				assert(contractFinalBalance.eq(contractInitialBalance.sub(bTen).sub(bTwenty)), "The balance of the contract was not incremented properly")
 				assert(userInfoLock3.balance.eq(bTwenty), "The transferred amount is not corrent");
 				assert(userInfoLock6.balance.eq(bTen), "The transferred amount is not corrent in the second lock scheme");
 				assert(userFinalBalanceRewards.eq(userInitialBalanceRewards.add(bonus6).add(bonus3).add(userTokensOwedInitial)), "The rewards balance is not correct")
 				assert(totalStakedAmount.eq(bTen.add(bTwenty)), "The stake was not successful")
 				assert(userInfo.amountStaked.eq(bTen.add(bTwenty)), "User's staked amount is not correct")
+				assert(userAccruedRewards.eq(0), "User's accrued rewards should be zero")
 			})
 
-			it.only("Should exit and stake sucessfully", async() => {
+			it("Should exit and stake sucessfully", async() => {
 
 				//Prepare new Contracts
 				await setupRewardsPoolParameters(deployer)
@@ -354,7 +359,7 @@ describe('LMC', () => {
 					{},
 					rewardTokensAddresses[0],
 					startBlock+2,
-					endBlock,
+					endBlock+2,
 					rewardTokensAddresses,
 					rewardPerBlock,
 					stakeLimit,
@@ -368,32 +373,34 @@ describe('LMC', () => {
 				await stakingTokenInstance.approve(LockSchemeInstance.contractAddress, amount);
 				await stakingTokenInstance.approve(NewLmcInstance.contractAddress, amount);
 				await NewLmcInstance.stakeAndLock(bTen,LockSchemeInstance.contractAddress);
+				await NewLmcInstance.setReceiverWhitelisted(NonCompoundingRewardsPoolInstance.contractAddress, true);
 
-				for (let i=0; i<lockBlock; i++) {
+				currentBlock = await deployer.provider.getBlock('latest');
+				const blocksDelta2 = (endBlock-currentBlock.number);
+				
+				for (let i=0; i<blocksDelta2; i++) {
 					await mineBlock(deployer.provider);
 				}
 
-				await NewLmcInstance.setReceiverWhitelisted(NonCompoundingRewardsPoolInstance.contractAddress, true);
-
 				let initialBalance = await NonCompoundingRewardsPoolInstance.balanceOf(aliceAccount.signer.address);
 				const userTokensOwedInitial = await NewLmcInstance.getUserAccumulatedReward(aliceAccount.signer.address, 0);
-				const bonus = bOne;
+				
+				//the bonus is 10% of the reward
+				const bonus = userTokensOwedInitial.mul(10).div(100);
 				await NewLmcInstance.exitAndStake(NonCompoundingRewardsPoolInstance.contractAddress);
 				
 				let finalBalance = await NonCompoundingRewardsPoolInstance.balanceOf(aliceAccount.signer.address);
 				let totalStakedAmount = await NonCompoundingRewardsPoolInstance.totalStaked()
 				let userInfo = await NonCompoundingRewardsPoolInstance.userInfo(aliceAccount.signer.address)
+				const userAccruedRewards = await NewLmcInstance.userAccruedRewads(aliceAccount.signer.address);
 				assert(finalBalance.gt(initialBalance), "Staked amount is not correct");
 				assert(finalBalance.eq(userTokensOwedInitial.add(bonus)), "User rewards were not calculated properly");
 				assert(totalStakedAmount.eq(userTokensOwedInitial.add(bonus)), "Total Staked amount is not correct");
 				assert(userInfo.amountStaked.eq(finalBalance), "User's staked amount is not correct");
+				assert(userAccruedRewards.eq(0), "User's accrued rewards should be zero")
 
 			})
-
-			it("Should fail calling the exit function only", async() => {
-
-				await assert.revertWith(LmcInstance.exit(),"exit:cannot exit from this contract. Only exit and Unlock.");
-			})
+			
 
 			it("Should fail calling the claim function only", async() => {
 

@@ -150,11 +150,12 @@ describe('LockScheme', () => {
 				}	
 				await LockSchemeInstance.exit(aliceAccount.signer.address);
 				let userInfo = await LockSchemeInstance.userInfo(aliceAccount.signer.address);
-				let userBonus = await LockSchemeInstance.getUserBonus(aliceAccount.signer.address);
 				let userAccruedRewards = await LockSchemeInstance.getUserAccruedReward(aliceAccount.signer.address);
+				let forfeitedBonuses = await LockSchemeInstance.forfeitedBonuses();
 
 				assert(userInfo.balance.eq(0), "The transferred amount is not corrent");
 				assert(userAccruedRewards.eq(0), "The rewards were not set properly");
+				assert(forfeitedBonuses.eq(0), "Forfeited bonuses are not calculated properly");
 			})
 
 			it("Should exit sucessfully and update the forfeitedBonuses if the exit is before the lock end", async() => {
@@ -182,7 +183,7 @@ describe('LockScheme', () => {
 			it("Should not exit if the user hasn't locked", async() => {
 
 				let userInfoInitial = await LockSchemeInstance.userInfo(aliceAccount.signer.address);
-				await LockSchemeInstance.exit(aliceAccount.signer.address);
+				let bonus = await LockSchemeInstance.exit(aliceAccount.signer.address);
 				let userInfoFinal = await LockSchemeInstance.userInfo(aliceAccount.signer.address);
 				assert(userInfoFinal.balance.eq(userInfoInitial.balance), "The balance of the user is not correct");
 			})
@@ -209,10 +210,21 @@ describe('LockScheme', () => {
 				assert.isTrue(hasRampUpEnded, "Returned ramp up check is not correct")
 			})
 
-			it("Should return the user bonus", async() => {
+			it("Should return the user bonus if the end period hasn't passed", async() => {
 				await LockSchemeInstance.lock(aliceAccount.signer.address,bOne);
 				let userBonus =  await LockSchemeInstance.getUserBonus(aliceAccount.signer.address)
 				assert(userBonus.eq(0), "User's bonuses are not calculated properly");
+			})
+
+			it("Should return the user bonus if the end period has passed", async() => {
+				await LockSchemeInstance.lock(aliceAccount.signer.address,bOne);
+				await LockSchemeInstance.updateUserAccruedRewards(aliceAccount.signer.address, bTen)
+
+				for (let i = 0; i <= 40; i++) {
+					await mineBlock(deployer.provider);
+				}	
+				let userBonus =  await LockSchemeInstance.getUserBonus(aliceAccount.signer.address)
+				assert(userBonus.eq(bOne), "User's bonuses are not calculated properly");
 			})
 
 			it("Should return the user's accrued rewards", async() => {

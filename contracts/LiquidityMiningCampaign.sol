@@ -22,7 +22,7 @@ contract LiquidityMiningCampaign is StakeTransferer, OnlyExitFeature {
 	mapping(address => uint256) public userAccruedRewads;
 
 	event StakedAndLocked(address indexed _userAddress, uint256 _tokenAmount, address _lockScheme);
-	event ExitedAndUnlocked(address indexed _userAddress, address _lockScheme);
+	event ExitedAndUnlocked(address indexed _userAddress);
 	event BonusTransferred(address indexed _userAddress, uint256 _bonusAmount);
 
 		constructor(
@@ -42,7 +42,7 @@ contract LiquidityMiningCampaign is StakeTransferer, OnlyExitFeature {
 
 	}
 
-	function _stakeAndLock(address _userAddress ,uint256 _tokenAmount, address _lockScheme) internal {
+	function _stakeAndLock(address _userAddress ,uint256 _tokenAmount, address _lockScheme) internal nonReentrant {
 		require(_tokenAmount > 0, "stakeAndLock::Cannot stake 0");
 
 		UserInfo storage user = userInfo[_userAddress];
@@ -52,11 +52,8 @@ contract LiquidityMiningCampaign is StakeTransferer, OnlyExitFeature {
 		updateRewardMultipliers();
 		updateUserAccruedReward(_userAddress);
 
-		if(user.tokensOwed.length > 0) {
-			userRewards = user.tokensOwed[0];
-		}
-	
-		
+		userRewards = user.tokensOwed[0];
+
 		for (uint256 i = 0; i < lockSchemes.length; i++) {
 
 			uint256 additionalRewards = calculateProportionalRewards(_userAddress, userRewards.sub(userAccruedRewads[_userAddress]), lockSchemes[i]);
@@ -65,13 +62,9 @@ contract LiquidityMiningCampaign is StakeTransferer, OnlyExitFeature {
 		userAccruedRewads[_userAddress]	= userRewards;
 		_stake(_tokenAmount, _userAddress, false);
 
-		lockToScheme(_lockScheme,_userAddress, _tokenAmount);
+		LockScheme(_lockScheme).lock(_userAddress, _tokenAmount);
 
 		emit StakedAndLocked( _userAddress, _tokenAmount, _lockScheme);
-	}
-
-	function lockToScheme(address _lockScheme, address _userAddress, uint256  _tokenAmount) internal nonReentrant {
-		LockScheme(_lockScheme).lock(_userAddress, _tokenAmount );
 	}
 
 	function exitAndUnlock() public nonReentrant {
@@ -80,6 +73,11 @@ contract LiquidityMiningCampaign is StakeTransferer, OnlyExitFeature {
 
 	function _exitAndUnlock(address _userAddress) internal {
 			UserInfo storage user = userInfo[_userAddress];
+
+			 	if (user.amountStaked == 0) {
+					return;
+				}
+
 			
 			
 			updateRewardMultipliers();
@@ -96,12 +94,13 @@ contract LiquidityMiningCampaign is StakeTransferer, OnlyExitFeature {
 				}
 
 				uint256 bonus = LockScheme(lockSchemes[i]).exit(_userAddress);
-				IERC20Detailed(rewarsToken).safeTransfer(address(msg.sender), bonus);
+				IERC20Detailed(rewarsToken).safeTransfer(_userAddress, bonus);
 				
 			}
 			_exit(_userAddress);
+			userAccruedRewads[_userAddress] = 0;
 
-			// emit ExitedAndUnlocked(_userAddress);
+			emit ExitedAndUnlocked(_userAddress);
 	}
 
 
@@ -157,6 +156,7 @@ contract LiquidityMiningCampaign is StakeTransferer, OnlyExitFeature {
 			//todo check how to secure that 0 is the albt
 			uint256 finalRewards = user.tokensOwed[0].sub(userAccruedRewads[_userAddress]);
 			uint256 userBonus;
+			uint256 amountToStake;
 			for (uint256 i = 0; i < lockSchemes.length; i++) {
 
 				uint256 additionalRewards = calculateProportionalRewards(_userAddress, finalRewards, lockSchemes[i]);
@@ -164,20 +164,21 @@ contract LiquidityMiningCampaign is StakeTransferer, OnlyExitFeature {
 
 				LockScheme(lockSchemes[i]).updateUserAccruedRewards(_userAddress, additionalRewards);
 				}
-				userBonus = userBonus.add(LockScheme(lockSchemes[i]).getUserBonus(_userAddress));
-				LockScheme(lockSchemes[i]).exit(_userAddress);
+				userBonus = LockScheme(lockSchemes[i]).exit(_userAddress);
+				amountToStake = amountToStake.add(userBonus);
 			}
 
-		uint256 amountToStake = user.tokensOwed[0].add(userBonus);
+		 amountToStake = amountToStake.add(user.tokensOwed[0]);
 		_exit(_userAddress);
 
 		IERC20Detailed(rewarsToken).safeApprove(_stakePool, amountToStake);
 		StakeReceiver(_stakePool).delegateStake(_userAddress, amountToStake);
+		userAccruedRewads[_userAddress];
 	}
 
 
 	function exit() public override {
-		revert("exit:cannot exit from this contract. Only exit and Unlock.");
+		_exitAndUnlock(msg.sender);
 	}
 
 	// function stake() public override {
