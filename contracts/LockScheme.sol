@@ -51,7 +51,7 @@ contract LockScheme is ReentrancyGuard {
         lmcContract = _lmcContract;
     }
 
-    function lock(address _userAddress, uint256 _amountToLock, uint256 _additionalAccruedReward) public onlyLmc {
+    function lock(address _userAddress, uint256 _amountToLock) public onlyLmc {
 
         UserInfo storage user = userInfo[_userAddress];
         uint256 userLockStartBlock = user.lockInitialStakeBlock + rampUpPeriod;
@@ -64,7 +64,6 @@ contract LockScheme is ReentrancyGuard {
         }
 
         user.balance = user.balance.add(_amountToLock);
-        user.accruedReward = _additionalAccruedReward;
 
         emit Lock(_userAddress, _amountToLock, user.accruedReward);
     }
@@ -96,7 +95,7 @@ contract LockScheme is ReentrancyGuard {
     function updateUserAccruedRewards(address _userAddress, uint256 _rewards) public nonReentrant onlyLmc {
         UserInfo storage user = userInfo[_userAddress];
         if(user.balance > 0) {
-         user.accruedReward.add(_rewards);
+        user.accruedReward = user.accruedReward.add(_rewards);
         }
     }
 
@@ -110,12 +109,12 @@ contract LockScheme is ReentrancyGuard {
         return user.accruedReward;
     }
 
-    function getUserStakedBalance(address _userAddress) public view returns(uint256) {
+    function getUserLockedStake(address _userAddress) public view returns(uint256) {
         UserInfo storage user = userInfo[_userAddress];
         return user.balance;
     }
 
-     function hasUserRampUpEnded(address _userAddress) public view returns(bool) {
+    function hasUserRampUpEnded(address _userAddress) public view returns(bool) {
         UserInfo storage user = userInfo[_userAddress];
         uint256 userLockStartBlock = user.lockInitialStakeBlock + rampUpPeriod;
         return userLockStartBlock < block.number;

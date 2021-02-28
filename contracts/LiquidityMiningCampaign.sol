@@ -10,15 +10,16 @@ import "./RewardsPoolBase.sol";
 import "./LockScheme.sol";
 import "./StakeTransferer.sol";
 import "./StakeReceiver.sol";
+import "./pool-features/OnlyExitFeature.sol";
 
 
-contract LiquidityMiningCampaign is RewardsPoolBase, StakeTransferer {
+contract LiquidityMiningCampaign is StakeTransferer, OnlyExitFeature {
 	using SafeMath for uint256;
     using SafeERC20Detailed for IERC20Detailed;
 
 	address[] lockSchemes;
 	address rewarsToken;
-	mapping(address => uint256) userAccruedRewads;
+	mapping(address => uint256) public userAccruedRewads;
 
 	event StakedAndLocked(address indexed _userAddress, uint256 _tokenAmount, address _lockScheme);
 	event ExitedAndUnlocked(address indexed _userAddress, address _lockScheme);
@@ -43,45 +44,42 @@ contract LiquidityMiningCampaign is RewardsPoolBase, StakeTransferer {
 
 	function _stakeAndLock(address _userAddress ,uint256 _tokenAmount, address _lockScheme) internal {
 		require(_tokenAmount > 0, "stakeAndLock::Cannot stake 0");
-		require(!LockScheme(_lockScheme).hasUserRampUpEnded(_userAddress), "stakeAndLock::The ramp up period has finished");
 
 		UserInfo storage user = userInfo[_userAddress];
 
 		uint256 userRewards = 0;
 
+		updateRewardMultipliers();
+        updateUserAccruedReward(_userAddress);
+
 		if(user.tokensOwed.length > 0) {
 			userRewards = user.tokensOwed[0];
 		}
 	
-		userAccruedRewads[_userAddress]	= userAccruedRewads[_userAddress].add(userRewards);
+		
 		for (uint256 i = 0; i < lockSchemes.length; i++) {
 
-			uint256 additionalRewards = calculateProportionalRewards(_userAddress, userAccruedRewads[_userAddress], lockSchemes[i]);
+			uint256 additionalRewards = calculateProportionalRewards(_userAddress, userRewards.sub(userAccruedRewads[_userAddress]), lockSchemes[i]);
 			LockScheme(lockSchemes[i]).updateUserAccruedRewards(_userAddress, additionalRewards);
 		}
-
-		stakingToken.safeApprove(_lockScheme, _tokenAmount);
+		userAccruedRewads[_userAddress]	= userRewards;
 		_stake(_tokenAmount, _userAddress, false);
 
-		lockToScheme(_lockScheme,address(_userAddress), _tokenAmount, userRewards);
+		lockToScheme(_lockScheme,_userAddress, _tokenAmount);
 
 		emit StakedAndLocked( _userAddress, _tokenAmount, _lockScheme);
 	}
 
-	function lockToScheme(address _lockScheme, address _userAddress, uint256  _tokenAmount, uint256 _additionalRewards) internal nonReentrant {
-		LockScheme(_lockScheme).lock(_userAddress, _tokenAmount, _additionalRewards );
+	function lockToScheme(address _lockScheme, address _userAddress, uint256  _tokenAmount) internal nonReentrant {
+		LockScheme(_lockScheme).lock(_userAddress, _tokenAmount );
 	}
 
 	function exitAndUnlock() public nonReentrant {
 
-
-		for (uint256 i = 0; i < lockSchemes.length; i++) {
-			_exitAndUnlock(msg.sender, lockSchemes[i]);
-		}
-		
+			_exitAndUnlock(msg.sender);
 	}
 
-	function _exitAndUnlock(address _userAddress ,address _lockScheme) internal {
+	function _exitAndUnlock(address _userAddress) internal {
 			UserInfo storage user = userInfo[_userAddress];
 			
 			
@@ -95,15 +93,15 @@ contract LiquidityMiningCampaign is RewardsPoolBase, StakeTransferer {
 				uint256 additionalRewards = calculateProportionalRewards(_userAddress, finalRewards, lockSchemes[i]);
 				if(additionalRewards > 0) {
 
-				LockScheme( lockSchemes[i]).updateUserAccruedRewards(_userAddress, additionalRewards);
+				LockScheme(lockSchemes[i]).updateUserAccruedRewards(_userAddress, additionalRewards);
 				}
-		}
 
-			LockScheme(_lockScheme).exit(_userAddress);
-			claimBonus(_lockScheme, _userAddress);
+				LockScheme(lockSchemes[i]).exit(_userAddress);
+				claimBonus(lockSchemes[i], _userAddress);
+			}
 			_exit(_userAddress);
 
-			emit ExitedAndUnlocked(_userAddress, _lockScheme);
+			// emit ExitedAndUnlocked(_userAddress);
 	}
 
 
@@ -141,19 +139,19 @@ contract LiquidityMiningCampaign is RewardsPoolBase, StakeTransferer {
 		}
 	}
 
+		function exitAndUnlock(address, _stakePool) public nonReentrant {
 
-	function exitAndStake(address _stakePool, address _lockScheme) public onlyWhitelistedReceiver(_stakePool) nonReentrant{
+			_exitAndUnlock(msg.sender, _stakePool);
+	}
+
+	function _exitAndStake(address _userAddress,address _stakePool) public onlyWhitelistedReceiver(_stakePool) nonReentrant{
 			
 		UserInfo storage user = userInfo[msg.sender];
 		
-		updateRewardMultipliers(); // Update the accumulated multipliers for everyone
-
 		if (user.amountStaked == 0) {
 			return;
 		}
 
-		updateUserAccruedReward(msg.sender); // Update the accrued reward for this specific user
-		
 		updateRewardMultipliers();
         updateUserAccruedReward(msg.sender);
 			//todo check how to secure that 0 is the albt
@@ -185,9 +183,9 @@ contract LiquidityMiningCampaign is RewardsPoolBase, StakeTransferer {
 		revert("exit:cannot exit from this contract. Only exit and Unlock.");
 	}
 
-	function claim() public override {
-		revert("claim:cannot claim from this contract. Only exit and Unlock.");
-	}
+	// function stake() public override {
+	// 	revert("stake:cannot stake from this contract. Only stake and lock.");
+	// }
 
 	function checkBonus(address _lockScheme, address _userAddress) public view returns(uint256 ) {
 		uint256 userBonus =  LockScheme(_lockScheme).getUserBonus(_userAddress);
@@ -207,11 +205,10 @@ contract LiquidityMiningCampaign is RewardsPoolBase, StakeTransferer {
 
 	function calculateProportionalRewards(address _userAddress, uint256 _accruedRewards, address _lockScheme) internal returns (uint256) {
 			
-			uint256 userStakedBalance = LockScheme(_lockScheme).getUserStakedBalance(_userAddress);
+			uint256 userLockedStake = LockScheme(_lockScheme).getUserLockedStake(_userAddress);
 
 			if(totalStaked > 0) {
-				uint256 ratio = userStakedBalance.div(totalStaked);
-				return _accruedRewards.mul(ratio);
+				return _accruedRewards.mul(userLockedStake).div(totalStaked);
 			}
 			return 0;
 			

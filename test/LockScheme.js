@@ -61,92 +61,170 @@ describe.only('LockScheme', () => {
 		it("Should deploy the lock scheme successfully", async() => {
 			assert.isAddress(LockSchemeInstance.contractAddress, "The LockScheme contract was not deployed");
 		});
+	
+		describe("Locking", () => {
 
-		it("Should lock tokens sucessfully", async() => {
+	
+			it("Should lock tokens sucessfully", async() => {
 
-			await stakingTokenInstance.approve(LockSchemeInstance.contractAddress, amount);
-			await LockSchemeInstance.lock(aliceAccount.signer.address,bOne,additionalRewards);
+				await stakingTokenInstance.approve(LockSchemeInstance.contractAddress, amount);
+				await LockSchemeInstance.lock(aliceAccount.signer.address,bOne);
 
-			let userInfo = await LockSchemeInstance.userInfo(aliceAccount.signer.address);
-			let userBonuses = await LockSchemeInstance.getUserBonus(aliceAccount.signer.address);
-			let userAccruedRewards = await LockSchemeInstance.getUserAccruedReward(aliceAccount.signer.address);
-			const currentBlock = await deployer.provider.getBlock('latest');
-			
-			assert(userInfo.balance.eq(bOne), "The transferred amount is not corrent");
-			assert(userInfo.lockInitialStakeBlock.eq(currentBlock.number), "The lock block is not set properly");
-			assert(userAccruedRewards.eq(additionalRewards), "The rewards were not set properly");
-			assert(userBonuses.eq(0), "The rewards were not set properly");
-		})
+				let userInfo = await LockSchemeInstance.userInfo(aliceAccount.signer.address);
+				let userBonuses = await LockSchemeInstance.getUserBonus(aliceAccount.signer.address);
+				let userAccruedRewards = await LockSchemeInstance.getUserAccruedReward(aliceAccount.signer.address);
+				const currentBlock = await deployer.provider.getBlock('latest');
 
+				assert(userInfo.balance.eq(bOne), "The transferred amount is not corrent");
+				assert(userInfo.lockInitialStakeBlock.eq(currentBlock.number), "The lock block is not set properly");
+				assert(userAccruedRewards.eq(0), "The rewards were not set properly");
+				assert(userBonuses.eq(0), "The rewards were not set properly");
+			})
 
-		it("Should revert if the ramp up block has passed" , async() => {
-			const currentBlock = await deployer.provider.getBlock('latest');
-			const blockDelta = (rampUpBlock - currentBlock.number);
-			
-			for (let i = 0; i <= blockDelta; i++) {
-				await mineBlock(deployer.provider);
-			}	
-			await stakingTokenInstance.approve(LockSchemeInstance.contractAddress, amount);
-			await assert.revertWith(LockSchemeInstance.lock(aliceAccount.signer.address,bOne,additionalRewards), "lock::The ramp up period has finished")
-		})
+			it("Should lock tokens two times and not update the lock start block sucessfully", async() => {
 
-		it("Should fail trying to lock from non lmc address", async() => {
-			await stakingTokenInstance.approve(LockSchemeInstance.contractAddress, amount);
-			await LockSchemeInstance.lock(aliceAccount.signer.address,bOne,additionalRewards);
-			await assert.revertWith(LockSchemeInstance.from(bobAccount.signer.address).lock(aliceAccount.signer.address,bOne,additionalRewards), "onlyLmc::Caller is not the LMC contract")
-		})
+				await stakingTokenInstance.approve(LockSchemeInstance.contractAddress, amount);
+				await LockSchemeInstance.lock(aliceAccount.signer.address,bOne);
+				const currentBlock = await deployer.provider.getBlock('latest');
+				await LockSchemeInstance.lock(aliceAccount.signer.address,bOne);
 
-		it("Should exit sucessfully and update the bonuses", async() => {
+				let userInfo = await LockSchemeInstance.userInfo(aliceAccount.signer.address);
 
-			await stakingTokenInstance.approve(LockSchemeInstance.contractAddress, amount);
-			await LockSchemeInstance.lock(aliceAccount.signer.address,bOne,additionalRewards);
+				assert(userInfo.balance.eq(bOne.add(bOne)), "The transferred amount is not corrent");
+				assert(userInfo.lockInitialStakeBlock.eq(currentBlock.number), "The lock block is not set properly");
+			})
 
-			const currentBlock = await deployer.provider.getBlock('latest');
-			const blockDelta = (lockBlock - currentBlock.number);
-			
-			for (let i = 0; i <= blockDelta; i++) {
-				await mineBlock(deployer.provider);
-			}	
-			await LockSchemeInstance.exit(aliceAccount.signer.address);
-			let userInfo = await LockSchemeInstance.userInfo(aliceAccount.signer.address);
-			let userBonus = await LockSchemeInstance.getUserBonus(aliceAccount.signer.address);
-			let userAccruedRewards = await LockSchemeInstance.getUserAccruedReward(aliceAccount.signer.address);
+			it("Should update the user accrued rewards successfully", async() => {
 
-			assert(userInfo.balance.eq(0), "The transferred amount is not corrent");
-			assert(userAccruedRewards.eq(0), "The rewards were not set properly");
-			assert(userBonus.eq(bOne), "User bonuses are not calculated properly");
-		})
+				await stakingTokenInstance.approve(LockSchemeInstance.contractAddress, amount);
+				await LockSchemeInstance.lock(aliceAccount.signer.address,bOne);
+
+				await LockSchemeInstance.updateUserAccruedRewards(aliceAccount.signer.address, bOne)
+
+				let userInfo = await LockSchemeInstance.userInfo(aliceAccount.signer.address);
+				assert(userInfo.accruedReward.eq(bOne), "User's accrued rewards were not updated properly");
+			})
 
 
+			it("Should not update the user accrued rewards if the user hasn't locked", async() => {
 
-		it("Should exit sucessfully and update the forfeitedBonuses if the exit is before the lock end", async() => {
+				await LockSchemeInstance.updateUserAccruedRewards(aliceAccount.signer.address, bOne)
+				let userInfo = await LockSchemeInstance.userInfo(aliceAccount.signer.address);
 
-			let initialContractBalance = await stakingTokenInstance.balanceOf(LockSchemeInstance.contractAddress);
-			
-			await stakingTokenInstance.approve(LockSchemeInstance.contractAddress, amount);
-			await LockSchemeInstance.lock(aliceAccount.signer.address,bOne,additionalRewards);
-			await LockSchemeInstance.exit(aliceAccount.signer.address);
-
-			let finalContractBalance = await stakingTokenInstance.balanceOf(LockSchemeInstance.contractAddress);
-			let userInfo = await LockSchemeInstance.userInfo(aliceAccount.signer.address);
-			let userBonus = await LockSchemeInstance.getUserBonus(aliceAccount.signer.address);
-			let userAccruedRewards = await LockSchemeInstance.getUserAccruedReward(aliceAccount.signer.address);
-			let forfeitedBonuses = await LockSchemeInstance.forfeitedBonuses();
-
-			assert(finalContractBalance.eq(initialContractBalance), "The balance of the contract was not changed properly");
-			assert(userInfo.balance.eq(0), "The transferred amount is not corrent");
-			assert(userAccruedRewards.eq(0), "The rewards were not set properly");
-			assert(userBonus.eq(0), "User bonuses are not calculated properly");
-			assert(forfeitedBonuses.eq(bOne), "Forfeited bonuses are not calculated properly");
-		})
+				assert(userInfo.accruedReward.eq(0), "User's accrued rewards were not updated properly");
+			})
 
 
-		it("Should fail trying to exit from non lmc address", async() => {
-			await stakingTokenInstance.approve(LockSchemeInstance.contractAddress, amount);
-			await LockSchemeInstance.lock(aliceAccount.signer.address,bOne,additionalRewards);
-			await assert.revertWith(LockSchemeInstance.from(bobAccount.signer.address).exit(aliceAccount.signer.address), "onlyLmc::Caller is not the LMC contract")
-		})
+			it("Should revert if the ramp up block has passed" , async() => {
+				const currentBlock = await deployer.provider.getBlock('latest');
+				const blockDelta = (rampUpBlock - currentBlock.number);
 
+				for (let i = 0; i <= blockDelta; i++) {
+					await mineBlock(deployer.provider);
+				}	
+				await stakingTokenInstance.approve(LockSchemeInstance.contractAddress, amount);
+				await assert.revertWith(LockSchemeInstance.lock(aliceAccount.signer.address,bOne), "lock::The ramp up period has finished")
+			})
+
+			it("Should fail trying to lock from non lmc address", async() => {
+				await stakingTokenInstance.approve(LockSchemeInstance.contractAddress, amount);
+				await LockSchemeInstance.lock(aliceAccount.signer.address,bOne);
+				await assert.revertWith(LockSchemeInstance.from(bobAccount.signer.address).lock(aliceAccount.signer.address,bOne), "onlyLmc::Caller is not the LMC contract")
+			})
+	})
+		describe("Exitting", () => {
+			it("Should exit sucessfully and update the balances", async() => {
+
+				await stakingTokenInstance.approve(LockSchemeInstance.contractAddress, amount);
+				await LockSchemeInstance.lock(aliceAccount.signer.address,bOne);
+
+				const currentBlock = await deployer.provider.getBlock('latest');
+				const blockDelta = (lockBlock - currentBlock.number);
+
+				for (let i = 0; i <= blockDelta; i++) {
+					await mineBlock(deployer.provider);
+				}	
+				await LockSchemeInstance.exit(aliceAccount.signer.address);
+				let userInfo = await LockSchemeInstance.userInfo(aliceAccount.signer.address);
+				let userBonus = await LockSchemeInstance.getUserBonus(aliceAccount.signer.address);
+				let userAccruedRewards = await LockSchemeInstance.getUserAccruedReward(aliceAccount.signer.address);
+
+				assert(userInfo.balance.eq(0), "The transferred amount is not corrent");
+				assert(userAccruedRewards.eq(0), "The rewards were not set properly");
+			})
+
+			it("Should exit sucessfully and update the forfeitedBonuses if the exit is before the lock end", async() => {
+
+				let initialContractBalance = await stakingTokenInstance.balanceOf(LockSchemeInstance.contractAddress);
+
+				await stakingTokenInstance.approve(LockSchemeInstance.contractAddress, amount);
+				await LockSchemeInstance.lock(aliceAccount.signer.address,bOne);
+				await LockSchemeInstance.updateUserAccruedRewards(aliceAccount.signer.address, bTen)
+				await LockSchemeInstance.exit(aliceAccount.signer.address);
+
+				let finalContractBalance = await stakingTokenInstance.balanceOf(LockSchemeInstance.contractAddress);
+				let userInfo = await LockSchemeInstance.userInfo(aliceAccount.signer.address);
+				let userBonus = await LockSchemeInstance.getUserBonus(aliceAccount.signer.address);
+				let userAccruedRewards = await LockSchemeInstance.getUserAccruedReward(aliceAccount.signer.address);
+				let forfeitedBonuses = await LockSchemeInstance.forfeitedBonuses();
+
+				assert(finalContractBalance.eq(initialContractBalance), "The balance of the contract was not changed properly");
+				assert(userInfo.balance.eq(0), "The transferred amount is not corrent");
+				assert(userAccruedRewards.eq(0), "The rewards were not set properly");
+				assert(userBonus.eq(0), "User bonuses are not calculated properly");
+				assert(forfeitedBonuses.eq(bOne), "Forfeited bonuses are not calculated properly");
+			})
+
+			it("Should not exit if the user hasn't locked", async() => {
+
+				let userInfoInitial = await LockSchemeInstance.userInfo(aliceAccount.signer.address);
+				await LockSchemeInstance.exit(aliceAccount.signer.address);
+				let userInfoFinal = await LockSchemeInstance.userInfo(aliceAccount.signer.address);
+				assert(userInfoFinal.balance.eq(userInfoInitial.balance), "The balance of the user is not correct");
+			})
+
+
+			it("Should fail trying to exit from non lmc address", async() => {
+				await stakingTokenInstance.approve(LockSchemeInstance.contractAddress, amount);
+				await LockSchemeInstance.lock(aliceAccount.signer.address,bOne);
+				await assert.revertWith(LockSchemeInstance.from(bobAccount.signer.address).exit(aliceAccount.signer.address), "onlyLmc::Caller is not the LMC contract")
+			})
+	})
+
+	describe("Helpers", () => {
+			it("Should return true if the rampup has ended", async() => {
+
+				const currentBlock = await deployer.provider.getBlock('latest');
+				const blockDelta = (rampUpBlock - currentBlock.number);
+
+				for (let i = 0; i <= blockDelta; i++) {
+					await mineBlock(deployer.provider);
+				}	
+
+				let hasRampUpEnded = await LockSchemeInstance.hasUserRampUpEnded(aliceAccount.signer.address)
+				assert.isTrue(hasRampUpEnded, "Returned ramp up check is not correct")
+			})
+
+			it("Should return the user bonus", async() => {
+				await LockSchemeInstance.lock(aliceAccount.signer.address,bOne);
+				let userBonus =  await LockSchemeInstance.getUserBonus(aliceAccount.signer.address)
+				assert(userBonus.eq(0), "User's bonuses are not calculated properly");
+			})
+
+			it("Should return the user's accrued rewards", async() => {
+				await LockSchemeInstance.lock(aliceAccount.signer.address,bOne);
+				let accruedRewards = await LockSchemeInstance.getUserAccruedReward(aliceAccount.signer.address)
+				assert(accruedRewards.eq(0), "User's accrued rewards are not calculated properly");
+			})
+			it("Should return the users's locked stake", async() => {
+				await LockSchemeInstance.lock(aliceAccount.signer.address,bOne);
+				let lockedStake =  await LockSchemeInstance.getUserLockedStake(aliceAccount.signer.address)
+				assert(lockedStake.eq(bOne), "User's locked stake are not calculated properly");
+			})
+
+
+
+	})
 	
 
 });
