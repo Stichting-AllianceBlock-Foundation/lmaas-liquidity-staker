@@ -109,73 +109,71 @@ contract LiquidityMiningCampaign is StakeTransferer, OnlyExitFeature {
 		StakeTransferer.setReceiverWhitelisted(receiver, whitelisted);
 	}
 
-	/** @dev exits the current campaign and trasnfers the stake to another whitelisted campaign
-		@param transferTo address of the receiver to transfer the stake to
-	 */
-	function exitAndTransfer(address transferTo, address _lockScheme) virtual public onlyWhitelistedReceiver(transferTo) nonReentrant {
-		UserInfo storage user = userInfo[msg.sender];
+	// /** @dev exits the current campaign and trasnfers the stake to another whitelisted campaign
+	// 	@param transferTo address of the receiver to transfer the stake to
+	//  */
+	// function exitAndTransfer(address transferTo, address _lockScheme) virtual public onlyWhitelistedReceiver(transferTo) nonReentrant {
+	// 	UserInfo storage user = userInfo[msg.sender];
 		
-		updateRewardMultipliers(); // Update the accumulated multipliers for everyone
+	// 	updateRewardMultipliers(); // Update the accumulated multipliers for everyone
 
-		if (user.amountStaked == 0) {
-			return;
-		}
-
-		updateUserAccruedReward(msg.sender); // Update the accrued reward for this specific user
-
-		LockScheme(_lockScheme).exit(msg.sender);
-		claimBonus(_lockScheme, msg.sender);
-		_claim(msg.sender);
-		stakingToken.safeApprove(transferTo, user.amountStaked);
-
-		StakeReceiver(transferTo).delegateStake(msg.sender, user.amountStaked);
-
-		totalStaked = totalStaked.sub(user.amountStaked);
-		user.amountStaked = 0;
-
-		for (uint256 i = 0; i < rewardsTokens.length; i++) {
-			user.tokensOwed[i] = 0;
-			user.rewardDebt[i] = 0;
-		}
-	}
-
-	// function exitAndStake(address, _stakePool) public nonReentrant {
-
-	// 		_exitAndStake(msg.sender, _stakePool);
-	// }
-
-	// function _exitAndStake(address _userAddress,address _stakePool) public onlyWhitelistedReceiver(_stakePool) nonReentrant{
-			
-	// 	UserInfo storage user = userInfo[_userAddress];
-		
 	// 	if (user.amountStaked == 0) {
 	// 		return;
 	// 	}
 
-	// 	updateRewardMultipliers();
-	// 	updateUserAccruedReward(_userAddress);
-	// 		//todo check how to secure that 0 is the albt
-	// 		uint256 finalRewards = user.tokensOwed[0].sub(userAccruedRewads[_userAddress]);
-	// 		uint256 userBonus;
-	// 		for (uint256 i = 0; i < lockSchemes.length; i++) {
+	// 	updateUserAccruedReward(msg.sender); // Update the accrued reward for this specific user
 
-	// 			uint256 additionalRewards = calculateProportionalRewards(_userAddress, finalRewards, lockSchemes[i]);
-	// 			if(additionalRewards > 0) {
+	// 	LockScheme(_lockScheme).exit(msg.sender);
+	// 	claimBonus(_lockScheme, msg.sender);
+	// 	_claim(msg.sender);
+	// 	stakingToken.safeApprove(transferTo, user.amountStaked);
 
-	// 			LockScheme(lockSchemes[i]).updateUserAccruedRewards(_userAddress, additionalRewards);
-	// 			}
-	// 			userBonus = userBonus.add(LockScheme(lockSchemes[i]).getUserBonus(_userAddress));
-	// 		}
+	// 	StakeReceiver(transferTo).delegateStake(msg.sender, user.amountStaked);
 
-	// 	LockScheme(_lockScheme).exit(_userAddress);
+	// 	totalStaked = totalStaked.sub(user.amountStaked);
+	// 	user.amountStaked = 0;
 
-	// 	uint256 amountToStake = user.tokensOwed[0].add(userBonus);
-	// 	_exit(_userAddress);
-
-	// 	stakingToken.safeApprove(_stakePool, amountToStake);
-
-	// 	StakeReceiver(_stakePool).delegateStake(msg.sender, amountToStake);
+	// 	for (uint256 i = 0; i < rewardsTokens.length; i++) {
+	// 		user.tokensOwed[i] = 0;
+	// 		user.rewardDebt[i] = 0;
+	// 	}
 	// }
+
+	function exitAndStake(address _stakePool) public  {
+
+			_exitAndStake(msg.sender, _stakePool);
+	}
+
+	function _exitAndStake(address _userAddress,address _stakePool) public onlyWhitelistedReceiver(_stakePool) {
+			
+		UserInfo storage user = userInfo[_userAddress];
+		
+		if (user.amountStaked == 0) {
+			return;
+		}
+
+		updateRewardMultipliers();
+		updateUserAccruedReward(_userAddress);
+			//todo check how to secure that 0 is the albt
+			uint256 finalRewards = user.tokensOwed[0].sub(userAccruedRewads[_userAddress]);
+			uint256 userBonus;
+			for (uint256 i = 0; i < lockSchemes.length; i++) {
+
+				uint256 additionalRewards = calculateProportionalRewards(_userAddress, finalRewards, lockSchemes[i]);
+				if(additionalRewards > 0) {
+
+				LockScheme(lockSchemes[i]).updateUserAccruedRewards(_userAddress, additionalRewards);
+				}
+				userBonus = userBonus.add(LockScheme(lockSchemes[i]).getUserBonus(_userAddress));
+				LockScheme(lockSchemes[i]).exit(_userAddress);
+			}
+
+		uint256 amountToStake = user.tokensOwed[0].add(userBonus);
+		_exit(_userAddress);
+
+		IERC20Detailed(rewarsToken).safeApprove(_stakePool, amountToStake);
+		StakeReceiver(_stakePool).delegateStake(_userAddress, amountToStake);
+	}
 
 
 	function exit() public override {

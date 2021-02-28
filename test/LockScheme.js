@@ -5,7 +5,7 @@ const TestERC20 = require('../build/TestERC20.json');
 const PercentageCalculator = require('../build/PercentageCalculator.json')
 const { mineBlock } = require('./utils')
 
-describe.only('LockScheme', () => {
+describe('LockScheme', () => {
     let aliceAccount = accounts[3];
     let bobAccount = accounts[4];
     let carolAccount = accounts[5];
@@ -117,7 +117,7 @@ describe.only('LockScheme', () => {
 
 			it("Should revert if the ramp up block has passed" , async() => {
 				await LockSchemeInstance.lock(aliceAccount.signer.address,bOne);
-				
+
 				const currentBlock = await deployer.provider.getBlock('latest');
 				const userInfo = await LockSchemeInstance.userInfo(aliceAccount.signer.address)
 				const userInitialLockEndperiod = userInfo.lockInitialStakeBlock
