@@ -7,7 +7,7 @@ const LMC = require("../build/LiquidityMiningCampaign.json")
 const NonCompoundingRewardsPool = require('../build/NonCompoundingRewardsPool.json');
 const { mineBlock } = require('./utils')
 
-describe.only('LMC', () => {
+describe('LMC', () => {
     let aliceAccount = accounts[3];
     let bobAccount = accounts[4];
     let carolAccount = accounts[5];
@@ -142,8 +142,12 @@ describe.only('LMC', () => {
 
 				let currentBlock = await deployer.provider.getBlock('latest');
 				let contractInitialBalance = await stakingTokenInstance.balanceOf(LmcInstance.contractAddress);
+				let userInitialBalance = await stakingTokenInstance.balanceOf(aliceAccount.signer.address);
+
 				await LmcInstance.stakeAndLock(bTen,LockSchemeInstance.contractAddress);
+
 				let contractFinalBalance = await stakingTokenInstance.balanceOf(LmcInstance.contractAddress);
+				let userFinalBalance = await stakingTokenInstance.balanceOf(aliceAccount.signer.address);
 				const totalStakedAmount = await LmcInstance.totalStaked();
 				const userInfo = await LmcInstance.userInfo(aliceAccount.signer.address)
 				const userRewardDebt = await LmcInstance.getUserRewardDebt(aliceAccount.signer.address, 0);
@@ -164,6 +168,7 @@ describe.only('LMC', () => {
 				assert(userInfo.firstStakedBlockNumber.eq(currentBlock.number), "User's first block is not correct")
 				assert(userRewardDebt.eq(0), "User's reward debt is not correct")
 				assert(userOwedToken.eq(0), "User's reward debt is not correct")
+				assert(userFinalBalance.eq(userInitialBalance.sub(bTen)), "User was not charged for staking");
 
 				await mineBlock(deployer.provider);
 
