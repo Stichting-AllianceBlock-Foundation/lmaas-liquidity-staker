@@ -25,21 +25,20 @@ contract LiquidityMiningCampaign is StakeTransferer, OnlyExitFeature  {
 	event ExitedAndUnlocked(address indexed _userAddress);
 	event BonusTransferred(address indexed _userAddress, uint256 _bonusAmount);
 
-		constructor(
+	constructor(
 		IERC20Detailed _stakingToken,
 		uint256 _startBlock,
 		uint256 _endBlock,
 		address[] memory _rewardsTokens,
 		uint256[] memory _rewardPerBlock,
-		uint256 _stakeLimit
-	) public RewardsPoolBase(_stakingToken, _startBlock, _endBlock, _rewardsTokens, _rewardPerBlock,_stakeLimit) {
+		uint256 _stakeLimit) public RewardsPoolBase(_stakingToken, _startBlock, _endBlock, _rewardsTokens, _rewardPerBlock,_stakeLimit) 
+	{
 
 		rewardToken = _rewardsTokens[0];
 	}
 
 	function stakeAndLock( uint256 _tokenAmount, address _lockScheme) external{
 		_stakeAndLock(msg.sender,_tokenAmount, _lockScheme);
-
 	}
 
 	/** @dev Stakes LP tokens to the campaing and lockes them to a specific lockScheme contract to earn bonuses
@@ -74,40 +73,40 @@ contract LiquidityMiningCampaign is StakeTransferer, OnlyExitFeature  {
 	}
 
 	function exitAndUnlock() public nonReentrant {
-			_exitAndUnlock(msg.sender);
+		_exitAndUnlock(msg.sender);
 	}
 
 	/** @dev Exits the current campaing and claims the bonuses
 	@param _userAddress the address of the staker
 	 */
 	function _exitAndUnlock(address _userAddress) internal {
-			UserInfo storage user = userInfo[_userAddress];
+		UserInfo storage user = userInfo[_userAddress];
 
-			if (user.amountStaked == 0) {
-				return;
-			}
+		if (user.amountStaked == 0) {
+			return;
+		}
 
-			updateRewardMultipliers();
-			updateUserAccruedReward(_userAddress);
-			//todo check how to secure that 0 is the albt
-			uint256 finalRewards = user.tokensOwed[0].sub(userAccruedRewads[_userAddress]);
-		
-			for (uint256 i = 0; i < lockSchemes.length; i++) {
+		updateRewardMultipliers();
+		updateUserAccruedReward(_userAddress);
 
-				uint256 additionalRewards = calculateProportionalRewards(_userAddress, finalRewards, lockSchemes[i]);
-				if(additionalRewards > 0) {
+		//todo check how to secure that 0 is the albt
+		uint256 finalRewards = user.tokensOwed[0].sub(userAccruedRewads[_userAddress]);
+	
+		for (uint256 i = 0; i < lockSchemes.length; i++) {
+			uint256 additionalRewards = calculateProportionalRewards(_userAddress, finalRewards, lockSchemes[i]);
 
+			if(additionalRewards > 0) {
 				LockScheme(lockSchemes[i]).updateUserAccruedRewards(_userAddress, additionalRewards);
-				}
-
-				uint256 bonus = LockScheme(lockSchemes[i]).exit(_userAddress);
-				IERC20Detailed(rewardToken).safeTransfer(_userAddress, bonus);
-				
 			}
-			_exit(_userAddress);
-			userAccruedRewads[_userAddress] = 0;
 
-			emit ExitedAndUnlocked(_userAddress);
+			uint256 bonus = LockScheme(lockSchemes[i]).exit(_userAddress);
+			IERC20Detailed(rewardToken).safeTransfer(_userAddress, bonus);
+		}
+
+		_exit(_userAddress);
+		userAccruedRewads[_userAddress] = 0;
+
+		emit ExitedAndUnlocked(_userAddress);
 	}
 
 
@@ -116,7 +115,6 @@ contract LiquidityMiningCampaign is StakeTransferer, OnlyExitFeature  {
 	}
 
 	function exitAndStake(address _stakePool) public  {
-
 			_exitAndStake(msg.sender, _stakePool);
 	}
 
@@ -134,22 +132,21 @@ contract LiquidityMiningCampaign is StakeTransferer, OnlyExitFeature  {
 
 		updateRewardMultipliers();
 		updateUserAccruedReward(_userAddress);
-			//todo check how to secure that 0 is the albt
-			uint256 finalRewards = user.tokensOwed[0].sub(userAccruedRewads[_userAddress]);
-			uint256 userBonus;
-			uint256 amountToStake;
-			for (uint256 i = 0; i < lockSchemes.length; i++) {
+		//todo check how to secure that 0 is the albt
+		uint256 finalRewards = user.tokensOwed[0].sub(userAccruedRewads[_userAddress]);
+		uint256 userBonus;
+		uint256 amountToStake;
+		for (uint256 i = 0; i < lockSchemes.length; i++) {
 
-				uint256 additionalRewards = calculateProportionalRewards(_userAddress, finalRewards, lockSchemes[i]);
-				if(additionalRewards > 0) {
-
+			uint256 additionalRewards = calculateProportionalRewards(_userAddress, finalRewards, lockSchemes[i]);
+			if(additionalRewards > 0) {
 				LockScheme(lockSchemes[i]).updateUserAccruedRewards(_userAddress, additionalRewards);
-				}
-				userBonus = LockScheme(lockSchemes[i]).exit(_userAddress);
-				amountToStake = amountToStake.add(userBonus);
 			}
+			userBonus = LockScheme(lockSchemes[i]).exit(_userAddress);
+			amountToStake = amountToStake.add(userBonus);
+		}
 
-		 amountToStake = amountToStake.add(user.tokensOwed[0]);
+		amountToStake = amountToStake.add(user.tokensOwed[0]);
 		_withdraw(user.amountStaked, _userAddress);
 		user.tokensOwed[0] = 0;
 		_claim(_userAddress);
@@ -165,14 +162,12 @@ contract LiquidityMiningCampaign is StakeTransferer, OnlyExitFeature  {
 	@param _lockScheme the address of the lock scheme
 	 */
 	function calculateProportionalRewards(address _userAddress, uint256 _accruedRewards, address _lockScheme) internal view returns (uint256) {
+		if(totalStaked == 0) {
+			return 0;
+		}
 			
 		uint256 userLockedStake = LockScheme(_lockScheme).getUserLockedStake(_userAddress);
-
-		if(totalStaked > 0) {
-			return _accruedRewards.mul(userLockedStake).div(totalStaked);
-		}
-		return 0;
-			
+		return _accruedRewards.mul(userLockedStake).div(totalStaked);
 	}
 
 	
