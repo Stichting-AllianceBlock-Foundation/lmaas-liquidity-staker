@@ -7,7 +7,7 @@ const LMC = require("../build/LiquidityMiningCampaign.json")
 const NonCompoundingRewardsPool = require('../build/NonCompoundingRewardsPool.json');
 const { mineBlock } = require('./utils')
 
-describe('LMC', () => {
+describe.only('LMC', () => {
     let aliceAccount = accounts[3];
     let bobAccount = accounts[4];
     let carolAccount = accounts[5];

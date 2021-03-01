@@ -7,7 +7,7 @@ const TestERC20 = require('../build/TestERC20.json');
 const RewardsPoolBase = require('../build/RewardsPoolBase.json');
 const { mineBlock } = require('./utils')
 
-describe.only('CompoundingRewardsPoolFactory', () => { // These tests must be skipped for coverage as coverage does not support optimizations
+describe('CompoundingRewardsPoolFactory', () => { // These tests must be skipped for coverage as coverage does not support optimizations
     let aliceAccount = accounts[3];
     let bobAccount = accounts[4];
     let carolAccount = accounts[5];
