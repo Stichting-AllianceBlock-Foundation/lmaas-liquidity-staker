@@ -7,7 +7,7 @@ const LMC = require("../build/LiquidityMiningCampaign.json")
 const NonCompoundingRewardsPool = require('../build/NonCompoundingRewardsPool.json');
 const { mineBlock } = require('./utils')
 
-describe('LMC', () => {
+describe.only('LMC', () => {
     let aliceAccount = accounts[3];
     let bobAccount = accounts[4];
     let carolAccount = accounts[5];
@@ -461,77 +461,6 @@ describe('LMC', () => {
 
 
 			})
-
-			it("Should exit and migrate sucessfully", async() => {
-
-				//Prepare new Contracts
-				await setupRewardsPoolParameters(deployer)
-				let NewLmcInstance = await deployer.deploy(
-					LMC,
-					{},
-					stakingTokenAddress,
-					startBlock,
-					endBlock,
-					rewardTokensAddresses,
-					rewardPerBlock,
-					stakeLimit
-				);
-
-				let MigrationLmcInstance = await deployer.deploy(
-					LMC,
-					{},
-					stakingTokenAddress,
-					startBlock + 5,
-					endBlock + 5,
-					rewardTokensAddresses,
-					rewardPerBlock,
-					stakeLimit
-				);
-				
-				let lockScheme = []
-				let migrateLockScheme = []
-
-				LockSchemeInstance = await deployer.deploy(LockScheme, libraries, lockBlock, rampUpBlock, bonusPercet, NewLmcInstance.contractAddress);
-				MigrateLockSchemeInstance = await deployer.deploy(LockScheme, libraries, lockBlock, rampUpBlock, bonusPercet, MigrationLmcInstance.contractAddress);
-				lockScheme.push(LockSchemeInstance.contractAddress);
-				migrateLockScheme.push(MigrateLockSchemeInstance.contractAddress)
-
-				await NewLmcInstance.setLockSchemes(lockScheme);
-				await rewardTokensInstances[0].mint(NewLmcInstance.contractAddress,amount);
-
-				await MigrationLmcInstance.setLockSchemes(migrateLockScheme);
-				await rewardTokensInstances[0].mint(MigrationLmcInstance.contractAddress,amount);
-
-				await stakingTokenInstance.approve(LockSchemeInstance.contractAddress, amount);
-				await stakingTokenInstance.approve(NewLmcInstance.contractAddress, amount);
-
-				await NewLmcInstance.stakeAndLock(bTen,LockSchemeInstance.contractAddress);
-				await NewLmcInstance.setReceiverWhitelisted(MigrationLmcInstance.contractAddress, true);
-
-				currentBlock = await deployer.provider.getBlock('latest');
-				const blocksDelta2 = (endBlock-currentBlock.number);
-				
-				for (let i=0; i<blocksDelta2; i++) {
-					await mineBlock(deployer.provider);
-				}
-
-				let initialBalance = await stakingTokenInstance.balanceOf(MigrationLmcInstance.contractAddress);
-
-				await NewLmcInstance.exitAndMigrate(MigrationLmcInstance.contractAddress,migrateLockScheme[0] );
-				let finalBalance = await stakingTokenInstance.balanceOf(MigrationLmcInstance.contractAddress);
-				let finallUserInfo  = await MigrationLmcInstance.userInfo(aliceAccount.signer.address);
-				let totalStakedAmountInitial = await NewLmcInstance.totalStaked();
-				let totalStakedAmountMigrated = await MigrationLmcInstance.totalStaked();
-
-				
-				assert(finalBalance.gt(initialBalance), "Staked amount is not correct");
-				assert(finalBalance.eq(bTen), "User rewards were not calculated properly");
-				assert(totalStakedAmountMigrated.eq(bTen), "Total Staked amount migrated is not correct");
-				assert(totalStakedAmountInitial.eq(0), "Total Staked amount initial is not correct");
-				assert(finallUserInfo.amountStaked.eq(bTen), "User's staked amount is not correct");
-
-			})
-			
 
 			it("Should fail calling the claim function only", async() => {
 

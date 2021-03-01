@@ -9,17 +9,19 @@ import "./SafeERC20Detailed.sol";
 import "./RewardsPoolBase.sol";
 import "./LockScheme.sol";
 import "./StakeTransferer.sol";
-import "./pool-features/StakeMigrationerFeature.sol";
 import "./StakeReceiver.sol";
 import "./pool-features/OnlyExitFeature.sol";
 
 
-contract LiquidityMiningCampaign is StakeTransferer, OnlyExitFeature, StakeMigrationerFeature   {
+contract LiquidityMiningCampaign is StakeTransferer, OnlyExitFeature  {
 	using SafeMath for uint256;
 	using SafeERC20Detailed for IERC20Detailed;
 
 	address rewardToken;
+	address[] lockSchemes;
+	mapping(address => uint256) public userAccruedRewads;
 
+	event StakedAndLocked(address indexed _userAddress, uint256 _tokenAmount, address _lockScheme);
 	event ExitedAndUnlocked(address indexed _userAddress);
 	event BonusTransferred(address indexed _userAddress, uint256 _bonusAmount);
 
@@ -36,15 +38,39 @@ contract LiquidityMiningCampaign is StakeTransferer, OnlyExitFeature, StakeMigra
 	}
 
 	function stakeAndLock( uint256 _tokenAmount, address _lockScheme) external{
-		_stakeAndLock(msg.sender,_tokenAmount, _lockScheme, true);
+		_stakeAndLock(msg.sender,_tokenAmount, _lockScheme);
 
 	}
 
-	function claim() public virtual override(RewardsPoolBase, OnlyExitFeature) {
-		revert("OnlyExitFeature::cannot claim from this contract. Only exit.");
-	}
-	function withdraw(uint256 _tokenAmount) public virtual override(RewardsPoolBase,OnlyExitFeature) {
-		revert("OnlyExitFeature::cannot clawithdrawim from this contract. Only exit.");
+	/** @dev Stakes LP tokens to the campaing and lockes them to a specific lockScheme contract to earn bonuses
+	@param _userAddress the address of the staker
+	@param _tokenAmount the amount to be staked
+	@param _lockScheme the address of the lock scheme 
+	 */
+	function _stakeAndLock(address _userAddress ,uint256 _tokenAmount, address _lockScheme) internal {
+		require(_userAddress != address(0x0), "_stakeAndLock::Invalid staker");
+		require(_tokenAmount > 0, "stakeAndLock::Cannot stake 0");
+
+		UserInfo storage user = userInfo[_userAddress];
+
+		uint256 userRewards = 0;
+
+		updateRewardMultipliers();
+		updateUserAccruedReward(_userAddress);
+
+		userRewards = user.tokensOwed[0];
+
+		for (uint256 i = 0; i < lockSchemes.length; i++) {
+
+			uint256 additionalRewards = calculateProportionalRewards(_userAddress, userRewards.sub(userAccruedRewads[_userAddress]), lockSchemes[i]);
+			LockScheme(lockSchemes[i]).updateUserAccruedRewards(_userAddress, additionalRewards);
+		}
+		userAccruedRewads[_userAddress]	= userRewards;
+		_stake(_tokenAmount, _userAddress, true);
+
+		LockScheme(_lockScheme).lock(_userAddress, _tokenAmount);
+
+		emit StakedAndLocked( _userAddress, _tokenAmount, _lockScheme);
 	}
 
 	function exitAndUnlock() public nonReentrant {
@@ -89,52 +115,6 @@ contract LiquidityMiningCampaign is StakeTransferer, OnlyExitFeature, StakeMigra
 		StakeTransferer.setReceiverWhitelisted(receiver, whitelisted);
 	}
 
-	/** @dev Exits the current campaign and migrates the stake to another whitelisted campaign
-	@param _migrateTo address of the receiver to transfer the stake to
-	 */
-	function exitAndMigrate(address _migrateTo, address _lockScheme) public {
-		_exitAndMigrate(_migrateTo, msg.sender, _lockScheme);
-	}
-
-	function _exitAndMigrate(address _migrateTo, address _userAddress, address _lockScheme) internal onlyWhitelistedReceiver(_migrateTo) nonReentrant {
-		UserInfo storage user = userInfo[_userAddress];
-		
-		if (user.amountStaked == 0) {
-			return;
-		}
-
-		updateRewardMultipliers();
-		updateUserAccruedReward(_userAddress); // Update the accrued reward for this specific user
-
-		uint256 finalRewards = user.tokensOwed[0].sub(userAccruedRewads[_userAddress]);
-
-		for (uint256 i = 0; i < lockSchemes.length; i++) {
-
-			uint256 additionalRewards = calculateProportionalRewards(_userAddress, finalRewards, lockSchemes[i]);
-
-			if(additionalRewards > 0) {
-			LockScheme(lockSchemes[i]).updateUserAccruedRewards(_userAddress, additionalRewards);
-			}
-		
-			uint256 bonus = LockScheme(lockSchemes[i]).exit(_userAddress);
-			IERC20Detailed(rewardToken).safeTransfer(_userAddress, bonus);
-				
-		}
-
-		_claim(_userAddress);
-		stakingToken.safeApprove(_migrateTo, user.amountStaked);
-		StakeMigrationer(_migrateTo)._stakeAndLock(_userAddress, user.amountStaked, _lockScheme, false);
-
-		totalStaked = totalStaked.sub(user.amountStaked);
-		user.amountStaked = 0;
-
-		for (uint256 i = 0; i < rewardsTokens.length; i++) {
-			user.tokensOwed[i] = 0;
-			user.rewardDebt[i] = 0;
-		}
-		userAccruedRewads[_userAddress] = 0;
-	}
-
 	function exitAndStake(address _stakePool) public  {
 
 			_exitAndStake(msg.sender, _stakePool);
@@ -177,6 +157,22 @@ contract LiquidityMiningCampaign is StakeTransferer, OnlyExitFeature, StakeMigra
 		IERC20Detailed(rewardToken).safeApprove(_stakePool, amountToStake);
 		StakeReceiver(_stakePool).delegateStake(_userAddress, amountToStake);
 		userAccruedRewads[_userAddress] = 0;
+	}
+
+	/** @dev Function calculating the proportional rewards between all lock schemes where the user has locked tokens
+	@param _userAddress the address of the staker
+	@param _accruedRewards all unAccruedRewards that needs to be split
+	@param _lockScheme the address of the lock scheme
+	 */
+	function calculateProportionalRewards(address _userAddress, uint256 _accruedRewards, address _lockScheme) internal view returns (uint256) {
+			
+		uint256 userLockedStake = LockScheme(_lockScheme).getUserLockedStake(_userAddress);
+
+		if(totalStaked > 0) {
+			return _accruedRewards.mul(userLockedStake).div(totalStaked);
+		}
+		return 0;
+			
 	}
 
 	
