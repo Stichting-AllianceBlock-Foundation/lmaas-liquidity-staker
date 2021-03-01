@@ -80,8 +80,33 @@ contract LiquidityMiningCampaign is StakeTransferer, OnlyExitFeature  {
 	@param _userAddress the address of the staker
 	 */
 	function _exitAndUnlock(address _userAddress) internal {
-		UserInfo storage user = userInfo[_userAddress];
+			UserInfo storage user = userInfo[_userAddress];
 
+		if (user.amountStaked == 0) {
+			return;
+		}
+
+		updateRewardMultipliers();
+		updateUserAccruedReward(_userAddress);
+
+		//todo check how to secure that 0 is the albt
+		uint256 finalRewards = user.tokensOwed[0].sub(userAccruedRewads[_userAddress]);
+	
+		for (uint256 i = 0; i < lockSchemes.length; i++) {
+			uint256 additionalRewards = calculateProportionalRewards(_userAddress, finalRewards, lockSchemes[i]);
+
+			if(additionalRewards > 0) {
+				LockScheme(lockSchemes[i]).updateUserAccruedRewards(_userAddress, additionalRewards);
+			}
+
+			uint256 bonus = LockScheme(lockSchemes[i]).exit(_userAddress);
+			IERC20Detailed(rewardToken).safeTransfer(_userAddress, bonus);
+		}
+
+		_exit(_userAddress);
+		userAccruedRewads[_userAddress] = 0;
+
+		emit ExitedAndUnlocked(_userAddress);
 	}
 
 
