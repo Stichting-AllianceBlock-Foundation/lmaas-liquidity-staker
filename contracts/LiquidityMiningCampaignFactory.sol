@@ -6,10 +6,11 @@ import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import "./interfaces/IERC20Detailed.sol";
 import "./SafeERC20Detailed.sol";
 import "./AbstractPoolsFactory.sol";
+import "./V2/factories/StakeTransferEnabledFactory.sol";
 import "./LiquidityMiningCampaign.sol";
 
 
-contract LiquidityMiningCampaignFactory is AbstractPoolsFactory {
+contract LiquidityMiningCampaignFactory is AbstractPoolsFactory, StakeTransferEnabledFactory {
 
 
 	using SafeMath for uint256;
@@ -40,30 +41,30 @@ contract LiquidityMiningCampaignFactory is AbstractPoolsFactory {
 	) external onlyOwner {
 		require(
 			_stakingToken != address(0),
-			"RewardsPoolFactory::deploy: Staking token address can't be zero address"
+			"LiquidityMiningCampaignFactory::deploy: Staking token address can't be zero address"
 		);
 		require(
 			_rewardsTokens.length != 0,
-			"RewardsPoolFactory::deploy: RewardsTokens array could not be empty"
+			"LiquidityMiningCampaignFactory::deploy: RewardsTokens array could not be empty"
 		);
 		require(
 			_rewardsTokens.length == _rewardPerBlock.length,
-			"RewardsPoolFactory::deploy: RewardsTokens and RewardPerBlock should have a matching sizes"
+			"LiquidityMiningCampaignFactory::deploy: RewardsTokens and RewardPerBlock should have a matching sizes"
 		);
 
 		for (uint256 i = 0; i < _rewardsTokens.length; i++) {
 			require(
 				_rewardsTokens[i] != address(0),
-				"RewardsPoolFactory::deploy: Reward token address could not be invalid"
+				"LiquidityMiningCampaignFactory::deploy: Reward token address could not be invalid"
 			);
 			require(
 				_rewardPerBlock[i] != 0,
-				"RewardsPoolFactory::deploy: Reward per block must be greater than zero"
+				"LiquidityMiningCampaignFactory::deploy: Reward per block must be greater than zero"
 			);
 		}
 		 require(
 			_stakeLimit != 0,
-			"RewardsPoolFactory::deploy: Stake limit must be more than 0"
+			"LiquidityMiningCampaignFactory::deploy: Stake limit must be more than 0"
 		);
 
 		address rewardsPoolBase =

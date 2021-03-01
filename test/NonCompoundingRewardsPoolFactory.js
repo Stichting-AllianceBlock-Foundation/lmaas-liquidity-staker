@@ -5,7 +5,7 @@ const TestERC20 = require('../build/TestERC20.json');
 const NonCompoundingRewardsPool = require('../build/NonCompoundingRewardsPool.json');
 const { mineBlock } = require('./utils')
 
-describe('NonCompoundingRewardsPoolFactory', () => {
+describe.only('NonCompoundingRewardsPoolFactory', () => {
     let aliceAccount = accounts[3];
     let bobAccount = accounts[4];
     let carolAccount = accounts[5];
