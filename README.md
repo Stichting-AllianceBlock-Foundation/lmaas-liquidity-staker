@@ -42,6 +42,12 @@ These contracts are helping and making the test process easier and faster.
 **Percentage Calculator**
 This contract provides еasier and more precise calculations of perentages.
 
+**TestERC20**
+Contract used only in tests, for easily deploying ERC20 tokens.
+
+**RolesManager**
+Contract that would serve as a role manger, creating, removing, granting and revoking roles.
+
 ## sdk directory
 *Please do not audit this one, not used in the project*
 
