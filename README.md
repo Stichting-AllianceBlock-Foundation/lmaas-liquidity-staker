@@ -7,7 +7,7 @@ Forked from @uniswap/liquidity-staker
 
 AllianceBlock Liquidity Staker project aims to provide to the users easy way to stake their liquidity pool tokens and earn rewards based on their stake. The solutions consists of several smart contracts owned by multisignature wallet. 
 
-**V2** of the project introduces a lot of new features for the users. The smart contracts in that version are give the users the opportunity to stake rewards tokens for given periods, lock staking tokens for even more rewards, treasury functions and others. 
+**V2** of the project introduces a lot of new features for the users. The smart contracts in that version give the users the opportunity to stake rewards tokens for given periods, lock staking tokens for even more rewards, treasury for single sided liquidity functions and others. 
 
 ## V1
 ### StakingRewards.sol
