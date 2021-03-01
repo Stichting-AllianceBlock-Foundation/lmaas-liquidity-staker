@@ -83,11 +83,11 @@ contract LiquidityMiningCampaign is StakeTransferer, OnlyExitFeature  {
 	function _exitAndUnlock(address _userAddress) internal {
 			UserInfo storage user = userInfo[_userAddress];
 
+			updateRewardMultipliers();
 			if (user.amountStaked == 0) {
 				return;
 			}
 
-			updateRewardMultipliers();
 			updateUserAccruedReward(_userAddress);
 			//todo check how to secure that 0 is the albt
 			uint256 finalRewards = user.tokensOwed[0].sub(userAccruedRewads[_userAddress]);
@@ -128,11 +128,11 @@ contract LiquidityMiningCampaign is StakeTransferer, OnlyExitFeature  {
 			
 		UserInfo storage user = userInfo[_userAddress];
 		
+		updateRewardMultipliers();
 		if (user.amountStaked == 0) {
 			return;
 		}
 
-		updateRewardMultipliers();
 		updateUserAccruedReward(_userAddress);
 			//todo check how to secure that 0 is the albt
 			uint256 finalRewards = user.tokensOwed[0].sub(userAccruedRewads[_userAddress]);

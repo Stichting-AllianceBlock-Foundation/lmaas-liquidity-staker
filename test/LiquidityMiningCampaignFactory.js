@@ -199,7 +199,141 @@ describe('LMC Factory', () => { // These tests must be skipped for coverage as c
             });
         });
 
+		describe('Extending Rewards', async function () {
+            beforeEach(async () => {
+                for (i = 0; i < rewardTokensAddresses.length; i++) {
+                    await rewardTokensInstances[i].transfer(LMCFactoryInstance.contractAddress, amountToTransfer);
+                }
+                await LMCFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock, rewardTokensAddresses,rewardPerBlock, stakeLimit);
+            });
+
+                it("Should extend the rewards pool successfully with the same rate", async () => {
+
+					let rewardsPoolLength = await LMCFactoryInstance.getRewardsPoolNumber()
+					let lmcAddress = await LMCFactoryInstance.rewardsPools((rewardsPoolLength - 1))
+                    const LmcContract = await etherlime.ContractAt(RewardsPoolBase, lmcAddress);
+                    const rewardTokenInstance = rewardTokensInstances[0];
+                    let rewardsBalanceInitial = await rewardTokenInstance.balanceOf(LmcContract.contractAddress)
+
+                    let currentBlock = await deployer.provider.getBlock('latest');
+                    let blocksDelta = (endBlock-currentBlock.number);
+
+                    while (blocksDelta > 10) {
+                        await mineBlock(deployer.provider);
+                        currentBlock = await deployer.provider.getBlock('latest');
+                        blocksDelta = (endBlock-currentBlock.number);
+                    }
+                    let initialEndBlock = await LmcContract.endBlock();
+                    let blockExtension = 10
+                    let newEndBlock = initialEndBlock.add(blockExtension)
+                    for (i = 0; i < rewardTokensCount; i++) {
+                        let amount = await LMCFactoryInstance.calculateRewardsAmount(currentBlock.number,newEndBlock,rewardPerBlock[0])
+                        await rewardTokensInstances[i].transfer(LMCFactoryInstance.contractAddress, amount);
+                    }
+                    await LMCFactoryInstance.extendRewardPool(newEndBlock, rewardPerBlock, lmcAddress);
+				   
+
+                    let rewardsBalanceFinal = await rewardTokenInstance.balanceOf(LmcContract.contractAddress)
+                    let finalEndBlock = await LmcContract.endBlock();
+                    let finalRewardPerBlock = await LmcContract.rewardPerBlock(0);
+                    let amountToTransfer = rewardPerBlock[0].mul(blockExtension)
+
+                    assert(finalEndBlock.eq(newEndBlock), "The endblock is different");
+                    assert(finalRewardPerBlock.eq(rewardPerBlock[0]), "The rewards amount is not correct");
+                    assert(rewardsBalanceFinal.eq((rewardsBalanceInitial.add(amountToTransfer))), "The transfered amount is not correct")
+
+                });
+
+                it("Should extend the rewards pool successfully with the half of the rate", async () => {
+
+					let rewardsPoolLength = await LMCFactoryInstance.getRewardsPoolNumber()
+					let lmcAddress = await LMCFactoryInstance.rewardsPools((rewardsPoolLength - 1))
+                    const LmcContract = await etherlime.ContractAt(RewardsPoolBase, lmcAddress);
+                    const rewardTokenInstance = rewardTokensInstances[0];
+                    let rewardsBalanceInitial = await rewardTokenInstance.balanceOf(LmcContract.contractAddress)
+
+                    let currentBlock = await deployer.provider.getBlock('latest');
+                    let blocksDelta = (endBlock-currentBlock.number);
+
+                    while (blocksDelta > 11) {
+                        await mineBlock(deployer.provider);
+                        currentBlock = await deployer.provider.getBlock('latest');
+                        blocksDelta = (endBlock-currentBlock.number);
+                    }
+                    let initialEndBlock = await LmcContract.endBlock();
+                    let blockExtension = 10
+                    let newEndBlock = initialEndBlock.add(blockExtension)
+                    currentBlock = await deployer.provider.getBlock('latest');
+
+
+                    let newRewardPerBlock = []
+                    for (i = 0; i < rewardTokensCount; i++) {
+                        let newSingleReward = rewardPerBlock[i].div(2)
+                        newRewardPerBlock.push(newSingleReward)
+          
+                    }
+                    await LMCFactoryInstance.extendRewardPool(newEndBlock, newRewardPerBlock, lmcAddress);
+
+                    let rewardsBalanceFinal = await rewardTokenInstance.balanceOf(LmcContract.contractAddress)
+                    let finalEndBlock = await LmcContract.endBlock();
+                    let finalRewardPerBlock = await LmcContract.rewardPerBlock(0);
+
+                    assert(finalEndBlock.eq(newEndBlock), "The endblock is different");
+                    assert(finalRewardPerBlock.eq(newRewardPerBlock[0]), "The rewards amount is not correct");
+                    assert(rewardsBalanceFinal.eq((rewardsBalanceInitial)), "The transfered amount is not correct")
+
+                });
+
+
+                it("Should extend the rewards pool successfully with the of the lower rate and return some money", async () => {
+
+					let rewardsPoolLength = await LMCFactoryInstance.getRewardsPoolNumber()
+					let lmcAddress = await LMCFactoryInstance.rewardsPools((rewardsPoolLength - 1))
+                    const LMCInstance = await etherlime.ContractAt(LMC, lmcAddress);
+                    const rewardTokenInstance = rewardTokensInstances[0];
+                    let rewardsBalanceInitial = await rewardTokenInstance.balanceOf(LMCInstance.contractAddress)
+                    let factoryBalanceInitial = await rewardTokenInstance.balanceOf(LMCFactoryInstance.contractAddress)
+
+                    let currentBlock = await deployer.provider.getBlock('latest');
+                    let blocksDelta = (endBlock-currentBlock.number);
+
+                    while (blocksDelta > 11) {
+                        await mineBlock(deployer.provider);
+                        currentBlock = await deployer.provider.getBlock('latest');
+                        blocksDelta = (endBlock-currentBlock.number);
+                    }
+                    let initialEndBlock = await LMCInstance.endBlock();
+                    let blockExtension = 10
+                    let newEndBlock = initialEndBlock.add(blockExtension)
+                    currentBlock = await deployer.provider.getBlock('latest');
+                    let amountToTransfer = []
+                    let newRewardPerBlock = []
+                    for (i = 0; i < rewardTokensCount; i++) {
+                        let newSingleReward = rewardPerBlock[i].div(5)
+                        newRewardPerBlock.push(newSingleReward)
+                        let currentRemainingReward = await LMCFactoryInstance.calculateRewardsAmount((currentBlock.number +1),endBlock,rewardPerBlock[i])
+                        let newRemainingReward = await LMCFactoryInstance.calculateRewardsAmount((currentBlock.number+1) ,newEndBlock,newSingleReward)
+                        amountToTransfer.push(currentRemainingReward.sub(newRemainingReward))
+                    }
+                    await LMCFactoryInstance.extendRewardPool(newEndBlock, newRewardPerBlock, lmcAddress);
+                    let rewardsBalanceFinal = await rewardTokenInstance.balanceOf(lmcAddress)
+                    let factoryBalanceFinal = await rewardTokenInstance.balanceOf(LMCFactoryInstance.contractAddress)
+                    let finalEndBlock = await LMCInstance.endBlock();
+                    let finalRewardPerBlock = await LMCInstance.rewardPerBlock(0);
+                    
+                    assert(finalEndBlock.eq(newEndBlock), "The endblock is different");
+                    assert(finalRewardPerBlock.eq(newRewardPerBlock[0]), "The rewards amount is not correct");
+                    assert(rewardsBalanceFinal.eq((rewardsBalanceInitial.sub(amountToTransfer[0]))), "The transfered amount is not correct")
+                    assert(factoryBalanceFinal.eq((factoryBalanceInitial.add(amountToTransfer[0]))), "The amount is not transferred to the factory")
+
+                });
+
+                it("Should fail trying to extend from not owner", async() => {
+                    let rewardsPoolAddress = await LMCFactoryInstance.rewardsPools(0)
+                    let newEndBlock = endBlock + 10
+                    await assert.revertWith(LMCFactoryInstance.from(bobAccount.signer.address).extendRewardPool(newEndBlock, rewardPerBlock, rewardsPoolAddress),"onlyOwner:: The caller is not the owner")
+                })
+			});
     });
 
-    
 });
