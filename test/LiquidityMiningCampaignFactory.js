@@ -9,7 +9,7 @@ const NonCompoundingRewardsPool = require('../build/NonCompoundingRewardsPool.js
 const LockScheme = require('../build/LockScheme.json');
 const PercentageCalculator = require('../build/PercentageCalculator.json')
 
-describe.only('LMC Factory', () => { // These tests must be skipped for coverage as coverage does not support optimizations
+describe('LMC Factory', () => { // These tests must be skipped for coverage as coverage does not support optimizations
     let aliceAccount = accounts[3];
     let bobAccount = accounts[4];
     let carolAccount = accounts[5];

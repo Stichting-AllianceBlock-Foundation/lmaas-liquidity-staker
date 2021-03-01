@@ -5,7 +5,7 @@ const TestERC20 = require('../build/TestERC20.json');
 const PercentageCalculator = require('../build/PercentageCalculator.json')
 const { mineBlock } = require('./utils')
 
-describe.only('LockScheme', () => {
+describe('LockScheme', () => {
     let aliceAccount = accounts[3];
     let bobAccount = accounts[4];
     let carolAccount = accounts[5];
