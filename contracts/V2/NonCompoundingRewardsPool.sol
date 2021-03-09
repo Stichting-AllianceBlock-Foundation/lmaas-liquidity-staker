@@ -7,8 +7,9 @@ import "./../pool-features/OnlyExitFeature.sol";
 import "./../pool-features/ThrottledExitFeature.sol";
 import "./../pool-features/StakeTransfererFeature.sol";
 import "./../pool-features/StakeReceiverFeature.sol";
+import "./../pool-features/TreasuryOperatedFeature.sol";
 
-contract NonCompoundingRewardsPool is RewardsPoolBase, OnlyExitFeature, ThrottledExitFeature, StakeTransfererFeature, StakeReceiverFeature {
+contract NonCompoundingRewardsPool is RewardsPoolBase, OnlyExitFeature, ThrottledExitFeature, StakeTransfererFeature, StakeReceiverFeature, TreasuryOperatedFeature {
 	constructor(
         IERC20Detailed _stakingToken,
         uint256 _startBlock,
@@ -17,10 +18,14 @@ contract NonCompoundingRewardsPool is RewardsPoolBase, OnlyExitFeature, Throttle
         uint256[] memory _rewardPerBlock,
 		uint256 _stakeLimit,
 		uint256 throttleRoundBlocks,
-		uint256 throttleRoundCap
+		uint256 throttleRoundCap,
+		address _treasury,
+		address _externalRewardToken
     ) public RewardsPoolBase(_stakingToken, _startBlock, _endBlock, _rewardsTokens, _rewardPerBlock, _stakeLimit) {
 		setLockEnd(_endBlock);
 		setThrottleParams(throttleRoundBlocks, throttleRoundCap, _endBlock);
+		setTreasury(_treasury);
+		setExternalRewardToken(_externalRewardToken);
 	}
 
 	function withdraw(uint256 _tokenAmount) public override(OnlyExitFeature, RewardsPoolBase) {
@@ -33,5 +38,13 @@ contract NonCompoundingRewardsPool is RewardsPoolBase, OnlyExitFeature, Throttle
 
 	function exit() public override(ThrottledExitFeature, RewardsPoolBase) {
 		ThrottledExitFeature.exit();
+	}
+
+	function completeExit() virtual override(ThrottledExitFeature) public {
+		ExitInfo storage info = exitInfo[msg.sender];
+		uint256 exitReward = info.rewards[0];
+		uint256 balanceOfRewardToken = IERC20Detailed(rewardsTokens[0]).balanceOf(address(this));
+		claimExternalRewards(exitReward, balanceOfRewardToken);
+		ThrottledExitFeature.completeExit();
 	}
 }
