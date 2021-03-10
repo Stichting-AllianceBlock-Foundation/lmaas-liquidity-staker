@@ -104,7 +104,7 @@ describe('StakeTransfer', () => {
 		await StakeTransfererInstance.stake(standardStakingAmount);
 	});
 
-	it.only("Should exit to another contract", async() => {
+	it("Should exit to another contract", async() => {
 		await mineBlock(deployer.provider);
 
 		const userInitialBalanceStaking = await stakingTokenInstance.balanceOf(aliceAccount.signer.address);

@@ -20,6 +20,7 @@ contract LiquidityMiningCampaignFactory is AbstractPoolsFactory, StakeTransferEn
 		address indexed rewardsPoolAddress,
 		address indexed stakingToken
 	);
+	
 
 	/* ========== Permissioned FUNCTIONS ========== */
 

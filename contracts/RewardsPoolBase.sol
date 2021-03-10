@@ -550,4 +550,10 @@ contract RewardsPoolBase is ReentrancyGuard {
 
         return _rewardPerBlock.mul(rewardsPeriod);
     }
+
+    /** @dev Helper function to get the reward tokens count.
+     */
+    function getRewardTokensCount() public view returns (uint256) {
+        return rewardsTokens.length;
+    }
 }

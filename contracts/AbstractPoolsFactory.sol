@@ -3,9 +3,12 @@ pragma solidity 0.6.12;
 
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import "./interfaces/IRewardsPoolBase.sol";
+import "./SafeERC20Detailed.sol";
+import "./interfaces/IERC20Detailed.sol";
 
 abstract contract AbstractPoolsFactory {
     using SafeMath for uint256;
+    using SafeERC20Detailed for IERC20Detailed;
 
     /** @dev all rewards pools
      */
@@ -15,6 +18,7 @@ abstract contract AbstractPoolsFactory {
 
     event ownershipTransferProposed(address indexed _oldOwner, address indexed _newOwner);
     event ownershipTransferred(address indexed _newOwner);
+    event RewardsWithdrawn(address rewardsToken, uint256 amount);
 
     constructor() public {
         owner = msg.sender;
@@ -78,4 +82,15 @@ abstract contract AbstractPoolsFactory {
 		IRewardsPoolBase pool = IRewardsPoolBase(rewardsPoolAddress);
 		pool.withdrawLPRewards(recipient, lpTokenContract);
 	}
+
+    /** @dev Function to withdraw any rewards leftover, mainly from extend with lower rate.
+     * @param _rewardsToken The address of the rewards to be withdrawn.
+     */
+    function withdrawRewardsLeftovers(address _rewardsToken) external onlyOwner {
+
+        uint256 contractBalance = IERC20Detailed(_rewardsToken).balanceOf(address(this));
+        IERC20Detailed(_rewardsToken).safeTransfer(msg.sender,contractBalance );
+
+        emit RewardsWithdrawn(_rewardsToken,contractBalance);
+    }
 }

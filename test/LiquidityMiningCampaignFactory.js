@@ -199,7 +199,7 @@ describe('LMC Factory', () => { // These tests must be skipped for coverage as c
             });
         });
 
-		describe.only('Extending Rewards', async function () {
+		describe('Extending Rewards', async function () {
             beforeEach(async () => {
                 for (i = 0; i < rewardTokensAddresses.length; i++) {
                     await rewardTokensInstances[i].transfer(LMCFactoryInstance.contractAddress, amountToTransfer);
@@ -211,7 +211,7 @@ describe('LMC Factory', () => { // These tests must be skipped for coverage as c
                 let rewardsPeriod = endBlock.sub(startBlock);
                 return rewardsPerBlock*(rewardsPeriod)
              }
-                it.only("Should extend the rewards pool successfully with the same rate", async () => {
+                it("Should extend the rewards pool successfully with the same rate", async () => {
 
 					let rewardsPoolLength = await LMCFactoryInstance.getRewardsPoolNumber()
 					let lmcAddress = await LMCFactoryInstance.rewardsPools((rewardsPoolLength - 1))

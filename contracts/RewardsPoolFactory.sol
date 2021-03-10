@@ -17,7 +17,7 @@ contract RewardsPoolFactory is AbstractPoolsFactory {
         address indexed rewardsPoolAddress,
         address indexed stakingToken
     );
-
+    
     /* ========== Permissioned FUNCTIONS ========== */
 
     /** @dev Deploy a reward pool base contract for the staking token, with the given parameters.

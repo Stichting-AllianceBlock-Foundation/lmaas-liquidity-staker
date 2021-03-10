@@ -326,6 +326,21 @@ describe('RewardsPoolFactory', () => {
 
                     await assert.revert(RewardsPoolFactoryInstance.withdrawLPRewards(bobAccount.signer.address,carolAccount.signer.address,lptokenAddress ));
 				});
+
+                it("Should withdraw leftover rewards", async () => {
+
+                    let initialContractBalance = await lpContractInstance.balanceOf(RewardsPoolFactoryInstance.contractAddress);
+                    let initialUserBalance = await lpContractInstance.balanceOf(aliceAccount.signer.address);
+
+                    await RewardsPoolFactoryInstance.withdrawRewardsLeftovers(lpContractInstance.contractAddress);
+
+                    let finalUserBalance = await lpContractInstance.balanceOf(aliceAccount.signer.address);
+                    let finalContractBalance = await lpContractInstance.balanceOf(RewardsPoolFactoryInstance.contractAddress);
+
+                    assert(finalContractBalance.eq(0), "Contract balance was not updated properly");
+                    assert(finalUserBalance.eq(initialUserBalance.add(initialContractBalance)), "User balance was not updated properly");
+				});
+				
 				
 			});
 			

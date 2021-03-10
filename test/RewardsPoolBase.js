@@ -370,8 +370,11 @@ describe('RewardsPoolBase', () => {
 
 
 		const calculateRewardsAmount = async (startBlock, endBlock, rewardsPerBlock) => {
-			let rewardsPeriod = endBlock.sub(startBlock);
-			return rewardsPerBlock*(rewardsPeriod)
+			let rewardsPeriod = endBlock - startBlock;
+			let amount = rewardsPerBlock*(rewardsPeriod)
+			let rewardsAmount = await ethers.utils.parseEther(amount.toString())
+			
+			return rewardsAmount
 		 }
 
 		it("Should extend the periods and update the reward per block", async() => {
@@ -391,9 +394,11 @@ describe('RewardsPoolBase', () => {
 
 				let parsedReward = await ethers.utils.parseEther(`${i+2}`);
 				newRewardsPerBlock.push(parsedReward);
+				let currentRewardsPerBlock = await RewardsPoolBaseInstance.rewardPerBlock(i)
+				
 
-				currentRemainingRewards.push(await calculateRewardsAmount(currentBlock.number, currentEndBlock, RewardsPoolBaseInstance.rewardPerBlock(i)));
-            	newRemainingReward.push(await calculateRewardsAmount(currentBlock.number, newEndBlock, newRewardsPerBlock[i]));
+				currentRemainingRewards.push(await calculateRewardsAmount(currentBlock.number, currentEndBlock.toString(), currentRewardsPerBlock.toString()));
+            	newRemainingReward.push(await calculateRewardsAmount(currentBlock.number, newEndBlock.toString(), newRewardsPerBlock[i].toString()));
 			}
 			await RewardsPoolBaseInstance.extend(newEndBlock,newRewardsPerBlock,currentRemainingRewards,newRemainingReward);
 			let endBlock = await RewardsPoolBaseInstance.endBlock()
