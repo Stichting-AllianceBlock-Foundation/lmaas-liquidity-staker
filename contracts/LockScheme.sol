@@ -46,7 +46,7 @@ contract LockScheme is ReentrancyGuard {
 	) public {
 
 		require(_lmcContract != address(0x0), "constructor:: Invalid LMC address");
-		require(_rampUpPeriod >= _lockPeriod, "constructor:: Periods are not properly set");
+		require(_rampUpPeriod <= _lockPeriod, "constructor:: Periods are not properly set");
 		lockPeriod = _lockPeriod;
 		rampUpPeriod = _rampUpPeriod;
 		bonusPercent = _bonusPercent;

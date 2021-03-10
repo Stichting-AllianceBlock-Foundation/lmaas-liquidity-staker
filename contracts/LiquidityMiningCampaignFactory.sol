@@ -120,10 +120,10 @@ contract LiquidityMiningCampaignFactory is AbstractPoolsFactory, StakeTransferEn
 
             address rewardsToken = RewardsPoolBase(_rewardsPoolAddress).rewardsTokens(i);
 
-            if (newRemainingReward[i] > currentRemainingRewards[i]) {
+            // if (newRemainingReward[i] > currentRemainingRewards[i]) {
                 // Some more reward needs to be transferred to the rewards pool contract
                 IERC20Detailed(rewardsToken).safeTransfer(_rewardsPoolAddress, (newRemainingReward[i] - currentRemainingRewards[i]));
-            }
+            // }
         }
 
         RewardsPoolBase(_rewardsPoolAddress).extend(

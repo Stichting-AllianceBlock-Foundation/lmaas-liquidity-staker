@@ -5,7 +5,7 @@ const AutoStake = require('../build/AutoStake.json');
 const TestERC20 = require('../build/TestERC20.json');
 const { mineBlock } = require('./utils')
 
-describe.only('AutoStake', () => {
+describe('AutoStake', () => {
     let aliceAccount = accounts[3];
     let bobAccount = accounts[4];
     let carolAccount = accounts[5];
@@ -132,7 +132,6 @@ describe.only('AutoStake', () => {
 			await AutoStakingInstance.from(staker.signer).stake(standardStakingAmount);
 
 			await mineBlock(deployer.provider);
-
 			const accumulatedReward = await OneStakerRewardsPoolInstance.getUserAccumulatedReward(AutoStakingInstance.contractAddress, 0);
 			assert(accumulatedReward.eq(bOne), "The reward accrued was not 1 token");
 
@@ -181,13 +180,10 @@ describe.only('AutoStake', () => {
 				it("Should request exit successfully", async() => {
 					const currentBlock = await deployer.provider.getBlock('latest');
 					const blocksDelta = (endBlock-currentBlock.number);
-
 					for (let i=0; i<blocksDelta; i++) {
 						await mineBlock(deployer.provider);
 					}
-
 					await AutoStakingInstance.exit();
-
 					const userBalanceAfter = await AutoStakingInstance.balanceOf(staker.signer.address);
 					const userExitInfo = await AutoStakingInstance.exitInfo(staker.signer.address)
 

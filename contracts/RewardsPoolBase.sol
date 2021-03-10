@@ -134,8 +134,10 @@ contract RewardsPoolBase is ReentrancyGuard {
 
         for (uint256 i = 0; i < rewardsTokensLength; i++) {
             uint256 tokenDecimals = IERC20Detailed(rewardsTokens[i]).decimals();
+            uint256 tokenMultiplier = 10**tokenDecimals;
+
             uint256 totalDebt =
-                user.amountStaked.mul(accumulatedRewardMultiplier[i]).div(tokenDecimals); // Update user reward debt for each token
+                user.amountStaked.mul(accumulatedRewardMultiplier[i]).div(tokenMultiplier); // Update user reward debt for each token
             user.rewardDebt[i] = totalDebt;
         }
 
@@ -192,8 +194,9 @@ contract RewardsPoolBase is ReentrancyGuard {
 
         for (uint256 i = 0; i < rewardsTokensLength; i++) {
             uint256 tokenDecimals = IERC20Detailed(rewardsTokens[i]).decimals();
+            uint256 tokenMultiplier = 10**tokenDecimals;
             uint256 totalDebt =
-                user.amountStaked.mul(accumulatedRewardMultiplier[i]).div(tokenDecimals); // Update user reward debt for each token
+                user.amountStaked.mul(accumulatedRewardMultiplier[i]).div(tokenMultiplier); // Update user reward debt for each token
             user.rewardDebt[i] = totalDebt;
         }
 
@@ -260,9 +263,11 @@ contract RewardsPoolBase is ReentrancyGuard {
 
         for (uint256 i = 0; i < rewardsTokensLength; i++) {
             uint256 tokenDecimals = IERC20Detailed(rewardsTokens[i]).decimals();
+            uint256 tokenMultiplier = 10**tokenDecimals;
+
             uint256 newReward = blocksSinceLastReward.mul(rewardPerBlock[i]); // Get newly accumulated reward
             uint256 rewardMultiplierIncrease =
-                newReward.mul(tokenDecimals).div(totalStaked); // Calculate the multiplier increase
+                newReward.mul(tokenMultiplier).div(totalStaked); // Calculate the multiplier increase
             accumulatedRewardMultiplier[i] = accumulatedRewardMultiplier[i].add(
                 rewardMultiplierIncrease
             ); // Add the multiplier increase to the accumulated multiplier
@@ -350,9 +355,11 @@ contract RewardsPoolBase is ReentrancyGuard {
     {
         UserInfo storage user = userInfo[_userAddress];
         uint256 tokenDecimals = IERC20Detailed(rewardsTokens[tokenIndex]).decimals();
+        uint256 tokenMultiplier = 10**tokenDecimals;
+
         uint256 totalDebt =
             user.amountStaked.mul(accumulatedRewardMultiplier[tokenIndex]).div(
-                tokenDecimals
+                tokenMultiplier
             );
         uint256 pendingDebt = totalDebt.sub(user.rewardDebt[tokenIndex]);
         if (pendingDebt > 0) {
@@ -408,11 +415,13 @@ contract RewardsPoolBase is ReentrancyGuard {
         returns (uint256)
     {
         uint256 tokenDecimals = IERC20Detailed(rewardsTokens[tokenIndex]).decimals();
+        uint256 tokenMultiplier = 10**tokenDecimals;
+
         uint256 blocksSinceLastReward = _getBlock().sub(lastRewardBlock); // Overflow makes sure this is not called too early
     
         uint256 newReward =
             blocksSinceLastReward.mul(rewardPerBlock[tokenIndex]); // Get newly accumulated reward
-        uint256 rewardMultiplierIncrease = newReward.mul(tokenDecimals).div(totalStaked); // Calculate the multiplier increase
+        uint256 rewardMultiplierIncrease = newReward.mul(tokenMultiplier).div(totalStaked); // Calculate the multiplier increase
         uint256 currentMultiplier =
             accumulatedRewardMultiplier[tokenIndex].add(
                 rewardMultiplierIncrease
@@ -420,7 +429,7 @@ contract RewardsPoolBase is ReentrancyGuard {
 
         UserInfo storage user = userInfo[_userAddress];
 
-        uint256 totalDebt = user.amountStaked.mul(currentMultiplier).div(tokenDecimals); // Simulate the current debt
+        uint256 totalDebt = user.amountStaked.mul(currentMultiplier).div(tokenMultiplier); // Simulate the current debt
         uint256 pendingDebt = totalDebt.sub(user.rewardDebt[tokenIndex]); // Simulate the pending debt
         return user.tokensOwed[tokenIndex].add(pendingDebt);
     }

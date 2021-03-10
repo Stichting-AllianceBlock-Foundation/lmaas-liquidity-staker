@@ -84,13 +84,14 @@ contract AutoStake is ReentrancyGuard, StakeLock, ThrottledExit {
 
 
 		uint256 userStake = balanceOf(msg.sender);
+
 		if(userStake == 0) {
 			return;
 		}
 
 		// now we can transfer funds and burn shares
-
-		initiateExit(userStake, 1, new uint256[](0));
+		
+		initiateExit(userStake, 0, new uint256[](0));
 
 		totalShares = totalShares.sub(share[msg.sender]);
 		share[msg.sender] = 0;

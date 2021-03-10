@@ -104,7 +104,7 @@ describe('StakeTransfer', () => {
 		await StakeTransfererInstance.stake(standardStakingAmount);
 	});
 
-	it("Should exit to another contract", async() => {
+	it.only("Should exit to another contract", async() => {
 		await mineBlock(deployer.provider);
 
 		const userInitialBalanceStaking = await stakingTokenInstance.balanceOf(aliceAccount.signer.address);
@@ -120,6 +120,11 @@ describe('StakeTransfer', () => {
 		const userFinalBalanceStaking = await stakingTokenInstance.balanceOf(aliceAccount.signer.address);
 		const userInfoFinal = await StakeTransfererInstance.userInfo(aliceAccount.signer.address);
 		const finalTotalStkaedAmount = await StakeTransfererInstance.totalStaked();
+
+
+		console.log(userFinalBalanceRewards.toString())
+		console.log(userInitialBalanceRewards.toString())
+		console.log(userRewards.toString())
 
 
 		assert(userFinalBalanceRewards.eq(userInitialBalanceRewards.add(userRewards.add(userRewards))), "Rewards claim was not successful")

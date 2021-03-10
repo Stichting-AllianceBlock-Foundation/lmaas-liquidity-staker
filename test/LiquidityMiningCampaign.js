@@ -57,7 +57,6 @@ describe('LMC', () => {
 
 		for (i = 0; i < rewardTokensCount; i++) {
             const tknInst = await deployer.deploy(TestERC20, {}, amount);
-
             // populate tokens
             rewardTokensInstances.push(tknInst);
 			rewardTokensAddresses.push(tknInst.contractAddress);
@@ -101,6 +100,7 @@ describe('LMC', () => {
 			endBlock,
             rewardTokensAddresses,
             rewardPerBlock,
+			rewardTokensAddresses[0],
 			stakeLimit
 		);
 
@@ -323,7 +323,7 @@ describe('LMC', () => {
 				let bonus6 = await ethers.utils.parseEther("2.4")
 				let bonus3 =  await ethers.utils.parseEther("2.2")
 				const userFinalBalanceRewards = await rewardTokensInstances[0].balanceOf(aliceAccount.signer.address);
-				const userAccruedRewards = await LmcInstance.userAccruedRewads(aliceAccount.signer.address);
+				const userAccruedRewards = await LmcInstance.userAccruedRewards(aliceAccount.signer.address);
 
 				assert(contractFinalBalance.eq(contractInitialBalance.sub(bTen).sub(bTwenty)), "The balance of the contract was not incremented properly")
 				assert(userInfoLock3.balance.eq(bTwenty), "The transferred amount is not corrent");
@@ -367,7 +367,7 @@ describe('LMC', () => {
 				let bonus6 = await ethers.utils.parseEther("2.4")
 				let bonus3 =  await ethers.utils.parseEther("2.2")
 				const userFinalBalanceRewards = await rewardTokensInstances[0].balanceOf(aliceAccount.signer.address);
-				const userAccruedRewards = await LmcInstance.userAccruedRewads(aliceAccount.signer.address);
+				const userAccruedRewards = await LmcInstance.userAccruedRewards(aliceAccount.signer.address);
 
 				assert(contractFinalBalance.eq(contractInitialBalance.sub(bTen).sub(bTwenty)), "The balance of the contract was not incremented properly")
 				assert(userInfoLock3.balance.eq(bTwenty), "The transferred amount is not corrent");
@@ -394,6 +394,7 @@ describe('LMC', () => {
 					endBlock,
 					rewardTokensAddresses,
 					rewardPerBlock,
+					rewardTokensAddresses[0],
 					stakeLimit
 				);
 				
@@ -451,7 +452,7 @@ describe('LMC', () => {
 				let finalBalance = await NonCompoundingRewardsPoolInstance.balanceOf(aliceAccount.signer.address);
 				let totalStakedAmount = await NonCompoundingRewardsPoolInstance.totalStaked()
 				let userInfo = await NonCompoundingRewardsPoolInstance.userInfo(aliceAccount.signer.address)
-				const userAccruedRewards = await NewLmcInstance.userAccruedRewads(aliceAccount.signer.address);
+				const userAccruedRewards = await NewLmcInstance.userAccruedRewards(aliceAccount.signer.address);
 				assert(finalBalance.gt(initialBalance), "Staked amount is not correct");
 				assert(finalBalance.eq(userTokensOwedInitial.add(bonus)), "User rewards were not calculated properly");
 				assert(totalStakedAmount.eq(userTokensOwedInitial.add(bonus)), "Total Staked amount is not correct");

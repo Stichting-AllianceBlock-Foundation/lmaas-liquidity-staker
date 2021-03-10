@@ -106,7 +106,8 @@ describe('RewardsPoolBase', () => {
 
 	});
 
-	it("Should fail to deploy RewardsPoolBase with zero staking token address", async() => {
+	//This is covered from the factory
+	xit("Should fail to deploy RewardsPoolBase with zero staking token address", async() => {
 
 		await assert.revertWith(deployer.deploy(
 			RewardsPoolBase,
@@ -131,7 +132,7 @@ describe('RewardsPoolBase', () => {
             [],
             rewardPerBlock,
 			stakeLimit
-		), "Constructor::Rewards tokens are not provided")
+		), "Constructor::Rewards per block and rewards tokens must be with the same length.")
 	})
 
 	it("Should fail to deploy RewardsPoolBase with empty rewards per block array", async() => {
@@ -145,7 +146,7 @@ describe('RewardsPoolBase', () => {
             rewardTokensAddresses,
             [],
 			stakeLimit
-		), "Constructor::Rewards per block are not provided")
+		), "Constructor::Rewards per block and rewards tokens must be with the same length.")
 	})
 	
 	it("Should fail to deploy RewardsPoolBase if the start block is not in the future", async() => {
@@ -366,6 +367,13 @@ describe('RewardsPoolBase', () => {
 			assert.revertWith(RewardsPoolBaseInstance.withdraw(ethers.constants.MaxUint256),  "SafeMath: subtraction overflow");
 		})
 
+
+
+		const calculateRewardsAmount = async (startBlock, endBlock, rewardsPerBlock) => {
+			let rewardsPeriod = endBlock.sub(startBlock);
+			return rewardsPerBlock*(rewardsPeriod)
+		 }
+
 		it("Should extend the periods and update the reward per block", async() => {
 			await mineBlock(deployer.provider);
 
@@ -375,13 +383,19 @@ describe('RewardsPoolBase', () => {
 
 			const bigTwenty = ethers.utils.bigNumberify(20);
 			const newEndBlock = currentEndBlock.add(bigTwenty);
+			let currentRemainingRewards = []
+			let newRemainingReward = []
+			const currentBlock = await deployer.provider.getBlock('latest');
 			
 			for (i = 0; i < rewardTokensCount; i++) {
-	
+
 				let parsedReward = await ethers.utils.parseEther(`${i+2}`);
 				newRewardsPerBlock.push(parsedReward);
+
+				currentRemainingRewards.push(await calculateRewardsAmount(currentBlock.number, currentEndBlock, RewardsPoolBaseInstance.rewardPerBlock(i)));
+            	newRemainingReward.push(await calculateRewardsAmount(currentBlock.number, newEndBlock, newRewardsPerBlock[i]));
 			}
-			await RewardsPoolBaseInstance.extend(newEndBlock,newRewardsPerBlock);
+			await RewardsPoolBaseInstance.extend(newEndBlock,newRewardsPerBlock,currentRemainingRewards,newRemainingReward);
 			let endBlock = await RewardsPoolBaseInstance.endBlock()
 			let rewardPerBlock = await RewardsPoolBaseInstance.rewardPerBlock(0);
 
@@ -391,13 +405,17 @@ describe('RewardsPoolBase', () => {
 		})
 
 		it("Should fail extending the rewards pool if the end block is not in the future", async() => {
-			await assert.revertWith( RewardsPoolBaseInstance.extend(0,rewardPerBlock), "Extend::End block must be in the future")
+			let currentRemainingRewards = []
+			let newRemainingReward = []
+			await assert.revertWith( RewardsPoolBaseInstance.extend(0,rewardPerBlock,currentRemainingRewards,newRemainingReward), "Extend::End block must be in the future")
 		})
 
 		it("Should fail extentind the rewards pool if the end block is not greater than the previous", async() => {
 			let currentEndBlock = await RewardsPoolBaseInstance.endBlock()
 			let newEndBlock = currentEndBlock.sub(1)
-			await assert.revertWith( RewardsPoolBaseInstance.extend(newEndBlock,rewardPerBlock), "Extend::End block must be after the current end block")
+			let currentRemainingRewards = []
+			let newRemainingReward = []
+			await assert.revertWith( RewardsPoolBaseInstance.extend(newEndBlock,rewardPerBlock,currentRemainingRewards,newRemainingReward), "Extend::End block must be after the current end block")
 		})
 
 		it("Should fail extentind the rewards pool if the rewards per block arrays is with different length", async() => {
@@ -407,18 +425,22 @@ describe('RewardsPoolBase', () => {
 
 			const bigTwenty = ethers.utils.bigNumberify(20);
 			const newEndBlock = currentEndBlock.add(bigTwenty);
+			let currentRemainingRewards = []
+			let newRemainingReward = []
 
 			for (i = 0; i <= rewardTokensCount; i++) {
 	
 				let parsedReward = await ethers.utils.parseEther(`${i+2}`);
 				newRewardsPerBlock.push(parsedReward);
 			}
-			await assert.revertWith( RewardsPoolBaseInstance.extend(newEndBlock,newRewardsPerBlock), "Extend::Rewards amounts length is less than expected")
+			await assert.revertWith( RewardsPoolBaseInstance.extend(newEndBlock,newRewardsPerBlock,currentRemainingRewards,newRemainingReward), "Extend::Rewards amounts length is less than expected")
 		})
 
-		it("Should fail extending the rewards pool if the end block is not in the future", async() => {
+		it("Should fail extending the rewards pool the caller is not the factory", async() => {
 			let newEndBlock = endBlock + 10
-			await assert.revertWith( RewardsPoolBaseInstance.from(bobAccount.signer.address).extend(newEndBlock,rewardPerBlock), "Caller is not RewardsPoolFactory contract")
+			let currentRemainingRewards = []
+			let newRemainingReward = []
+			await assert.revertWith( RewardsPoolBaseInstance.from(bobAccount.signer.address).extend(newEndBlock,rewardPerBlock,currentRemainingRewards,newRemainingReward), "Caller is not RewardsPoolFactory contract")
 		})
 	})
 
