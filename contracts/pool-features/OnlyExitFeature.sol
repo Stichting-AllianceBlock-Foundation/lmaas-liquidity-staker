@@ -6,6 +6,8 @@ import "./../RewardsPoolBase.sol";
 
 abstract contract OnlyExitFeature is RewardsPoolBase {
 
+
+	//Without the passed argument the function is not overriden
 	function withdraw(uint256 _tokenAmount) public override virtual {
 		revert("OnlyExitFeature::cannot withdraw from this contract. Only exit.");
 	}

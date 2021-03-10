@@ -48,18 +48,6 @@ contract RewardsPoolBase is ReentrancyGuard {
         uint256 _stakeLimit
     ) public {
         require(
-            address(_stakingToken) != address(0),
-            "Constructor::Invalid staking token address"
-        );
-        require(
-            _rewardPerBlock.length > 0,
-            "Constructor::Rewards per block are not provided"
-        );
-        require(
-            _rewardsTokens.length > 0,
-            "Constructor::Rewards tokens are not provided"
-        );
-        require(
             _startBlock > _getBlock(),
             "Constructor::The starting block must be in the future."
         );
@@ -141,17 +129,22 @@ contract RewardsPoolBase is ReentrancyGuard {
 
         user.amountStaked = user.amountStaked.add(_tokenAmount);
         totalStaked = totalStaked.add(_tokenAmount);
+
+        uint256 rewardsTokensLength = rewardsTokens.length;
+
+        for (uint256 i = 0; i < rewardsTokensLength; i++) {
+            uint256 tokenDecimals = IERC20Detailed(rewardsTokens[i]).decimals();
+            uint256 totalDebt =
+                user.amountStaked.mul(accumulatedRewardMultiplier[i]).div(tokenDecimals); // Update user reward debt for each token
+            user.rewardDebt[i] = totalDebt;
+        }
+
         stakingToken.safeTransferFrom(
             address(chargeStaker ? staker : msg.sender),
             address(this),
             _tokenAmount
         );
-
-        for (uint256 i = 0; i < rewardsTokens.length; i++) {
-            uint256 totalDebt =
-                user.amountStaked.mul(accumulatedRewardMultiplier[i]).div(1e18); // Update user reward debt for each token
-            user.rewardDebt[i] = totalDebt;
-        }
+        
         emit Staked(staker, _tokenAmount);
     }
 
@@ -166,7 +159,9 @@ contract RewardsPoolBase is ReentrancyGuard {
         updateRewardMultipliers();
         updateUserAccruedReward(claimer);
 
-        for (uint256 i = 0; i < rewardsTokens.length; i++) {
+        uint256 rewardsTokensLength = rewardsTokens.length;
+
+        for (uint256 i = 0; i < rewardsTokensLength; i++) {
             uint256 reward = user.tokensOwed[i];
             user.tokensOwed[i] = 0;
             IERC20Detailed(rewardsTokens[i]).safeTransfer(claimer, reward);
@@ -193,13 +188,16 @@ contract RewardsPoolBase is ReentrancyGuard {
         user.amountStaked = user.amountStaked.sub(_tokenAmount);
         totalStaked = totalStaked.sub(_tokenAmount);
 
-        stakingToken.safeTransfer(address(withdrawer), _tokenAmount);
+        uint256 rewardsTokensLength = rewardsTokens.length;
 
-        for (uint256 i = 0; i < rewardsTokens.length; i++) {
+        for (uint256 i = 0; i < rewardsTokensLength; i++) {
+            uint256 tokenDecimals = IERC20Detailed(rewardsTokens[i]).decimals();
             uint256 totalDebt =
-                user.amountStaked.mul(accumulatedRewardMultiplier[i]).div(1e18); // Update user reward debt for each token
+                user.amountStaked.mul(accumulatedRewardMultiplier[i]).div(tokenDecimals); // Update user reward debt for each token
             user.rewardDebt[i] = totalDebt;
         }
+
+        stakingToken.safeTransfer(address(withdrawer), _tokenAmount);
 
         emit Withdrawn(withdrawer, _tokenAmount);
     }
@@ -247,7 +245,7 @@ contract RewardsPoolBase is ReentrancyGuard {
 
         uint256 applicableBlock = (currentBlock < endBlock) ? currentBlock : endBlock;
 
-        uint256 blocksSinceLastReward = applicableBlock.sub(lastRewardBlock);
+        uint256 blocksSinceLastReward = applicableBlock - lastRewardBlock;
 
         if(blocksSinceLastReward == 0) { // Nothing to update
             return;
@@ -258,10 +256,13 @@ contract RewardsPoolBase is ReentrancyGuard {
             return;
         }
 
-        for (uint256 i = 0; i < rewardsTokens.length; i++) {
+        uint256 rewardsTokensLength = rewardsTokens.length;
+
+        for (uint256 i = 0; i < rewardsTokensLength; i++) {
+            uint256 tokenDecimals = IERC20Detailed(rewardsTokens[i]).decimals();
             uint256 newReward = blocksSinceLastReward.mul(rewardPerBlock[i]); // Get newly accumulated reward
             uint256 rewardMultiplierIncrease =
-                newReward.mul(1e18).div(totalStaked); // Calculate the multiplier increase
+                newReward.mul(tokenDecimals).div(totalStaked); // Calculate the multiplier increase
             accumulatedRewardMultiplier[i] = accumulatedRewardMultiplier[i].add(
                 rewardMultiplierIncrease
             ); // Add the multiplier increase to the accumulated multiplier
@@ -282,9 +283,12 @@ contract RewardsPoolBase is ReentrancyGuard {
         if (user.amountStaked == 0) {
             return;
         }
+
+        uint256 rewardsTokensLength = rewardsTokens.length; 
+
         for (
             uint256 tokenIndex = 0;
-            tokenIndex < rewardsTokens.length;
+            tokenIndex < rewardsTokensLength;
             tokenIndex++
         ) {
             updateUserRewardForToken(_userAddress, tokenIndex);
@@ -302,9 +306,12 @@ contract RewardsPoolBase is ReentrancyGuard {
             // Already initialised
             return;
         }
+
+        uint256 rewardsTokensLength = rewardsTokens.length; 
+
         for (
             uint256 i = user.tokensOwed.length;
-            i < rewardsTokens.length;
+            i < rewardsTokensLength;
             i++
         ) {
             user.tokensOwed.push(0);
@@ -322,9 +329,12 @@ contract RewardsPoolBase is ReentrancyGuard {
             // Allready initialised
             return;
         }
+
+        uint256 rewardsTokensLength = rewardsTokens.length; 
+
         for (
             uint256 i = user.rewardDebt.length;
-            i < rewardsTokens.length;
+            i < rewardsTokensLength;
             i++
         ) {
             user.rewardDebt.push(0);
@@ -339,9 +349,10 @@ contract RewardsPoolBase is ReentrancyGuard {
         internal
     {
         UserInfo storage user = userInfo[_userAddress];
+        uint256 tokenDecimals = IERC20Detailed(rewardsTokens[tokenIndex]).decimals();
         uint256 totalDebt =
             user.amountStaked.mul(accumulatedRewardMultiplier[tokenIndex]).div(
-                1e18
+                tokenDecimals
             );
         uint256 pendingDebt = totalDebt.sub(user.rewardDebt[tokenIndex]);
         if (pendingDebt > 0) {
@@ -396,11 +407,12 @@ contract RewardsPoolBase is ReentrancyGuard {
         view
         returns (uint256)
     {
+        uint256 tokenDecimals = IERC20Detailed(rewardsTokens[tokenIndex]).decimals();
         uint256 blocksSinceLastReward = _getBlock().sub(lastRewardBlock); // Overflow makes sure this is not called too early
-
+    
         uint256 newReward =
             blocksSinceLastReward.mul(rewardPerBlock[tokenIndex]); // Get newly accumulated reward
-        uint256 rewardMultiplierIncrease = newReward.mul(1e18).div(totalStaked); // Calculate the multiplier increase
+        uint256 rewardMultiplierIncrease = newReward.mul(tokenDecimals).div(totalStaked); // Calculate the multiplier increase
         uint256 currentMultiplier =
             accumulatedRewardMultiplier[tokenIndex].add(
                 rewardMultiplierIncrease
@@ -408,7 +420,7 @@ contract RewardsPoolBase is ReentrancyGuard {
 
         UserInfo storage user = userInfo[_userAddress];
 
-        uint256 totalDebt = user.amountStaked.mul(currentMultiplier).div(1e18); // Simulate the current debt
+        uint256 totalDebt = user.amountStaked.mul(currentMultiplier).div(tokenDecimals); // Simulate the current debt
         uint256 pendingDebt = totalDebt.sub(user.rewardDebt[tokenIndex]); // Simulate the pending debt
         return user.tokensOwed[tokenIndex].add(pendingDebt);
     }
@@ -444,7 +456,7 @@ contract RewardsPoolBase is ReentrancyGuard {
         @param _endBlock  new end block for the rewards
         @param _rewardsPerBlock array with new rewards per block for each token 
      */
-    function extend(uint256 _endBlock, uint256[] memory _rewardsPerBlock)
+    function extend(uint256 _endBlock, uint256[] memory _rewardsPerBlock, uint256[] memory _currentRemainingRewards, uint256[] memory _newRemainingRewards)
         external
         virtual
         onlyFactory
@@ -464,26 +476,14 @@ contract RewardsPoolBase is ReentrancyGuard {
         updateRewardMultipliers();
 
         for (uint256 i = 0; i < _rewardsPerBlock.length; i++) {
-            uint256 currentRemainingReward =
-                calculateRewardsAmount(
-                    _getBlock(),
-                    endBlock,
-                    rewardPerBlock[i]
-                );
-            uint256 newRemainingReward =
-                calculateRewardsAmount(
-                    _getBlock(),
-                    _endBlock,
-                    _rewardsPerBlock[i]
-                );
 
             address rewardsToken = rewardsTokens[i];
 
-            if (currentRemainingReward > newRemainingReward) {
+            if (_currentRemainingRewards[i] > _newRemainingRewards[i]) {
                 // Some reward leftover needs to be returned
                 IERC20Detailed(rewardsToken).safeTransfer(
                     msg.sender,
-                    currentRemainingReward.sub(newRemainingReward)
+                    (_currentRemainingRewards[i] - _newRemainingRewards[i])
                 );
             }
 
@@ -511,7 +511,11 @@ contract RewardsPoolBase is ReentrancyGuard {
             "WithdrawLPRewards::There are no rewards from liquidity pools"
         );
 
-        for (uint256 i = 0; i < rewardsTokens.length; i++) {
+        require(lpTokenContract != address(stakingToken), "WithdrawLPRewards:: cannot withdraw from the LP tokens");
+
+        uint256 rewardsTokensLength = rewardsTokens.length; 
+
+        for (uint256 i = 0; i < rewardsTokensLength; i++) {
             require(
                 lpTokenContract != rewardsTokens[i],
                 "WithdrawLPRewards::Cannot withdraw from token rewards"

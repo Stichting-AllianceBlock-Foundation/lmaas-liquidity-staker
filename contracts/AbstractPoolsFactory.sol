@@ -11,6 +11,10 @@ abstract contract AbstractPoolsFactory {
      */
     address[] public rewardsPools;
     address public owner;
+    address internal pendingOwner;
+
+    event ownershipTransferProposed(address indexed _oldOwner, address indexed _newOwner);
+    event ownershipTransferred(address indexed _newOwner);
 
     constructor() public {
         owner = msg.sender;
@@ -23,7 +27,15 @@ abstract contract AbstractPoolsFactory {
 
     function transferOwnership(address newOwner) public onlyOwner {
         require(newOwner != address(0x0), "Cannot set owner to 0 address");
-        owner = newOwner;
+        pendingOwner = newOwner;
+        emit ownershipTransferProposed(msg.sender, owner);
+    }
+
+    function acceptOwnership() public {
+        require(msg.sender == pendingOwner, "Sender is different from proposed owner");
+
+        owner = pendingOwner;
+        emit ownershipTransferred(owner);
     }
 
     /** @dev Returns the total number of rewards pools.

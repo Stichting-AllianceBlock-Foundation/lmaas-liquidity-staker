@@ -32,8 +32,8 @@ contract RewardsPoolFactory is AbstractPoolsFactory {
         address _stakingToken,
         uint256 _startBlock,
         uint256 _endBlock,
-        address[] memory _rewardsTokens,
-        uint256[] memory _rewardPerBlock,
+        address[] calldata _rewardsTokens,
+        uint256[] calldata _rewardPerBlock,
         uint256 _stakeLimit
     ) external onlyOwner {
         require(
@@ -49,17 +49,7 @@ contract RewardsPoolFactory is AbstractPoolsFactory {
             "RewardsPoolFactory::deploy: RewardsTokens and RewardPerBlock should have a matching sizes"
         );
 
-        for (uint256 i = 0; i < _rewardsTokens.length; i++) {
-            require(
-                _rewardsTokens[i] != address(0),
-                "RewardsPoolFactory::deploy: Reward token address could not be invalid"
-            );
-            require(
-                _rewardPerBlock[i] != 0,
-                "RewardsPoolFactory::deploy: Reward per block must be greater than zero"
-            );
-        }
-         require(
+        require(
             _stakeLimit != 0,
             "RewardsPoolFactory::deploy: Stake limit must be more than 0"
         );
@@ -77,6 +67,15 @@ contract RewardsPoolFactory is AbstractPoolsFactory {
             );
 
         for (uint256 i = 0; i < _rewardsTokens.length; i++) {
+            require(
+                _rewardsTokens[i] != address(0),
+                "RewardsPoolFactory::deploy: Reward token address could not be invalid"
+            );
+            require(
+                _rewardPerBlock[i] != 0,
+                "RewardsPoolFactory::deploy: Reward per block must be greater than zero"
+            );
+
             uint256 rewardsAmount =
                 calculateRewardsAmount(
                     _startBlock,
@@ -106,22 +105,26 @@ contract RewardsPoolFactory is AbstractPoolsFactory {
 
         RewardsPoolBase pool = RewardsPoolBase(_rewardsPoolAddress);
         uint256 currentEndBlock = pool.endBlock();
+        uint256[] storage currentRemainingRewards;
+        uint256[] storage newRemainingReward;
 
         for (uint256 i = 0; i < _rewardsPerBlock.length; i++) {
-            uint256 currentRemainingReward = calculateRewardsAmount(block.number, currentEndBlock, pool.rewardPerBlock(i));
-            uint256 newRemainingReward = calculateRewardsAmount(block.number, _endBlock, _rewardsPerBlock[i]);
+            currentRemainingRewards.push(calculateRewardsAmount(block.number, currentEndBlock, pool.rewardPerBlock(i)));
+            newRemainingReward.push(calculateRewardsAmount(block.number, _endBlock, _rewardsPerBlock[i]));
 
             address rewardsToken = RewardsPoolBase(_rewardsPoolAddress).rewardsTokens(i);
 
-            if (newRemainingReward > currentRemainingReward) {
+            if (newRemainingReward[i] > currentRemainingRewards[i]) {
                 // Some more reward needs to be transferred to the rewards pool contract
-                IERC20Detailed(rewardsToken).safeTransfer(_rewardsPoolAddress, newRemainingReward.sub(currentRemainingReward));
+                IERC20Detailed(rewardsToken).safeTransfer(_rewardsPoolAddress, (newRemainingReward[i] - currentRemainingRewards[i]));
             }
         }
 
         RewardsPoolBase(_rewardsPoolAddress).extend(
             _endBlock,
-            _rewardsPerBlock
+            _rewardsPerBlock,
+            currentRemainingRewards,
+            newRemainingReward
         );
 
     }

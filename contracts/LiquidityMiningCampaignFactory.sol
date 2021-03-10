@@ -35,8 +35,9 @@ contract LiquidityMiningCampaignFactory is AbstractPoolsFactory, StakeTransferEn
 		address _stakingToken,
 		uint256 _startBlock,
 		uint256 _endBlock,
-		address[] memory _rewardsTokens,
-		uint256[] memory _rewardPerBlock,
+		address[] calldata _rewardsTokens,
+		uint256[] calldata _rewardPerBlock,
+		address _albtAddress,
 		uint256 _stakeLimit
 	) external onlyOwner {
 		require(
@@ -52,17 +53,7 @@ contract LiquidityMiningCampaignFactory is AbstractPoolsFactory, StakeTransferEn
 			"LiquidityMiningCampaignFactory::deploy: RewardsTokens and RewardPerBlock should have a matching sizes"
 		);
 
-		for (uint256 i = 0; i < _rewardsTokens.length; i++) {
-			require(
-				_rewardsTokens[i] != address(0),
-				"LiquidityMiningCampaignFactory::deploy: Reward token address could not be invalid"
-			);
-			require(
-				_rewardPerBlock[i] != 0,
-				"LiquidityMiningCampaignFactory::deploy: Reward per block must be greater than zero"
-			);
-		}
-		 require(
+		require(
 			_stakeLimit != 0,
 			"LiquidityMiningCampaignFactory::deploy: Stake limit must be more than 0"
 		);
@@ -75,11 +66,22 @@ contract LiquidityMiningCampaignFactory is AbstractPoolsFactory, StakeTransferEn
 					_endBlock,
 					_rewardsTokens,
 					_rewardPerBlock,
+					_albtAddress,
 					_stakeLimit
 				)
 			);
 
 		for (uint256 i = 0; i < _rewardsTokens.length; i++) {
+
+			require(
+				_rewardsTokens[i] != address(0),
+				"LiquidityMiningCampaignFactory::deploy: Reward token address could not be invalid"
+			);
+			require(
+				_rewardPerBlock[i] != 0,
+				"LiquidityMiningCampaignFactory::deploy: Reward per block must be greater than zero"
+			);
+
 			uint256 rewardsAmount =
 				calculateRewardsAmount(
 					_startBlock,
@@ -103,30 +105,42 @@ contract LiquidityMiningCampaignFactory is AbstractPoolsFactory, StakeTransferEn
      */
     function extendRewardPool(
         uint256 _endBlock,
-        uint256[] memory _rewardsPerBlock,
+        uint256[] calldata _rewardsPerBlock,
         address _rewardsPoolAddress
     ) external onlyOwner {
 
         RewardsPoolBase pool = RewardsPoolBase(_rewardsPoolAddress);
         uint256 currentEndBlock = pool.endBlock();
+		uint256[] storage currentRemainingRewards;
+        uint256[] storage newRemainingReward;
 
         for (uint256 i = 0; i < _rewardsPerBlock.length; i++) {
-            uint256 currentRemainingReward = calculateRewardsAmount(block.number, currentEndBlock, pool.rewardPerBlock(i));
-            uint256 newRemainingReward = calculateRewardsAmount(block.number, _endBlock, _rewardsPerBlock[i]);
+            currentRemainingRewards.push(calculateRewardsAmount(block.number, currentEndBlock, pool.rewardPerBlock(i)));
+            newRemainingReward.push(calculateRewardsAmount(block.number, _endBlock, _rewardsPerBlock[i]));
 
             address rewardsToken = RewardsPoolBase(_rewardsPoolAddress).rewardsTokens(i);
 
-            if (newRemainingReward > currentRemainingReward) {
+            if (newRemainingReward[i] > currentRemainingRewards[i]) {
                 // Some more reward needs to be transferred to the rewards pool contract
-                IERC20Detailed(rewardsToken).safeTransfer(_rewardsPoolAddress, newRemainingReward.sub(currentRemainingReward));
+                IERC20Detailed(rewardsToken).safeTransfer(_rewardsPoolAddress, (newRemainingReward[i] - currentRemainingRewards[i]));
             }
         }
 
         RewardsPoolBase(_rewardsPoolAddress).extend(
             _endBlock,
-            _rewardsPerBlock
+            _rewardsPerBlock,
+			currentRemainingRewards,
+			newRemainingReward
         );
 
     }
+
+	function setLockSchemesToLMC(address[] memory _lockSchemes, address _rewardsPoolAddress) external onlyOwner() {
+		require(_rewardsPoolAddress != address(0x0), "setLockSchemesToLMC:: Invalid LMC address");
+		require(_lockSchemes.length != 0, "setLockSchemesToLMC:: LockSchemes array can't be empty");
+		LiquidityMiningCampaign pool = LiquidityMiningCampaign(_rewardsPoolAddress);
+
+		pool.setLockSchemes(_lockSchemes);
+	}
 
 }

@@ -23,22 +23,23 @@ abstract contract StakeTransfererFeature is OnlyExitFeature, StakeTransferer {
 	function exitAndTransfer(address transferTo) virtual public override onlyWhitelistedReceiver(transferTo) nonReentrant {
 		UserInfo storage user = userInfo[msg.sender];
 		
-		updateRewardMultipliers(); // Update the accumulated multipliers for everyone
-
 		if (user.amountStaked == 0) {
 			return;
 		}
+		updateRewardMultipliers(); // Update the accumulated multipliers for everyone
+
+		uint256 userStakedAmount = user.amountStaked;
+		user.amountStaked = 0;
 
 		updateUserAccruedReward(msg.sender); // Update the accrued reward for this specific user
 
 		_claim(msg.sender);
 
-		stakingToken.safeApprove(transferTo, user.amountStaked);
+		stakingToken.safeApprove(transferTo, userStakedAmount);
 
-		StakeReceiver(transferTo).delegateStake(msg.sender, user.amountStaked);
+		StakeReceiver(transferTo).delegateStake(msg.sender, userStakedAmount);
 
-		totalStaked = totalStaked.sub(user.amountStaked);
-		user.amountStaked = 0;
+		totalStaked = totalStaked.sub(userStakedAmount);
 
 		for (uint256 i = 0; i < rewardsTokens.length; i++) {
 			user.tokensOwed[i] = 0;

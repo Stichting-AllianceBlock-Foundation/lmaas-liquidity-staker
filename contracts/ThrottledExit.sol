@@ -27,6 +27,7 @@ abstract contract ThrottledExit {
 	event ExitRequested(address user, uint256 exitBlock);
 	event ExitCompleted(address user, uint256 stake);
 
+
 	function setThrottleParams(uint256 _throttleRoundBlocks, uint256 _throttleRoundCap, uint256 throttleStart) internal {
 		require(_throttleRoundBlocks > 0, "setThrottle::throttle round blocks must be more than 0");
 		require(_throttleRoundCap > 0, "setThrottle::throttle round cap must be more than 0");
@@ -36,14 +37,14 @@ abstract contract ThrottledExit {
 		nextAvailableExitBlock = throttleStart.add(throttleRoundBlocks);
 	}
 
-	function initiateExit(uint256 amountStaked, address[] memory _rewardsTokens, uint256[] memory _tokensOwed) virtual internal {
-		initialiseExitInfo(msg.sender, _rewardsTokens.length);
+	function initiateExit(uint256 amountStaked, uint256 _rewardsTokensLength, uint256[] memory _tokensOwed) virtual internal {
+		initialiseExitInfo(msg.sender, _rewardsTokensLength);
 
 		ExitInfo storage info = exitInfo[msg.sender];
 		info.exitBlock = getAvailableExitTime(amountStaked);
 		info.exitStake = info.exitStake.add(amountStaked);
 
-		for (uint256 i = 0; i < _rewardsTokens.length; i++) {
+		for (uint256 i = 0; i < _rewardsTokensLength; i++) {
 			info.rewards[i] = info.rewards[i].add(_tokensOwed[i]);
         }
 
@@ -54,15 +55,20 @@ abstract contract ThrottledExit {
 		ExitInfo storage info = exitInfo[msg.sender];
 		require(block.number > info.exitBlock, "finalizeExit::Trying to exit too early");
 
-		IERC20Detailed(_stakingToken).safeTransfer(address(msg.sender), info.exitStake);
+		uint256 infoExitStake = info.exitStake;
+		info.exitStake = 0;
+
+		IERC20Detailed(_stakingToken).safeTransfer(address(msg.sender), infoExitStake);
 
 		for (uint256 i = 0; i < _rewardsTokens.length; i++) {
-			IERC20Detailed(_rewardsTokens[i]).safeTransfer(msg.sender, info.rewards[i]);
+
+			uint256 infoRewards = info.rewards[i];
 			info.rewards[i] = 0;
+			IERC20Detailed(_rewardsTokens[i]).safeTransfer(msg.sender, infoRewards);
         }
 
-		emit ExitCompleted(msg.sender, info.exitStake);
-		info.exitStake = 0;
+		emit ExitCompleted(msg.sender, infoExitStake);
+		
 	}
 
 	function getAvailableExitTime(uint256 exitAmount) internal returns(uint256 exitBlock) {

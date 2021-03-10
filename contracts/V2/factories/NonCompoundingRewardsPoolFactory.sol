@@ -12,8 +12,8 @@ contract NonCompoundingRewardsPoolFactory is AbstractPoolsFactory, StakeTransfer
     using SafeMath for uint256;
     using SafeERC20Detailed for IERC20Detailed;
 
-    address public treasury;
-	address public externalRewardToken;
+    address public immutable treasury;
+	address public immutable externalRewardToken;
 
 	constructor(address _treasury, address _externalRewardToken) public {
         require(
@@ -48,8 +48,8 @@ contract NonCompoundingRewardsPoolFactory is AbstractPoolsFactory, StakeTransfer
         address _stakingToken,
         uint256 _startBlock,
         uint256 _endBlock,
-        address[] memory _rewardsTokens,
-        uint256[] memory _rewardPerBlock,
+        address[] calldata _rewardsTokens,
+        uint256[] calldata _rewardPerBlock,
         uint256 _stakeLimit,
         uint256 _throttleRoundBlocks,
 		uint256 _throttleRoundCap
@@ -67,17 +67,7 @@ contract NonCompoundingRewardsPoolFactory is AbstractPoolsFactory, StakeTransfer
             "NonCompoundingRewardsPoolFactory::deploy: RewardsTokens and RewardPerBlock should have a matching sizes"
         );
 
-        for (uint256 i = 0; i < _rewardsTokens.length; i++) {
-            require(
-                _rewardsTokens[i] != address(0),
-                "NonCompoundingRewardsPoolFactory::deploy: Reward token address could not be invalid"
-            );
-            require(
-                _rewardPerBlock[i] != 0,
-                "NonCompoundingRewardsPoolFactory::deploy: Reward per block must be greater than zero"
-            );
-        }
-         require(
+        require(
             _stakeLimit != 0,
             "NonCompoundingRewardsPoolFactory::deploy: Stake limit must be more than 0"
         );
@@ -109,6 +99,16 @@ contract NonCompoundingRewardsPoolFactory is AbstractPoolsFactory, StakeTransfer
             );
 
         for (uint256 i = 0; i < _rewardsTokens.length; i++) {
+
+            require(
+                _rewardsTokens[i] != address(0),
+                "NonCompoundingRewardsPoolFactory::deploy: Reward token address could not be invalid"
+            );
+            require(
+                _rewardPerBlock[i] != 0,
+                "NonCompoundingRewardsPoolFactory::deploy: Reward per block must be greater than zero"
+            );
+
             uint256 rewardsAmount =
                 calculateRewardsAmount(
                     _startBlock,

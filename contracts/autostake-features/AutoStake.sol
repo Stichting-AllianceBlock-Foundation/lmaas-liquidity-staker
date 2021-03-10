@@ -18,21 +18,20 @@ contract AutoStake is ReentrancyGuard, StakeLock, ThrottledExit {
 	using SafeERC20Detailed for IERC20Detailed;
 
 	IRewardsPoolBase public rewardPool;
-	IERC20Detailed public stakingToken;
-	address public factory;
-	uint256 public unit = 1e18;
+	IERC20Detailed public immutable stakingToken;
+	address public immutable factory;
+	uint256 public constant unit = 1e18;
 	uint256 public valuePerShare = unit;
-	uint256 public totalShares = 0;
-	uint256 public totalValue = 0;
-	uint256 public exitStake = 0;
+	uint256 public totalShares; 
+	uint256 public totalValue;
+	uint256 public exitStake;
 	mapping(address => uint256) public share;
 
 	event Staked(address indexed user, uint256 amount, uint256 sharesIssued, uint256 oldShareVaule, uint256 newShareValue, uint256 balanceOf);
 
-	constructor(address token, uint256 _throttleRoundBlocks, uint256 _throttleRoundCap, uint256 stakeEnd) public {
+	constructor(address token, uint256 _throttleRoundBlocks, uint256 _throttleRoundCap, uint256 stakeEnd) StakeLock(stakeEnd) public {
 		factory = msg.sender;
 		stakingToken = IERC20Detailed(token);
-		setLockEnd(stakeEnd);
 		setThrottleParams(_throttleRoundBlocks, _throttleRoundCap, stakeEnd);
 	}
 
@@ -91,7 +90,7 @@ contract AutoStake is ReentrancyGuard, StakeLock, ThrottledExit {
 
 		// now we can transfer funds and burn shares
 
-		initiateExit(userStake, new address[](0), new uint256[](0));
+		initiateExit(userStake, 1, new uint256[](0));
 
 		totalShares = totalShares.sub(share[msg.sender]);
 		share[msg.sender] = 0;
@@ -133,9 +132,12 @@ contract AutoStake is ReentrancyGuard, StakeLock, ThrottledExit {
 	function restakeIntoRewardPool() internal {
 		if(stakingToken.balanceOf(address(this)) != 0){
 			// stake back to the pool
+
+			uint256 balanceToRestake = stakingToken.balanceOf(address(this)).sub(exitStake);
+
 			stakingToken.safeApprove(address(rewardPool), 0);
-			stakingToken.safeApprove(address(rewardPool), stakingToken.balanceOf(address(this)));
-			rewardPool.stake(stakingToken.balanceOf(address(this)));
+			stakingToken.safeApprove(address(rewardPool), balanceToRestake);
+			rewardPool.stake(balanceToRestake);
 		}
 	}
 

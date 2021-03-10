@@ -15,10 +15,10 @@ contract Treasury is Ownable {
 	using SafeMath for uint256;
     using SafeERC20Detailed for IERC20Detailed;
 
-	address public externalRewardToken;
+	address public immutable externalRewardToken;
 
 	mapping(address => uint256) public liquidityDrawn;
-	IUniswapV2Router public uniswapRouter;
+	IUniswapV2Router public immutable uniswapRouter;
 	
 	constructor(address _uniswapRouter, address _externalRewardToken) public {
 		require(_uniswapRouter != address(0x0), "Treasury:: Uniswap router cannot be 0");
@@ -39,8 +39,11 @@ contract Treasury is Ownable {
 		require(rewardPools.length == externalRewards.length, "returnLiquidity:: pools and external tokens do not match");
 		for (uint256 i = 0; i < rewardPools.length; i++) {
 			address stakingToken = IRewardsPoolBase(rewardPools[i]).stakingToken();
-			IERC20Detailed(stakingToken).safeTransfer(rewardPools[i], liquidityDrawn[rewardPools[i]]);
+			
+			uint256 drawnLiquidity = liquidityDrawn[rewardPools[i]];
 			liquidityDrawn[rewardPools[i]] = 0;
+			IERC20Detailed(stakingToken).safeTransfer(rewardPools[i], drawnLiquidity);
+			
 			if(externalRewards[i] == 0) {
 				continue;
 			}

@@ -5,7 +5,7 @@ const AutoStake = require('../build/AutoStake.json');
 const TestERC20 = require('../build/TestERC20.json');
 const { mineBlock } = require('./utils')
 
-describe('AutoStake', () => {
+describe.only('AutoStake', () => {
     let aliceAccount = accounts[3];
     let bobAccount = accounts[4];
     let carolAccount = accounts[5];
