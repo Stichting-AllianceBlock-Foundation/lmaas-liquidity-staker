@@ -7,16 +7,16 @@ const { mineBlock } = require('./utils')
 
 describe('ThrottledExitFeature', () => {
 
-    let aliceAccount = accounts[3];
-    let bobAccount = accounts[4];
-    let carolAccount = accounts[5];
-    let deployer;
+	let aliceAccount = accounts[3];
+	let bobAccount = accounts[4];
+	let carolAccount = accounts[5];
+	let deployer;
 
-    let ThrottledExitFeatureInstance;
-    let stakingTokenAddress;
+	let ThrottledExitFeatureInstance;
+	let stakingTokenAddress;
 
-    let rewardTokensInstances;
-    let rewardTokensAddresses;
+	let rewardTokensInstances;
+	let rewardTokensAddresses;
 	let rewardPerBlock;
 
 	let startBlock;
@@ -25,8 +25,8 @@ describe('ThrottledExitFeature', () => {
 	let throttleRoundCap = ethers.utils.parseEther("1");
 
 
-    const rewardTokensCount = 1; // 5 rewards tokens for tests
-    const day = 60 * 24 * 60;
+	const rewardTokensCount = 1; // 5 rewards tokens for tests
+	const day = 60 * 24 * 60;
 	const amount = ethers.utils.parseEther("5184000");
 	const stakeLimit = amount;
 	const bOne = ethers.utils.parseEther("1");
@@ -35,19 +35,19 @@ describe('ThrottledExitFeature', () => {
 
 	const setupRewardsPoolParameters = async (deployer) => {
 		rewardTokensInstances = [];
-        rewardTokensAddresses = [];
+		rewardTokensAddresses = [];
 		rewardPerBlock = [];
 		for (i = 0; i < rewardTokensCount; i++) {
-            const tknInst = await deployer.deploy(TestERC20, {}, amount);
+			const tknInst = await deployer.deploy(TestERC20, {}, amount);
 
-            // populate tokens
-            rewardTokensInstances.push(tknInst);
+			// populate tokens
+			rewardTokensInstances.push(tknInst);
 			rewardTokensAddresses.push(tknInst.contractAddress);
 
 			// populate amounts
-			let parsedReward = await ethers.utils.parseEther(`${i+1}`);
-            rewardPerBlock.push(parsedReward);
-        }
+			let parsedReward = await ethers.utils.parseEther(`${i + 1}`);
+			rewardPerBlock.push(parsedReward);
+		}
 
 		const currentBlock = await deployer.provider.getBlock('latest');
 		startBlock = currentBlock.number + 5;
@@ -57,43 +57,43 @@ describe('ThrottledExitFeature', () => {
 
 	const stake = async (_throttleRoundBlocks, _throttleRoundCap) => {
 		ThrottledExitFeatureInstance = await deployer.deploy(
-				ThrottledExitFeature,
-				{},
-				stakingTokenAddress,
-				startBlock,
-				endBlock,
-				rewardTokensAddresses,
-				rewardPerBlock,
-				stakeLimit,
-				_throttleRoundBlocks,
-				_throttleRoundCap
-			);
+			ThrottledExitFeature,
+			{},
+			stakingTokenAddress,
+			startBlock,
+			endBlock,
+			rewardTokensAddresses,
+			rewardPerBlock,
+			stakeLimit,
+			_throttleRoundBlocks,
+			_throttleRoundCap
+		);
 
-			await rewardTokensInstances[0].mint(ThrottledExitFeatureInstance.contractAddress,amount);
+		await rewardTokensInstances[0].mint(ThrottledExitFeatureInstance.contractAddress, amount);
 
-			await stakingTokenInstance.approve(ThrottledExitFeatureInstance.contractAddress, standardStakingAmount);
-			await stakingTokenInstance.from(bobAccount.signer).approve(ThrottledExitFeatureInstance.contractAddress, standardStakingAmount);
-			let currentBlock = await deployer.provider.getBlock('latest');
-			let blocksDelta = (startBlock-currentBlock.number);
+		await stakingTokenInstance.approve(ThrottledExitFeatureInstance.contractAddress, standardStakingAmount);
+		await stakingTokenInstance.from(bobAccount.signer).approve(ThrottledExitFeatureInstance.contractAddress, standardStakingAmount);
+		let currentBlock = await deployer.provider.getBlock('latest');
+		let blocksDelta = (startBlock - currentBlock.number);
 
-			for (let i=0; i<blocksDelta; i++) {
-				await mineBlock(deployer.provider);
-			}
-			await ThrottledExitFeatureInstance.stake(standardStakingAmount);
+		for (let i = 0; i < blocksDelta; i++) {
+			await mineBlock(deployer.provider);
+		}
+		await ThrottledExitFeatureInstance.stake(standardStakingAmount);
 
 
 	}
 
-	describe("Interaction Mechanics", async function() {
+	describe("Interaction Mechanics", async function () {
 
 		beforeEach(async () => {
 			deployer = new etherlime.EtherlimeGanacheDeployer(aliceAccount.secretKey);
-			
-			
+
+
 			stakingTokenInstance = await deployer.deploy(TestERC20, {}, amount);
-			await stakingTokenInstance.mint(aliceAccount.signer.address,amount);
-			await stakingTokenInstance.mint(bobAccount.signer.address,amount);
-			
+			await stakingTokenInstance.mint(aliceAccount.signer.address, amount);
+			await stakingTokenInstance.mint(bobAccount.signer.address, amount);
+
 
 			stakingTokenAddress = stakingTokenInstance.contractAddress;
 
@@ -102,7 +102,7 @@ describe('ThrottledExitFeature', () => {
 			await stake(throttleRoundBlocks, throttleRoundCap);
 		});
 
-		it("Should not claim or withdraw", async() => {
+		it("Should not claim or withdraw", async () => {
 
 			await mineBlock(deployer.provider);
 			const userInitialBalance = await rewardTokensInstances[0].balanceOf(aliceAccount.signer.address);
@@ -112,11 +112,11 @@ describe('ThrottledExitFeature', () => {
 			await assert.revertWith(ThrottledExitFeatureInstance.withdraw(bOne), "OnlyExitFeature::cannot withdraw from this contract. Only exit.");
 		})
 
-		it("Should request exit successfully", async() => {
+		it("Should request exit successfully", async () => {
 			const currentBlock = await deployer.provider.getBlock('latest');
-			const blocksDelta = (endBlock-currentBlock.number);
+			const blocksDelta = (endBlock - currentBlock.number);
 
-			for (let i=0; i<blocksDelta; i++) {
+			for (let i = 0; i < blocksDelta; i++) {
 				await mineBlock(deployer.provider);
 			}
 
@@ -127,7 +127,7 @@ describe('ThrottledExitFeature', () => {
 			const userRewards = await ThrottledExitFeatureInstance.getUserAccumulatedReward(aliceAccount.signer.address, 0);
 
 			await ThrottledExitFeatureInstance.exit();
-			
+
 			const userFinalBalanceRewards = await rewardTokensInstances[0].balanceOf(aliceAccount.signer.address);
 			const userTokensOwed = await ThrottledExitFeatureInstance.getUserOwedTokens(aliceAccount.signer.address, 0);
 			const userFinalBalanceStaking = await stakingTokenInstance.balanceOf(aliceAccount.signer.address);
@@ -148,11 +148,11 @@ describe('ThrottledExitFeature', () => {
 			assert(userRewards.eq(pendingReward), "User exit rewards are not updated properly");
 		})
 
-		it("Should not get twice reward on exit twice", async() => {
+		it("Should not get twice reward on exit twice", async () => {
 			const currentBlock = await deployer.provider.getBlock('latest');
-			const blocksDelta = (endBlock-currentBlock.number);
+			const blocksDelta = (endBlock - currentBlock.number);
 
-			for (let i=0; i<blocksDelta; i++) {
+			for (let i = 0; i < blocksDelta; i++) {
 				await mineBlock(deployer.provider);
 			}
 
@@ -164,7 +164,7 @@ describe('ThrottledExitFeature', () => {
 
 			await ThrottledExitFeatureInstance.exit();
 			await ThrottledExitFeatureInstance.exit();
-			
+
 			const userFinalBalanceRewards = await rewardTokensInstances[0].balanceOf(aliceAccount.signer.address);
 			const userTokensOwed = await ThrottledExitFeatureInstance.getUserOwedTokens(aliceAccount.signer.address, 0);
 			const userFinalBalanceStaking = await stakingTokenInstance.balanceOf(aliceAccount.signer.address);
@@ -186,16 +186,16 @@ describe('ThrottledExitFeature', () => {
 		})
 	})
 
-	describe("Cap and Rounds Mechanics", async function() {
+	describe("Cap and Rounds Mechanics", async function () {
 
 		beforeEach(async () => {
 			deployer = new etherlime.EtherlimeGanacheDeployer(aliceAccount.secretKey);
-			
-			
+
+
 			stakingTokenInstance = await deployer.deploy(TestERC20, {}, amount);
-			await stakingTokenInstance.mint(aliceAccount.signer.address,amount);
-			await stakingTokenInstance.mint(bobAccount.signer.address,amount);
-			
+			await stakingTokenInstance.mint(aliceAccount.signer.address, amount);
+			await stakingTokenInstance.mint(bobAccount.signer.address, amount);
+
 
 			stakingTokenAddress = stakingTokenInstance.contractAddress;
 
@@ -203,7 +203,7 @@ describe('ThrottledExitFeature', () => {
 
 		});
 
-		it("Should not change nextAvailableExitBlock before cap", async() => {
+		it("Should not change nextAvailableExitBlock before cap", async () => {
 
 			const _throttleRoundBlocks = 10;
 			const _throttleRoundCap = standardStakingAmount.mul(2);
@@ -211,14 +211,14 @@ describe('ThrottledExitFeature', () => {
 			await stake(_throttleRoundBlocks, _throttleRoundCap)
 
 			const currentBlock = await deployer.provider.getBlock('latest');
-			const blocksDelta = (endBlock-currentBlock.number);
+			const blocksDelta = (endBlock - currentBlock.number);
 
-			for (let i=0; i<blocksDelta; i++) {
+			for (let i = 0; i < blocksDelta; i++) {
 				await mineBlock(deployer.provider);
 			}
 
 			await ThrottledExitFeatureInstance.exit();
-			
+
 			const nextBlock = await ThrottledExitFeatureInstance.nextAvailableExitBlock();
 			assert(nextBlock.eq(endBlock + throttleRoundBlocks), "End block has changed but it should not have");
 
@@ -229,7 +229,7 @@ describe('ThrottledExitFeature', () => {
 			assert(userExitInfo.exitBlock.eq(nextBlock), "The exit block for the user was not set on the next block");
 		})
 
-		it("Should change nextAvailableExitBlock if cap is hit", async() => {
+		it("Should change nextAvailableExitBlock if cap is hit", async () => {
 
 			const _throttleRoundBlocks = 10;
 			const _throttleRoundCap = standardStakingAmount.mul(2);
@@ -239,17 +239,17 @@ describe('ThrottledExitFeature', () => {
 			await ThrottledExitFeatureInstance.from(bobAccount.signer).stake(standardStakingAmount);
 
 			const currentBlock = await deployer.provider.getBlock('latest');
-			const blocksDelta = (endBlock-currentBlock.number);
+			const blocksDelta = (endBlock - currentBlock.number);
 
-			for (let i=0; i<blocksDelta; i++) {
+			for (let i = 0; i < blocksDelta; i++) {
 				await mineBlock(deployer.provider);
 			}
 
 			await ThrottledExitFeatureInstance.exit();
 			await ThrottledExitFeatureInstance.from(bobAccount.signer).exit();
-			
+
 			const nextBlock = await ThrottledExitFeatureInstance.nextAvailableExitBlock();
-			assert(nextBlock.eq(endBlock + (throttleRoundBlocks*2)), "End block has changed incorrectly");
+			assert(nextBlock.eq(endBlock + (throttleRoundBlocks * 2)), "End block has changed incorrectly");
 
 			const volume = await ThrottledExitFeatureInstance.nextAvailableRoundExitVolume();
 			assert(volume.eq(0), "Exit volume was incorrect");
@@ -258,7 +258,7 @@ describe('ThrottledExitFeature', () => {
 			assert(userExitInfo.exitBlock.eq(endBlock + throttleRoundBlocks), "The exit block for the user was not set for the current block");
 		})
 
-		it("Should find next available", async() => {
+		it("Should find next available", async () => {
 
 			const _throttleRoundBlocks = 10;
 			const _throttleRoundCap = standardStakingAmount.mul(2);
@@ -268,16 +268,16 @@ describe('ThrottledExitFeature', () => {
 			await ThrottledExitFeatureInstance.from(bobAccount.signer).stake(standardStakingAmount);
 
 			const currentBlock = await deployer.provider.getBlock('latest');
-			const blocksDelta = (endBlock-currentBlock.number);
+			const blocksDelta = (endBlock - currentBlock.number);
 
-			for (let i=0; i<blocksDelta + _throttleRoundBlocks; i++) {
+			for (let i = 0; i < blocksDelta + _throttleRoundBlocks; i++) {
 				await mineBlock(deployer.provider);
 			}
 
 			await ThrottledExitFeatureInstance.exit();
-			
+
 			const nextBlock = await ThrottledExitFeatureInstance.nextAvailableExitBlock();
-			assert(nextBlock.eq(endBlock + (throttleRoundBlocks*2)), "End block has changed incorrectly");
+			assert(nextBlock.eq(endBlock + (throttleRoundBlocks * 2)), "End block has changed incorrectly");
 
 			const volume = await ThrottledExitFeatureInstance.nextAvailableRoundExitVolume();
 			assert(volume.eq(standardStakingAmount), "Exit volume was incorrect");
@@ -287,16 +287,16 @@ describe('ThrottledExitFeature', () => {
 		})
 	})
 
-	describe("Completing Exit", async function() {
+	describe("Completing Exit", async function () {
 
 		beforeEach(async () => {
 			deployer = new etherlime.EtherlimeGanacheDeployer(aliceAccount.secretKey);
-			
-			
+
+
 			stakingTokenInstance = await deployer.deploy(TestERC20, {}, amount);
-			await stakingTokenInstance.mint(aliceAccount.signer.address,amount);
-			await stakingTokenInstance.mint(bobAccount.signer.address,amount);
-			
+			await stakingTokenInstance.mint(aliceAccount.signer.address, amount);
+			await stakingTokenInstance.mint(bobAccount.signer.address, amount);
+
 
 			stakingTokenAddress = stakingTokenInstance.contractAddress;
 
@@ -305,24 +305,24 @@ describe('ThrottledExitFeature', () => {
 			await stake(throttleRoundBlocks, throttleRoundCap);
 		});
 
-		it("Should not complete early", async() => {
+		it("Should not complete early", async () => {
 			const currentBlock = await deployer.provider.getBlock('latest');
-			const blocksDelta = (endBlock-currentBlock.number);
+			const blocksDelta = (endBlock - currentBlock.number);
 
-			for (let i=0; i<blocksDelta; i++) {
+			for (let i = 0; i < blocksDelta; i++) {
 				await mineBlock(deployer.provider);
 			}
 
 			await ThrottledExitFeatureInstance.exit();
-			
+
 			await assert.revertWith(ThrottledExitFeatureInstance.completeExit(), "finalizeExit::Trying to exit too early");
 		})
 
-		it("Should complete succesfully", async() => {
+		it("Should complete succesfully", async () => {
 			const currentBlock = await deployer.provider.getBlock('latest');
-			const blocksDelta = (endBlock-currentBlock.number);
+			const blocksDelta = (endBlock - currentBlock.number);
 
-			for (let i=0; i<blocksDelta; i++) {
+			for (let i = 0; i < blocksDelta; i++) {
 				await mineBlock(deployer.provider);
 			}
 
@@ -334,12 +334,12 @@ describe('ThrottledExitFeature', () => {
 
 			await ThrottledExitFeatureInstance.exit();
 
-			for (let i=0; i<throttleRoundBlocks; i++) {
+			for (let i = 0; i < throttleRoundBlocks; i++) {
 				await mineBlock(deployer.provider);
 			}
 
 			await ThrottledExitFeatureInstance.completeExit();
-			
+
 			const userFinalBalanceRewards = await rewardTokensInstances[0].balanceOf(aliceAccount.signer.address);
 			const userTokensOwed = await ThrottledExitFeatureInstance.getUserOwedTokens(aliceAccount.signer.address, 0);
 			const userFinalBalanceStaking = await stakingTokenInstance.balanceOf(aliceAccount.signer.address);
