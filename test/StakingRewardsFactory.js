@@ -155,9 +155,11 @@ xdescribe('StakingRewardsFactory', () => {
                 });
 
                 it('Should start the staking reward completely', async () => {
-                    const stakingRewards = await stakingRewardsFactoryInstance.stakingRewardsByStakingToken(stakingTokenAddress);
-                    const stakingRewardsContract = await etherlime.ContractAt(StakingRewards, stakingRewards);
-                    const count = await stakingRewardsContract.getRewardsTokensCount();
+                    let info = await stakingRewardsFactoryInstance.stakingRewardsInfoByStakingToken(stakingTokenAddress);
+                    console.log(info)
+                    const stakingRewardsContract = await etherlime.ContractAt(StakingRewards, info.stakingRewards)
+                    const lastUpdateTimeBefore = await stakingRewardsContract.lastUpdateTime();
+                    const balanceBefore = await rewardTokenInstance.balanceOf(info.stakingRewards)
 
                     for (i = 0; i < count; i++) {
                         const addr = await stakingRewardsContract.rewardsTokensArr(i);
