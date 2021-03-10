@@ -73,13 +73,10 @@ abstract contract ThrottledExit {
 
 	function getAvailableExitTime(uint256 exitAmount) internal returns(uint256 exitBlock) {
 		if(block.number > nextAvailableExitBlock) { // We've passed the next available block and need to readjust
-			uint i = nextAvailableExitBlock; // Using i instead of nextAvailableExitBlock to avoid SSTORE
-			while(i < block.number) { // Find the next future round
-				i = i.add(throttleRoundBlocks);
-			}
-			nextAvailableExitBlock = i;
+			uint blocksFromCurrentRound = (block.number-nextAvailableExitBlock) % throttleRoundBlocks; // Find how many blocks have passed since last block should have started
+			nextAvailableExitBlock = block.number.sub(blocksFromCurrentRound).add(throttleRoundBlocks); // Find where the lst block should have started and add one round to find the next one
 			nextAvailableRoundExitVolume = exitAmount; // Reset volume
-			return i;
+			return nextAvailableExitBlock;
 		} else { // We are still before the next available block
 			nextAvailableRoundExitVolume = nextAvailableRoundExitVolume.add(exitAmount); // Add volume
 		}
@@ -87,7 +84,8 @@ abstract contract ThrottledExit {
 		exitBlock = nextAvailableExitBlock;
 
 		if (nextAvailableRoundExitVolume >= throttleRoundCap) { // If cap reached
-			nextAvailableExitBlock = nextAvailableExitBlock.add(throttleRoundBlocks); // update next exit block
+			nextAvailableExitBlock = nextAvailableExitBlock.add(throttleRoundBlocks); // update next exit block. 
+			// Note we know that this behaviour will lead to people exiting a bit more than the cap when the last user does not hit perfectly the cap. This is OK
 			nextAvailableRoundExitVolume = 0; // Reset volume
 		}
 	}
