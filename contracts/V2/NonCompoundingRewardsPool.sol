@@ -23,8 +23,6 @@ contract NonCompoundingRewardsPool is RewardsPoolBase, OnlyExitFeature, Throttle
 		address _externalRewardToken
     ) public RewardsPoolBase(_stakingToken, _startBlock, _endBlock, _rewardsTokens, _rewardPerBlock, _stakeLimit) TreasuryOperatedFeature(_externalRewardToken, _treasury) StakeLock(_endBlock) {
 		setThrottleParams(throttleRoundBlocks, throttleRoundCap, _endBlock);
-		setTreasury(_treasury);
-		setExternalRewardToken(_externalRewardToken);
 	}
 
 	function withdraw(uint256 _tokenAmount) public override(OnlyExitFeature, RewardsPoolBase) {
