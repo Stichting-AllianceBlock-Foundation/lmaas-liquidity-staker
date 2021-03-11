@@ -17,7 +17,7 @@ contract RewardsPoolFactory is AbstractPoolsFactory {
         address indexed rewardsPoolAddress,
         address indexed stakingToken
     );
-    
+
     /* ========== Permissioned FUNCTIONS ========== */
 
     /** @dev Deploy a reward pool base contract for the staking token, with the given parameters.
@@ -105,15 +105,13 @@ contract RewardsPoolFactory is AbstractPoolsFactory {
 
         RewardsPoolBase pool = RewardsPoolBase(_rewardsPoolAddress);
         uint256 currentEndBlock = pool.endBlock();
-  	    uint256[] memory currentRemainingRewards = new uint256[](_rewardsPerBlock.length);
-        uint256[] memory newRemainingRewards = new uint256[](_rewardsPerBlock.length);
+		uint256[] memory currentRemainingRewards = new uint256[](_rewardsPerBlock.length);
+		uint256[] memory newRemainingRewards = new uint256[](_rewardsPerBlock.length);
 
         for (uint256 i = 0; i < _rewardsPerBlock.length; i++) {
-			uint256 currentRemainingReward = calculateRewardsAmount(block.number, currentEndBlock, pool.rewardPerBlock(i));
-			uint256 newRemainingReward = calculateRewardsAmount(block.number, _endBlock, _rewardsPerBlock[i]);
 
-			currentRemainingRewards[i] = currentRemainingReward;
-			newRemainingRewards[i] = newRemainingReward;
+			currentRemainingRewards[i] = calculateRewardsAmount(block.number, currentEndBlock, pool.rewardPerBlock(i));
+			newRemainingRewards[i] = calculateRewardsAmount(block.number, _endBlock, _rewardsPerBlock[i]);
 
             address rewardsToken = RewardsPoolBase(_rewardsPoolAddress).rewardsTokens(i);
 

@@ -91,7 +91,6 @@ contract AutoStake is ReentrancyGuard, StakeLock, ThrottledExit, Ownable {
 		}
 
 		// now we can transfer funds and burn shares
-		
 		initiateExit(userStake, 0, new uint256[](0));
 
 		totalShares = totalShares.sub(share[msg.sender]);
