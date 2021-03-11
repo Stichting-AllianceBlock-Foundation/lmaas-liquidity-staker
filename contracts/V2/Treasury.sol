@@ -13,7 +13,7 @@ import "./../interfaces/IUniswapV2Router.sol";
 
 contract Treasury is Ownable {
 	using SafeMath for uint256;
-    using SafeERC20Detailed for IERC20Detailed;
+	using SafeERC20Detailed for IERC20Detailed;
 
 	address public immutable externalRewardToken;
 
@@ -53,28 +53,28 @@ contract Treasury is Ownable {
 	}
 
 	function addUniswapLiquidity(
-        address tokenA,
-        address tokenB,
-        uint256 amountADesired,
-        uint256 amountBDesired,
-        uint256 amountAMin,
-        uint256 amountBMin,
-        uint256 deadline
-    ) external onlyOwner returns (uint256 amountA, uint256 amountB, uint256 liquidity) {
+		address tokenA,
+		address tokenB,
+		uint256 amountADesired,
+		uint256 amountBDesired,
+		uint256 amountAMin,
+		uint256 amountBMin,
+		uint256 deadline
+	) external onlyOwner returns (uint256 amountA, uint256 amountB, uint256 liquidity) {
 		IERC20Detailed(tokenA).safeApprove(address(uniswapRouter), amountADesired);
 		IERC20Detailed(tokenB).safeApprove(address(uniswapRouter), amountBDesired);
 		return uniswapRouter.addLiquidity(tokenA, tokenB, amountADesired, amountBDesired, amountAMin, amountBMin, address(this), deadline);
 	}
-    
-    function removeUniswapLiquidity(
-        address tokenA,
-        address tokenB,
+	
+	function removeUniswapLiquidity(
+		address tokenA,
+		address tokenB,
 		address lpToken,
-        uint256 liquidity,
-        uint256 amountAMin,
-        uint256 amountBMin,
-        uint256 deadline
-    ) external onlyOwner returns (uint256 amountA, uint256 amountB) {
+		uint256 liquidity,
+		uint256 amountAMin,
+		uint256 amountBMin,
+		uint256 deadline
+	) external onlyOwner returns (uint256 amountA, uint256 amountB) {
 		IERC20Detailed(lpToken).safeApprove(address(uniswapRouter), liquidity);
 		return uniswapRouter.removeLiquidity(tokenA, tokenB, liquidity, amountAMin, amountBMin, address(this), deadline);
 	}

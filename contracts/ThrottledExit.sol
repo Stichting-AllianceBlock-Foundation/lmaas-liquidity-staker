@@ -17,10 +17,10 @@ abstract contract ThrottledExit {
 	uint256 public throttleRoundCap;
 
 	struct ExitInfo {
-        uint256 exitBlock;
-        uint256 exitStake;
-        uint256[] rewards;
-    }
+		uint256 exitBlock;
+		uint256 exitStake;
+		uint256[] rewards;
+	}
 
 	mapping(address => ExitInfo) public exitInfo;
 
@@ -46,7 +46,7 @@ abstract contract ThrottledExit {
 
 		for (uint256 i = 0; i < _rewardsTokensLength; i++) {
 			info.rewards[i] = info.rewards[i].add(_tokensOwed[i]);
-        }
+		}
 
 		emit ExitRequested(msg.sender, info.exitBlock);
 	}
@@ -65,7 +65,7 @@ abstract contract ThrottledExit {
 			uint256 infoRewards = info.rewards[i];
 			info.rewards[i] = 0;
 			IERC20Detailed(_rewardsTokens[i]).safeTransfer(msg.sender, infoRewards);
-        }
+		}
 
 		emit ExitCompleted(msg.sender, infoExitStake);
 		
@@ -98,14 +98,14 @@ abstract contract ThrottledExit {
 	function initialiseExitInfo(address _userAddress, uint256 tokensLength) private {
 		ExitInfo storage info = exitInfo[_userAddress];
 
-        if (info.rewards.length == tokensLength) {
-            // Already initialised
-            return;
-        }
+		if (info.rewards.length == tokensLength) {
+			// Already initialised
+			return;
+		}
 
-        for (uint256 i = info.rewards.length; i < tokensLength; i++) {
-            info.rewards.push(0);
-        }
+		for (uint256 i = info.rewards.length; i < tokensLength; i++) {
+			info.rewards.push(0);
+		}
 	}
 
 	

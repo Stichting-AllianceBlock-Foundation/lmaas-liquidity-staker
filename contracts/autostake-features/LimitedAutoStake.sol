@@ -16,7 +16,7 @@ contract LimitedAutoStake is AutoStake {
 	}
 
 	modifier onlyUnderStakeLimit(address staker, uint256 newStake) {
-        uint256 currentStake = balanceOf(staker);
+		uint256 currentStake = balanceOf(staker);
 		require(currentStake.add(newStake) <= stakeLimit, "onlyUnderStakeLimit::Stake limit reached");
 		_;
 	}

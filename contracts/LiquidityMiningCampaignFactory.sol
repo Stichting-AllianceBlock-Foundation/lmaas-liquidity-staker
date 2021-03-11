@@ -100,42 +100,42 @@ contract LiquidityMiningCampaignFactory is AbstractPoolsFactory, StakeTransferEn
 	}
 
 	/** @dev Function that will extend the rewards period, but not change the reward rate, for a given staking contract.
-     * @param _endBlock The new endblock for the rewards pool.
-     * @param _rewardsPerBlock Rewards per block .
-     * @param _rewardsPoolAddress The address of the RewardsPoolBase contract.
-     */
-    function extendRewardPool(
-        uint256 _endBlock,
-        uint256[] calldata _rewardsPerBlock,
-        address _rewardsPoolAddress
-    ) external onlyOwner {
+	 * @param _endBlock The new endblock for the rewards pool.
+	 * @param _rewardsPerBlock Rewards per block .
+	 * @param _rewardsPoolAddress The address of the RewardsPoolBase contract.
+	 */
+	function extendRewardPool(
+		uint256 _endBlock,
+		uint256[] calldata _rewardsPerBlock,
+		address _rewardsPoolAddress
+	) external onlyOwner {
 
 		RewardsPoolBase pool = RewardsPoolBase(_rewardsPoolAddress);
 		uint256 currentEndBlock = pool.endBlock();
 		uint256[] memory currentRemainingRewards = new uint256[](_rewardsPerBlock.length);
 		uint256[] memory newRemainingRewards = new uint256[](_rewardsPerBlock.length);
 
-        for (uint256 i = 0; i < _rewardsPerBlock.length; i++) {
+		for (uint256 i = 0; i < _rewardsPerBlock.length; i++) {
 
 			currentRemainingRewards[i] = calculateRewardsAmount(block.number, currentEndBlock, pool.rewardPerBlock(i));
 			newRemainingRewards[i] = calculateRewardsAmount(block.number, _endBlock, _rewardsPerBlock[i]);
 
-            address rewardsToken = RewardsPoolBase(_rewardsPoolAddress).rewardsTokens(i);
+			address rewardsToken = RewardsPoolBase(_rewardsPoolAddress).rewardsTokens(i);
 
-            if (newRemainingRewards[i] > currentRemainingRewards[i]) {
-                // Some more reward needs to be transferred to the rewards pool contract
-                IERC20Detailed(rewardsToken).safeTransfer(_rewardsPoolAddress, (newRemainingRewards[i] - currentRemainingRewards[i]));
-            }
-        }
+			if (newRemainingRewards[i] > currentRemainingRewards[i]) {
+				// Some more reward needs to be transferred to the rewards pool contract
+				IERC20Detailed(rewardsToken).safeTransfer(_rewardsPoolAddress, (newRemainingRewards[i] - currentRemainingRewards[i]));
+			}
+		}
 
-        RewardsPoolBase(_rewardsPoolAddress).extend(
-            _endBlock,
-            _rewardsPerBlock,
+		RewardsPoolBase(_rewardsPoolAddress).extend(
+			_endBlock,
+			_rewardsPerBlock,
 			currentRemainingRewards,
 			newRemainingRewards
-        );
+		);
 
-    }
+	}
 
 	function setLockSchemesToLMC(address[] memory _lockSchemes, address _rewardsPoolAddress) external onlyOwner() {
 		require(_rewardsPoolAddress != address(0x0), "setLockSchemesToLMC:: Invalid LMC address");

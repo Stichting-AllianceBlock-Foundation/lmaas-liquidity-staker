@@ -42,12 +42,12 @@ contract AutoStake is ReentrancyGuard, StakeLock, ThrottledExit, Ownable {
 	}
 
 	modifier onlyFactory() {
-        require(
-            msg.sender == factory,
-            "Caller is not the Factory contract"
-        );
-        _;
-    }
+		require(
+			msg.sender == factory,
+			"Caller is not the Factory contract"
+		);
+		_;
+	}
 
 	function refreshAutoStake() external {
 		exitRewardPool();

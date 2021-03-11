@@ -11,17 +11,17 @@ import "./../pool-features/TreasuryOperatedFeature.sol";
 
 contract NonCompoundingRewardsPool is RewardsPoolBase, OnlyExitFeature, ThrottledExitFeature, StakeTransfererFeature, StakeReceiverFeature, TreasuryOperatedFeature {
 	constructor(
-        IERC20Detailed _stakingToken,
-        uint256 _startBlock,
-        uint256 _endBlock,
-        address[] memory _rewardsTokens,
-        uint256[] memory _rewardPerBlock,
+		IERC20Detailed _stakingToken,
+		uint256 _startBlock,
+		uint256 _endBlock,
+		address[] memory _rewardsTokens,
+		uint256[] memory _rewardPerBlock,
 		uint256 _stakeLimit,
 		uint256 _throttleRoundBlocks,
 		uint256 _throttleRoundCap,
 		address _treasury,
 		address _externalRewardToken
-    ) public RewardsPoolBase(_stakingToken, _startBlock, _endBlock, _rewardsTokens, _rewardPerBlock, _stakeLimit) TreasuryOperatedFeature(_externalRewardToken, _treasury) StakeLock(_endBlock) {
+	) public RewardsPoolBase(_stakingToken, _startBlock, _endBlock, _rewardsTokens, _rewardPerBlock, _stakeLimit) TreasuryOperatedFeature(_externalRewardToken, _treasury) StakeLock(_endBlock) {
 		setThrottleParams(_throttleRoundBlocks, _throttleRoundCap, _endBlock);
 	}
 

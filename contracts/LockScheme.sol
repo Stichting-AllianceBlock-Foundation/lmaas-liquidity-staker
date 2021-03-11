@@ -61,10 +61,10 @@ contract LockScheme is ReentrancyGuard {
 
 		UserInfo storage user = userInfo[_userAddress];
 
-        if(user.lockInitialStakeBlock == 0) {
+		if(user.lockInitialStakeBlock == 0) {
 			user.lockInitialStakeBlock = block.number;
 		}
-        
+		
 		uint256 userLockStartBlock = user.lockInitialStakeBlock + rampUpPeriod;
 
 		require(userLockStartBlock > block.number , "lock::The ramp up period has finished");
