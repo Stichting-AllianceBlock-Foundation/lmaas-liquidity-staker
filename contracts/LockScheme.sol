@@ -87,7 +87,7 @@ contract LockScheme is ReentrancyGuard {
 		 
 		}
 		bonus = PercentageCalculator.percentageCalc(user.accruedReward,bonusPercent);
-		uint userLockEnd = user.lockInitialStakeBlock.add(lockPeriod);
+		uint256 userLockEnd = user.lockInitialStakeBlock.add(lockPeriod);
 
 		if(block.number < userLockEnd) {
 			forfeitedBonuses = forfeitedBonuses.add(bonus);
@@ -118,7 +118,7 @@ contract LockScheme is ReentrancyGuard {
 
 	function getUserBonus(address _userAddress) public view returns(uint256 bonus) {
 		UserInfo storage user = userInfo[_userAddress];
-		uint userLockEnd = user.lockInitialStakeBlock.add(lockPeriod);
+		uint256 userLockEnd = user.lockInitialStakeBlock.add(lockPeriod);
 
 		if(block.number < userLockEnd) {
 			return 0;

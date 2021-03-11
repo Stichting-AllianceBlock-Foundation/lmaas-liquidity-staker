@@ -73,7 +73,7 @@ abstract contract ThrottledExit {
 
 	function getAvailableExitTime(uint256 exitAmount) internal returns(uint256 exitBlock) {
 		if(block.number > nextAvailableExitBlock) { // We've passed the next available block and need to readjust
-			uint blocksFromCurrentRound = (block.number-nextAvailableExitBlock) % throttleRoundBlocks; // Find how many blocks have passed since last block should have started
+			uint256 blocksFromCurrentRound = (block.number-nextAvailableExitBlock) % throttleRoundBlocks; // Find how many blocks have passed since last block should have started
 			nextAvailableExitBlock = block.number.sub(blocksFromCurrentRound).add(throttleRoundBlocks); // Find where the lst block should have started and add one round to find the next one
 			nextAvailableRoundExitVolume = exitAmount; // Reset volume
 			return nextAvailableExitBlock;

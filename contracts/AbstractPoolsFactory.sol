@@ -16,8 +16,8 @@ abstract contract AbstractPoolsFactory {
     address public owner;
     address internal pendingOwner;
 
-    event ownershipTransferProposed(address indexed _oldOwner, address indexed _newOwner);
-    event ownershipTransferred(address indexed _newOwner);
+    event OwnershipTransferProposed(address indexed _oldOwner, address indexed _newOwner);
+    event OwnershipTransferred(address indexed _newOwner);
     event RewardsWithdrawn(address rewardsToken, uint256 amount);
 
     constructor() public {
@@ -32,14 +32,14 @@ abstract contract AbstractPoolsFactory {
     function transferOwnership(address newOwner) public onlyOwner {
         require(newOwner != address(0x0), "Cannot set owner to 0 address");
         pendingOwner = newOwner;
-        emit ownershipTransferProposed(msg.sender, owner);
+        emit OwnershipTransferProposed(msg.sender, owner);
     }
 
     function acceptOwnership() public {
         require(msg.sender == pendingOwner, "Sender is different from proposed owner");
 
         owner = pendingOwner;
-        emit ownershipTransferred(owner);
+        emit OwnershipTransferred(owner);
     }
 
     /** @dev Returns the total number of rewards pools.

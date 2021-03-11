@@ -59,7 +59,7 @@ contract LiquidityMiningCampaign is StakeTransferer, OnlyExitFeature  {
 		updateUserAccruedReward(_userAddress);
 
 		userRewards = user.tokensOwed[0];
-		uint lockSchemesLenght = lockSchemes.length;
+		uint256 lockSchemesLenght = lockSchemes.length;
 
 		for (uint256 i = 0; i < lockSchemesLenght; i++) {
 
@@ -92,7 +92,7 @@ contract LiquidityMiningCampaign is StakeTransferer, OnlyExitFeature  {
 		updateUserAccruedReward(_userAddress);
 
 		uint256 finalRewards = user.tokensOwed[0].sub(userAccruedRewards[_userAddress]);
-		uint lockSchemesLenght = lockSchemes.length;
+		uint256 lockSchemesLenght = lockSchemes.length;
 	
 		for (uint256 i = 0; i < lockSchemesLenght; i++) {
 			uint256 additionalRewards = calculateProportionalRewards(_userAddress, finalRewards, lockSchemes[i]);
@@ -135,7 +135,7 @@ contract LiquidityMiningCampaign is StakeTransferer, OnlyExitFeature  {
 		updateUserAccruedReward(_userAddress);
 
 		uint256 finalRewards = user.tokensOwed[0].sub(userAccruedRewards[_userAddress]);
-		uint lockSchemesLenght = lockSchemes.length;
+		uint256 lockSchemesLenght = lockSchemes.length;
 
 		userAccruedRewards[_userAddress] = 0;
 		uint256 userBonus;
