@@ -10,120 +10,124 @@ import "./RewardsPoolBase.sol";
 import "./AbstractPoolsFactory.sol";
 
 contract RewardsPoolFactory is AbstractPoolsFactory {
-    using SafeMath for uint256;
-    using SafeERC20Detailed for IERC20Detailed;
+	using SafeMath for uint256;
+	using SafeERC20Detailed for IERC20Detailed;
 
-    event RewardsPoolDeployed(
-        address indexed rewardsPoolAddress,
-        address indexed stakingToken
-    );
+	event RewardsPoolDeployed(
+		address indexed rewardsPoolAddress,
+		address indexed stakingToken
+	);
 
-    /* ========== Permissioned FUNCTIONS ========== */
+	/* ========== Permissioned FUNCTIONS ========== */
 
-    /** @dev Deploy a reward pool base contract for the staking token, with the given parameters.
-     * @param _stakingToken The address of the token being staked
-     * @param _startBlock The start block of the rewards pool
-     * @param _endBlock The end block of the rewards pool
-     * @param _rewardsTokens The addresses of the tokens the rewards will be paid in
-     * @param _rewardPerBlock Rewards per block
-     * @param _stakeLimit The stake limit per user
-     */
-    function deploy(
-        address _stakingToken,
-        uint256 _startBlock,
-        uint256 _endBlock,
-        address[] memory _rewardsTokens,
-        uint256[] memory _rewardPerBlock,
-        uint256 _stakeLimit
-    ) external onlyOwner {
-        require(
-            _stakingToken != address(0),
-            "RewardsPoolFactory::deploy: Staking token address can't be zero address"
-        );
-        require(
-            _rewardsTokens.length != 0,
-            "RewardsPoolFactory::deploy: RewardsTokens array could not be empty"
-        );
-        require(
-            _rewardsTokens.length == _rewardPerBlock.length,
-            "RewardsPoolFactory::deploy: RewardsTokens and RewardPerBlock should have a matching sizes"
-        );
+	/** @dev Deploy a reward pool base contract for the staking token, with the given parameters.
+	 * @param _stakingToken The address of the token being staked
+	 * @param _startBlock The start block of the rewards pool
+	 * @param _endBlock The end block of the rewards pool
+	 * @param _rewardsTokens The addresses of the tokens the rewards will be paid in
+	 * @param _rewardPerBlock Rewards per block
+	 * @param _stakeLimit The stake limit per user
+	 */
+	function deploy(
+		address _stakingToken,
+		uint256 _startBlock,
+		uint256 _endBlock,
+		address[] calldata _rewardsTokens,
+		uint256[] calldata _rewardPerBlock,
+		uint256 _stakeLimit
+	) external onlyOwner {
+		require(
+			_stakingToken != address(0),
+			"RewardsPoolFactory::deploy: Staking token address can't be zero address"
+		);
+		require(
+			_rewardsTokens.length != 0,
+			"RewardsPoolFactory::deploy: RewardsTokens array could not be empty"
+		);
+		require(
+			_rewardsTokens.length == _rewardPerBlock.length,
+			"RewardsPoolFactory::deploy: RewardsTokens and RewardPerBlock should have a matching sizes"
+		);
 
-        for (uint256 i = 0; i < _rewardsTokens.length; i++) {
-            require(
-                _rewardsTokens[i] != address(0),
-                "RewardsPoolFactory::deploy: Reward token address could not be invalid"
-            );
-            require(
-                _rewardPerBlock[i] != 0,
-                "RewardsPoolFactory::deploy: Reward per block must be greater than zero"
-            );
-        }
-         require(
-            _stakeLimit != 0,
-            "RewardsPoolFactory::deploy: Stake limit must be more than 0"
-        );
+		require(
+			_stakeLimit != 0,
+			"RewardsPoolFactory::deploy: Stake limit must be more than 0"
+		);
 
-        address rewardsPoolBase =
-            address(
-                new RewardsPoolBase(
-                    IERC20Detailed(_stakingToken),
-                    _startBlock,
-                    _endBlock,
-                    _rewardsTokens,
-                    _rewardPerBlock,
-                    _stakeLimit
-                )
-            );
+		address rewardsPoolBase =
+			address(
+				new RewardsPoolBase(
+					IERC20Detailed(_stakingToken),
+					_startBlock,
+					_endBlock,
+					_rewardsTokens,
+					_rewardPerBlock,
+					_stakeLimit
+				)
+			);
 
-        for (uint256 i = 0; i < _rewardsTokens.length; i++) {
-            uint256 rewardsAmount =
-                calculateRewardsAmount(
-                    _startBlock,
-                    _endBlock,
-                    _rewardPerBlock[i]
-                );
-            IERC20Detailed(_rewardsTokens[i]).safeTransfer(
-                rewardsPoolBase,
-                rewardsAmount
-            );
-        }
-        rewardsPools.push(rewardsPoolBase);
+		for (uint256 i = 0; i < _rewardsTokens.length; i++) {
+			require(
+				_rewardsTokens[i] != address(0),
+				"RewardsPoolFactory::deploy: Reward token address could not be invalid"
+			);
+			require(
+				_rewardPerBlock[i] != 0,
+				"RewardsPoolFactory::deploy: Reward per block must be greater than zero"
+			);
 
-        emit RewardsPoolDeployed(rewardsPoolBase, _stakingToken);
-    }
+			uint256 rewardsAmount =
+				calculateRewardsAmount(
+					_startBlock,
+					_endBlock,
+					_rewardPerBlock[i]
+				);
+			IERC20Detailed(_rewardsTokens[i]).safeTransfer(
+				rewardsPoolBase,
+				rewardsAmount
+			);
+		}
+		rewardsPools.push(rewardsPoolBase);
 
-    /** @dev Function that will extend the rewards period, but not change the reward rate, for a given staking contract.
-     * @param _endBlock The new endblock for the rewards pool.
-     * @param _rewardsPerBlock Rewards per block .
-     * @param _rewardsPoolAddress The address of the RewardsPoolBase contract.
-     */
-    function extendRewardPool(
-        uint256 _endBlock,
-        uint256[] memory _rewardsPerBlock,
-        address _rewardsPoolAddress
-    ) external onlyOwner {
+		emit RewardsPoolDeployed(rewardsPoolBase, _stakingToken);
+	}
 
-        RewardsPoolBase pool = RewardsPoolBase(_rewardsPoolAddress);
-        uint256 currentEndBlock = pool.endBlock();
+	/** @dev Function that will extend the rewards period, but not change the reward rate, for a given staking contract.
+	 * @param _endBlock The new endblock for the rewards pool.
+	 * @param _rewardsPerBlock Rewards per block .
+	 * @param _rewardsPoolAddress The address of the RewardsPoolBase contract.
+	 */
+	function extendRewardPool(
+		uint256 _endBlock,
+		uint256[] memory _rewardsPerBlock,
+		address _rewardsPoolAddress
+	) external onlyOwner {
 
-        for (uint256 i = 0; i < _rewardsPerBlock.length; i++) {
-            uint256 currentRemainingReward = calculateRewardsAmount(block.number, currentEndBlock, pool.rewardPerBlock(i));
-            uint256 newRemainingReward = calculateRewardsAmount(block.number, _endBlock, _rewardsPerBlock[i]);
+		RewardsPoolBase pool = RewardsPoolBase(_rewardsPoolAddress);
+		uint256 currentEndBlock = pool.endBlock();
+		uint256[] memory currentRemainingRewards = new uint256[](_rewardsPerBlock.length);
+		uint256[] memory newRemainingRewards = new uint256[](_rewardsPerBlock.length);
 
-            address rewardsToken = RewardsPoolBase(_rewardsPoolAddress).rewardsTokens(i);
+		for (uint256 i = 0; i < _rewardsPerBlock.length; i++) {
 
-            if (newRemainingReward > currentRemainingReward) {
-                // Some more reward needs to be transferred to the rewards pool contract
-                IERC20Detailed(rewardsToken).safeTransfer(_rewardsPoolAddress, newRemainingReward.sub(currentRemainingReward));
-            }
-        }
+			currentRemainingRewards[i] = calculateRewardsAmount(block.number, currentEndBlock, pool.rewardPerBlock(i));
+			newRemainingRewards[i] = calculateRewardsAmount(block.number, _endBlock, _rewardsPerBlock[i]);
 
-        RewardsPoolBase(_rewardsPoolAddress).extend(
-            _endBlock,
-            _rewardsPerBlock
-        );
+			address rewardsToken = RewardsPoolBase(_rewardsPoolAddress).rewardsTokens(i);
 
-    }
+			if (newRemainingRewards[i] > currentRemainingRewards[i]) {
+				// Some more reward needs to be transferred to the rewards pool contract
+				IERC20Detailed(rewardsToken).safeTransfer(_rewardsPoolAddress, (newRemainingRewards[i] - currentRemainingRewards[i]));
+			}
+		}
+
+		RewardsPoolBase(_rewardsPoolAddress).extend(
+			_endBlock,
+			_rewardsPerBlock,
+			currentRemainingRewards,
+			newRemainingRewards
+		);
+
+	}
 
 }

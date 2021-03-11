@@ -5,10 +5,11 @@ pragma solidity 0.6.12;
 import "./../RewardsPoolBase.sol";
 
 abstract contract OneStakerFeature is RewardsPoolBase {
-	address public staker;
+	address public immutable staker;
 
-	function setStaker(address _staker) public {
-		require(staker == address(0x0), "OneStakerFeature::setStaker staker was already sey");
+
+	constructor(address _staker) public {
+		require(_staker != address(0x0), "OneStakerFeature::setSconstructortaker new staker address can't be zero address");
 		staker = _staker;
 	}
 

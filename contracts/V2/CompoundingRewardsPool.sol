@@ -8,19 +8,16 @@ import "./../pool-features/TreasuryOperatedFeature.sol";
 
 contract CompoundingRewardsPool is RewardsPoolBase, OneStakerFeature, TreasuryOperatedFeature {
 	constructor(
-        IERC20Detailed _stakingToken,
-        uint256 _startBlock,
-        uint256 _endBlock,
-        address[] memory _rewardsTokens,
-        uint256[] memory _rewardPerBlock,
+		IERC20Detailed _stakingToken,
+		uint256 _startBlock,
+		uint256 _endBlock,
+		address[] memory _rewardsTokens,
+		uint256[] memory _rewardPerBlock,
 		uint256 _stakeLimit,
 		address _staker,
 		address _treasury,
 		address _externalRewardToken
-    ) public RewardsPoolBase(_stakingToken, _startBlock, _endBlock, _rewardsTokens, _rewardPerBlock, _stakeLimit) {
-		setStaker(_staker);
-		setTreasury(_treasury);
-		setExternalRewardToken(_externalRewardToken);
+	) public RewardsPoolBase(_stakingToken, _startBlock, _endBlock, _rewardsTokens, _rewardPerBlock, _stakeLimit) OneStakerFeature(_staker) TreasuryOperatedFeature(_externalRewardToken, _treasury) {
 	}
 
 	function stake(uint256 _tokenAmount) public override(RewardsPoolBase, OneStakerFeature) {

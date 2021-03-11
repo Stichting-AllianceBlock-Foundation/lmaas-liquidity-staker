@@ -66,6 +66,24 @@ describe('AutoStake', () => {
 			const rewardPool = await AutoStakingInstance.rewardPool();
 			assert.equal(rewardPool, OneStakerRewardsPoolInstance.contractAddress, "The rewards pool was not set correctly");
 		});
+
+		it("Should fail setting the pool from not owner", async() => {
+
+			let AutoStakingInstanceNew = await deployer.deploy(AutoStake, {}, stakingTokenAddress, throttleRoundBlocks, bOne, endBlock);
+			let OneStakerRewardsPoolInstanceNew = await deployer.deploy(
+				OneStakerRewardsPool,
+				{},
+				stakingTokenAddress,
+				startBlock,
+				endBlock,
+				[stakingTokenAddress],
+				[bOne],
+				ethers.constants.MaxUint256,
+				AutoStakingInstance.contractAddress
+			);
+
+			await assert.revertWith(AutoStakingInstance.from(bobAccount.signer.address).setPool(OneStakerRewardsPoolInstance.contractAddress),"Ownable: caller is not the owner")
+		})
 	})
 
 	describe("Staking", async function(){
@@ -132,7 +150,6 @@ describe('AutoStake', () => {
 			await AutoStakingInstance.from(staker.signer).stake(standardStakingAmount);
 
 			await mineBlock(deployer.provider);
-
 			const accumulatedReward = await OneStakerRewardsPoolInstance.getUserAccumulatedReward(AutoStakingInstance.contractAddress, 0);
 			assert(accumulatedReward.eq(bOne), "The reward accrued was not 1 token");
 
@@ -181,13 +198,10 @@ describe('AutoStake', () => {
 				it("Should request exit successfully", async() => {
 					const currentBlock = await deployer.provider.getBlock('latest');
 					const blocksDelta = (endBlock-currentBlock.number);
-
 					for (let i=0; i<blocksDelta; i++) {
 						await mineBlock(deployer.provider);
 					}
-
 					await AutoStakingInstance.exit();
-
 					const userBalanceAfter = await AutoStakingInstance.balanceOf(staker.signer.address);
 					const userExitInfo = await AutoStakingInstance.exitInfo(staker.signer.address)
 

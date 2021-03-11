@@ -17,15 +17,16 @@ abstract contract ThrottledExit {
 	uint256 public throttleRoundCap;
 
 	struct ExitInfo {
-        uint256 exitBlock;
-        uint256 exitStake;
-        uint256[] rewards;
-    }
+		uint256 exitBlock;
+		uint256 exitStake;
+		uint256[] rewards;
+	}
 
 	mapping(address => ExitInfo) public exitInfo;
 
 	event ExitRequested(address user, uint256 exitBlock);
 	event ExitCompleted(address user, uint256 stake);
+
 
 	function setThrottleParams(uint256 _throttleRoundBlocks, uint256 _throttleRoundCap, uint256 throttleStart) internal {
 		require(_throttleRoundBlocks > 0, "setThrottle::throttle round blocks must be more than 0");
@@ -36,16 +37,16 @@ abstract contract ThrottledExit {
 		nextAvailableExitBlock = throttleStart.add(throttleRoundBlocks);
 	}
 
-	function initiateExit(uint256 amountStaked, address[] memory _rewardsTokens, uint256[] memory _tokensOwed) virtual internal {
-		initialiseExitInfo(msg.sender, _rewardsTokens.length);
+	function initiateExit(uint256 amountStaked, uint256 _rewardsTokensLength, uint256[] memory _tokensOwed) virtual internal {
+		initialiseExitInfo(msg.sender, _rewardsTokensLength);
 
 		ExitInfo storage info = exitInfo[msg.sender];
 		info.exitBlock = getAvailableExitTime(amountStaked);
 		info.exitStake = info.exitStake.add(amountStaked);
 
-		for (uint256 i = 0; i < _rewardsTokens.length; i++) {
+		for (uint256 i = 0; i < _rewardsTokensLength; i++) {
 			info.rewards[i] = info.rewards[i].add(_tokensOwed[i]);
-        }
+		}
 
 		emit ExitRequested(msg.sender, info.exitBlock);
 	}
@@ -54,20 +55,25 @@ abstract contract ThrottledExit {
 		ExitInfo storage info = exitInfo[msg.sender];
 		require(block.number > info.exitBlock, "finalizeExit::Trying to exit too early");
 
-		IERC20Detailed(_stakingToken).safeTransfer(address(msg.sender), info.exitStake);
+		uint256 infoExitStake = info.exitStake;
+		info.exitStake = 0;
+
+		IERC20Detailed(_stakingToken).safeTransfer(address(msg.sender), infoExitStake);
 
 		for (uint256 i = 0; i < _rewardsTokens.length; i++) {
-			IERC20Detailed(_rewardsTokens[i]).safeTransfer(msg.sender, info.rewards[i]);
-			info.rewards[i] = 0;
-        }
 
-		emit ExitCompleted(msg.sender, info.exitStake);
-		info.exitStake = 0;
+			uint256 infoRewards = info.rewards[i];
+			info.rewards[i] = 0;
+			IERC20Detailed(_rewardsTokens[i]).safeTransfer(msg.sender, infoRewards);
+		}
+
+		emit ExitCompleted(msg.sender, infoExitStake);
+		
 	}
 
 	function getAvailableExitTime(uint256 exitAmount) internal returns(uint256 exitBlock) {
 		if(block.number > nextAvailableExitBlock) { // We've passed the next available block and need to readjust
-			uint blocksFromCurrentRound = (block.number-nextAvailableExitBlock) % throttleRoundBlocks; // Find how many blocks have passed since last block should have started
+			uint256 blocksFromCurrentRound = (block.number-nextAvailableExitBlock) % throttleRoundBlocks; // Find how many blocks have passed since last block should have started
 			nextAvailableExitBlock = block.number.sub(blocksFromCurrentRound).add(throttleRoundBlocks); // Find where the lst block should have started and add one round to find the next one
 			nextAvailableRoundExitVolume = exitAmount; // Reset volume
 			return nextAvailableExitBlock;
@@ -92,14 +98,14 @@ abstract contract ThrottledExit {
 	function initialiseExitInfo(address _userAddress, uint256 tokensLength) private {
 		ExitInfo storage info = exitInfo[_userAddress];
 
-        if (info.rewards.length == tokensLength) {
-            // Already initialised
-            return;
-        }
+		if (info.rewards.length == tokensLength) {
+			// Already initialised
+			return;
+		}
 
-        for (uint256 i = info.rewards.length; i < tokensLength; i++) {
-            info.rewards.push(0);
-        }
+		for (uint256 i = info.rewards.length; i < tokensLength; i++) {
+			info.rewards.push(0);
+		}
 	}
 
 	

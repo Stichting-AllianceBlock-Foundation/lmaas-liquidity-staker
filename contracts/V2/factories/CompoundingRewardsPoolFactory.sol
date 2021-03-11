@@ -10,8 +10,8 @@ import "./StakeTransferEnabledFactory.sol";
 contract CompoundingRewardsPoolFactory is AbstractPoolsFactory, StakeTransferEnabledFactory {
 	using SafeERC20Detailed for IERC20Detailed;
 
-	address public treasury;
-	address public externalRewardToken;
+	address public immutable treasury;
+	address public immutable externalRewardToken;
 
 	constructor(address _treasury, address _externalRewardToken) public {
 		require(

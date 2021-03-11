@@ -15,8 +15,6 @@ abstract contract StakeTransferer {
 		_;
 	}
 
-	function exitAndTransfer(address transferTo) virtual public {
-		
-	}
+	function exitAndTransfer(address transferTo) virtual public;
 
 }

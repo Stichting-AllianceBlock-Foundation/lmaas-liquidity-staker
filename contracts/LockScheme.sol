@@ -13,23 +13,22 @@ contract LockScheme is ReentrancyGuard {
 	using SafeMath for uint256;
 	using SafeERC20Detailed for IERC20Detailed;
 
-	uint256 public lockPeriod; // The period of blocks that the stake is locked for this contract
-	uint256 public rampUpPeriod; // The period since the beginning of the lock that additions can be considered the same position.Might be 0 for the 0% lock periods
-	uint256 public bonusPercent; // saved in thousands = ex 3% = 3000
-	address public lmcContract; // The address of the lmc contract
+	uint256 public immutable lockPeriod; // The period of blocks that the stake is locked for this contract
+	uint256 public immutable rampUpPeriod; // The period since the beginning of the lock that additions can be considered the same position.Might be 0 for the 0% lock periods
+	uint256 public immutable bonusPercent; // saved in thousands = ex 3% = 3000
+	address public immutable lmcContract; // The address of the lmc contract
 	uint256 public forfeitedBonuses;
 
 	struct UserInfo {
 		uint256 balance; // IOU Balance for this lock contract
 		uint256 accruedReward; // Reward accrued by an address from previous additions
 		uint256 lockInitialStakeBlock;
-        uint256 userEndBlock;
 	}
 
 	mapping(address => UserInfo) public userInfo;
 
 	event Lock(address indexed _userAddress, uint256 _amountLocked, uint256 _additionalReward);
-	event Exit(address indexed _userAddress, uint256 bonus);
+	event Exit(address indexed _userAddress, uint256 bonus, bool isBonusForreied);
 
 	modifier onlyLmc() {
 		  require(
@@ -45,6 +44,9 @@ contract LockScheme is ReentrancyGuard {
 		uint256 _bonusPercent,
 		address _lmcContract
 	) public {
+
+		require(_lmcContract != address(0x0), "constructor:: Invalid LMC address");
+		require(_rampUpPeriod <= _lockPeriod, "constructor:: Periods are not properly set");
 		lockPeriod = _lockPeriod;
 		rampUpPeriod = _rampUpPeriod;
 		bonusPercent = _bonusPercent;
@@ -59,10 +61,10 @@ contract LockScheme is ReentrancyGuard {
 
 		UserInfo storage user = userInfo[_userAddress];
 
-        if(user.lockInitialStakeBlock == 0) {
+		if(user.lockInitialStakeBlock == 0) {
 			user.lockInitialStakeBlock = block.number;
 		}
-        
+		
 		uint256 userLockStartBlock = user.lockInitialStakeBlock + rampUpPeriod;
 
 		require(userLockStartBlock > block.number , "lock::The ramp up period has finished");
@@ -78,24 +80,27 @@ contract LockScheme is ReentrancyGuard {
 	 */
 	function exit(address _userAddress) public onlyLmc returns(uint256 bonus) {
 
+		bool isBonusForfeited = false;
 		UserInfo storage user = userInfo[_userAddress];
 		if(user.balance == 0) {
 			return 0;
 		 
 		}
-		bonus = PercentageCalculator.div(user.accruedReward,bonusPercent);
-		uint userLockEnd = user.lockInitialStakeBlock.add(lockPeriod);
+		bonus = PercentageCalculator.percentageCalc(user.accruedReward,bonusPercent);
+		uint256 userLockEnd = user.lockInitialStakeBlock.add(lockPeriod);
 
 		if(block.number < userLockEnd) {
 			forfeitedBonuses = forfeitedBonuses.add(bonus);
 			bonus = 0;
+			isBonusForfeited = true;
+
 		}
 
 		user.accruedReward = 0;
 		user.balance = 0;
 		user.lockInitialStakeBlock = 0;
 	
-		emit Exit(_userAddress, bonus);
+		emit Exit(_userAddress, bonus, isBonusForfeited);
 
 		return bonus;
 	}
@@ -113,13 +118,13 @@ contract LockScheme is ReentrancyGuard {
 
 	function getUserBonus(address _userAddress) public view returns(uint256 bonus) {
 		UserInfo storage user = userInfo[_userAddress];
-		uint userLockEnd = user.lockInitialStakeBlock.add(lockPeriod);
+		uint256 userLockEnd = user.lockInitialStakeBlock.add(lockPeriod);
 
 		if(block.number < userLockEnd) {
 			return 0;
 		}
 
-		return PercentageCalculator.div(user.accruedReward,bonusPercent);
+		return PercentageCalculator.percentageCalc(user.accruedReward,bonusPercent);
 	}
 
 	function getUserAccruedReward(address _userAddress) public view returns( uint256 ) {

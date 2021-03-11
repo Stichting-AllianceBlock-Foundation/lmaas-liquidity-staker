@@ -10,11 +10,10 @@ import "./../TreasuryOperated.sol";
 
 abstract contract TreasuryOperatedFeature is RewardsPoolBase, TreasuryOperated {
 
-	address public externalRewardToken;
+	address public immutable externalRewardToken;
 
-	function setExternalRewardToken(address _externalRewardToken) internal {
-		require(externalRewardToken == address(0x0), "External reward token already set");
-		require(_externalRewardToken != address(0x0), "External reward token should not be 0");
+
+	constructor(address _externalRewardToken, address  _treasury) public TreasuryOperated(_treasury) {
 		externalRewardToken = _externalRewardToken;
 	}
 

@@ -19,13 +19,13 @@ abstract contract ThrottledExitFeature is StakeLockingFeature, ThrottledExit {
 
 		updateRewardMultipliers(); // Update the accumulated multipliers for everyone
 
-        if (user.amountStaked == 0) {
-            return;
-        }
+		if (user.amountStaked == 0) {
+			return;
+		}
 
-        updateUserAccruedReward(msg.sender); // Update the accrued reward for this specific user
+		updateUserAccruedReward(msg.sender); // Update the accrued reward for this specific user
 
-		initiateExit(user.amountStaked, rewardsTokens, user.tokensOwed);
+		initiateExit(user.amountStaked, rewardsTokens.length, user.tokensOwed);
 
 		totalStaked = totalStaked.sub(user.amountStaked);
 		user.amountStaked = 0;
@@ -33,7 +33,7 @@ abstract contract ThrottledExitFeature is StakeLockingFeature, ThrottledExit {
 		for (uint256 i = 0; i < rewardsTokens.length; i++) {
 			user.tokensOwed[i] = 0;
 			user.rewardDebt[i] = 0;
-        }
+		}
 	}
 
 	function completeExit() virtual public onlyUnlocked nonReentrant {

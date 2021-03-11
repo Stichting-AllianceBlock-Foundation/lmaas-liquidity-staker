@@ -14,8 +14,7 @@ contract StakeLockingRewardsPoolMock is RewardsPoolBase, OnlyExitFeature, StakeL
         address[] memory _rewardsTokens,
         uint256[] memory _rewardPerBlock,
 		uint256 _stakeLimit
-    ) public RewardsPoolBase(_stakingToken, _startBlock, _endBlock, _rewardsTokens, _rewardPerBlock, _stakeLimit) {
-		setLockEnd(_endBlock);
+    ) public RewardsPoolBase(_stakingToken, _startBlock, _endBlock, _rewardsTokens, _rewardPerBlock, _stakeLimit) StakeLock(_endBlock) {
 	}
 
 	function withdraw(uint256 _tokenAmount) public override(OnlyExitFeature, RewardsPoolBase) {

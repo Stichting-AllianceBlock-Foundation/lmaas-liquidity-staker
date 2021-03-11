@@ -121,7 +121,6 @@ describe('StakeTransfer', () => {
 		const userInfoFinal = await StakeTransfererInstance.userInfo(aliceAccount.signer.address);
 		const finalTotalStkaedAmount = await StakeTransfererInstance.totalStaked();
 
-
 		assert(userFinalBalanceRewards.eq(userInitialBalanceRewards.add(userRewards.add(userRewards))), "Rewards claim was not successful")
 		assert(userTokensOwed.eq(0), "User tokens owed should be zero")
 		assert(userInfoFinal.amountStaked.eq(0), "User staked amount is not updated properly")
