@@ -111,7 +111,7 @@ contract LiquidityMiningCampaignFactory is AbstractPoolsFactory, StakeTransferEn
     ) external onlyOwner {
 
         RewardsPoolBase pool = RewardsPoolBase(_rewardsPoolAddress);
-        uint256 currentEndBlock = pool.endBlock();
+		uint256 currentEndBlock = pool.endBlock();
 		uint256[] memory currentRemainingRewards = new uint256[](_rewardsPerBlock.length);
 		uint256[] memory newRemainingRewards = new uint256[](_rewardsPerBlock.length);
 
