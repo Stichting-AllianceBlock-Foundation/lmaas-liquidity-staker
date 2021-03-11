@@ -208,8 +208,10 @@ describe('LMC Factory', () => { // These tests must be skipped for coverage as c
             });
 
             const calculateRewardsAmount = async (startBlock, endBlock, rewardsPerBlock) => {
-                let rewardsPeriod = endBlock.sub(startBlock);
-                return rewardsPerBlock*(rewardsPeriod)
+                let rewardsPeriod = endBlock - startBlock;
+                let rewardsAmount = rewardsPerBlock*(rewardsPeriod)
+                let amount = await ethers.utils.bigNumberify(rewardsAmount.toString());
+                return amount
              }
                 it("Should extend the rewards pool successfully with the same rate", async () => {
 
@@ -235,21 +237,12 @@ describe('LMC Factory', () => { // These tests must be skipped for coverage as c
                         await rewardTokensInstances[i].transfer(LMCFactoryInstance.contractAddress, amount);
                     }
                     currentBlock = await deployer.provider.getBlock('latest');
-
-                    console.log(rewardPerBlock)
-                    console.log(newEndBlock.toString(), "new")
-                    console.log(initialEndBlock.toString(), "initial")
-                    console.log(currentBlock.number, "current block")
                     await LMCFactoryInstance.extendRewardPool(newEndBlock, rewardPerBlock, lmcAddress);
 				   
                     let rewardsBalanceFinal = await rewardTokenInstance.balanceOf(LmcContract.contractAddress)
                     let finalEndBlock = await LmcContract.endBlock();
                     let finalRewardPerBlock = await LmcContract.rewardPerBlock(0);
                     let amountToTransfer = rewardPerBlock[0].mul(blockExtension)
-
-                    console.log(rewardsBalanceFinal.toString())
-                    console.log(rewardsBalanceInitial.toString())
-                    console.log(amountToTransfer.toString())
 
                     assert(finalEndBlock.eq(newEndBlock), "The endblock is different");
                     assert(finalRewardPerBlock.eq(rewardPerBlock[0]), "The rewards amount is not correct");
@@ -321,11 +314,13 @@ describe('LMC Factory', () => { // These tests must be skipped for coverage as c
                     currentBlock = await deployer.provider.getBlock('latest');
                     let amountToTransfer = []
                     let newRewardPerBlock = []
+
                     for (i = 0; i < rewardTokensCount; i++) {
                         let newSingleReward = rewardPerBlock[i].div(5)
                         newRewardPerBlock.push(newSingleReward)
-                        let currentRemainingReward = await calculateRewardsAmount((currentBlock.number +1),endBlock,rewardPerBlock[i])
-                        let newRemainingReward = await calculateRewardsAmount((currentBlock.number+1) ,newEndBlock,newSingleReward)
+                        let currentRemainingReward = await calculateRewardsAmount((currentBlock.number +1),endBlock.toString(),rewardPerBlock[i].toString())
+                        let newRemainingReward = await calculateRewardsAmount((currentBlock.number+1) ,newEndBlock.toString(),newSingleReward.toString())
+
                         amountToTransfer.push(currentRemainingReward.sub(newRemainingReward))
                     }
                     await LMCFactoryInstance.extendRewardPool(newEndBlock, newRewardPerBlock, lmcAddress);

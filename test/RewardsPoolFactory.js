@@ -155,7 +155,14 @@ describe('RewardsPoolFactory', () => {
                     await rewardTokensInstances[i].transfer(RewardsPoolFactoryInstance.contractAddress, amountToTransfer);
                 }
                 await RewardsPoolFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock, rewardTokensAddresses,rewardPerBlock, stakeLimit);
-            });
+            }); 
+
+            const calculateRewardsAmount = async (startBlock, endBlock, rewardsPerBlock) => {
+                let rewardsPeriod = endBlock - startBlock;
+                let rewardsAmount = rewardsPerBlock*(rewardsPeriod)
+                let amount = await ethers.utils.bigNumberify(rewardsAmount.toString());
+                return amount
+             }
 
                 it("Should extend the rewards pool successfully with the same rate", async () => {
 
@@ -177,7 +184,8 @@ describe('RewardsPoolFactory', () => {
                     let blockExtension = 10
                     let newEndBlock = initialEndBlock.add(blockExtension)
                     for (i = 0; i < rewardTokensCount; i++) {
-                        let amount = await RewardsPoolFactoryInstance.calculateRewardsAmount(currentBlock.number,newEndBlock,rewardPerBlock[0])
+                        // let amount = await RewardsPoolFactoryInstance.calculateRewardsAmount(currentBlock.number,newEndBlock,rewardPerBlock[0])
+                        let amount = rewardPerBlock[i].mul(blockExtension)
                         await rewardTokensInstances[i].transfer(RewardsPoolFactoryInstance.contractAddress, amount);
                     }
                     await RewardsPoolFactoryInstance.extendRewardPool(newEndBlock, rewardPerBlock, rewardsPoolAddress);
@@ -261,8 +269,8 @@ describe('RewardsPoolFactory', () => {
                     for (i = 0; i < rewardTokensCount; i++) {
                         let newSingleReward = rewardPerBlock[i].div(5)
                         newRewardPerBlock.push(newSingleReward)
-                        let currentRemainingReward = await RewardsPoolFactoryInstance.calculateRewardsAmount((currentBlock.number +1),endBlock,rewardPerBlock[i])
-                        let newRemainingReward = await RewardsPoolFactoryInstance.calculateRewardsAmount((currentBlock.number+1) ,newEndBlock,newSingleReward)
+                        let currentRemainingReward = await calculateRewardsAmount((currentBlock.number +1),endBlock.toString(),rewardPerBlock[i].toString())
+                        let newRemainingReward = await calculateRewardsAmount((currentBlock.number+1) ,newEndBlock.toString(),newSingleReward.toString())
                         amountToTransfer.push(currentRemainingReward.sub(newRemainingReward))
                     }
                     await RewardsPoolFactoryInstance.extendRewardPool(newEndBlock, newRewardPerBlock, rewardsPoolAddress);

@@ -105,18 +105,21 @@ contract RewardsPoolFactory is AbstractPoolsFactory {
 
         RewardsPoolBase pool = RewardsPoolBase(_rewardsPoolAddress);
         uint256 currentEndBlock = pool.endBlock();
-        uint256[] storage currentRemainingRewards;
-        uint256[] storage newRemainingReward;
+  	    uint256[] memory currentRemainingRewards = new uint256[](_rewardsPerBlock.length);
+        uint256[] memory newRemainingRewards = new uint256[](_rewardsPerBlock.length);
 
         for (uint256 i = 0; i < _rewardsPerBlock.length; i++) {
-            currentRemainingRewards.push(calculateRewardsAmount(block.number, currentEndBlock, pool.rewardPerBlock(i)));
-            newRemainingReward.push(calculateRewardsAmount(block.number, _endBlock, _rewardsPerBlock[i]));
+			uint256 currentRemainingReward = calculateRewardsAmount(block.number, currentEndBlock, pool.rewardPerBlock(i));
+			uint256 newRemainingReward = calculateRewardsAmount(block.number, _endBlock, _rewardsPerBlock[i]);
+
+			currentRemainingRewards[i] = currentRemainingReward;
+			newRemainingRewards[i] = newRemainingReward;
 
             address rewardsToken = RewardsPoolBase(_rewardsPoolAddress).rewardsTokens(i);
 
-            if (newRemainingReward[i] > currentRemainingRewards[i]) {
+            if (newRemainingRewards[i] > currentRemainingRewards[i]) {
                 // Some more reward needs to be transferred to the rewards pool contract
-                IERC20Detailed(rewardsToken).safeTransfer(_rewardsPoolAddress, (newRemainingReward[i] - currentRemainingRewards[i]));
+                IERC20Detailed(rewardsToken).safeTransfer(_rewardsPoolAddress, (newRemainingRewards[i] - currentRemainingRewards[i]));
             }
         }
 
@@ -124,7 +127,7 @@ contract RewardsPoolFactory is AbstractPoolsFactory {
             _endBlock,
             _rewardsPerBlock,
             currentRemainingRewards,
-            newRemainingReward
+            newRemainingRewards
         );
 
     }

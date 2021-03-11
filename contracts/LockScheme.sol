@@ -100,7 +100,7 @@ contract LockScheme is ReentrancyGuard {
 		user.balance = 0;
 		user.lockInitialStakeBlock = 0;
 	
-	emit Exit(_userAddress, bonus, isBonusForfeited);
+		emit Exit(_userAddress, bonus, isBonusForfeited);
 
 		return bonus;
 	}

@@ -29,12 +29,13 @@ abstract contract StakeTransfererFeature is OnlyExitFeature, StakeTransferer {
 		updateRewardMultipliers(); // Update the accumulated multipliers for everyone
 
 		uint256 userStakedAmount = user.amountStaked;
-		user.amountStaked = 0;
-
+		
 		updateUserAccruedReward(msg.sender); // Update the accrued reward for this specific user
 
 		_claim(msg.sender);
 
+		//If this is before the claim, the will never be able to claim his rewards.
+		user.amountStaked = 0;
 		stakingToken.safeApprove(transferTo, userStakedAmount);
 
 		StakeReceiver(transferTo).delegateStake(msg.sender, userStakedAmount);
