@@ -66,6 +66,24 @@ describe('AutoStake', () => {
 			const rewardPool = await AutoStakingInstance.rewardPool();
 			assert.equal(rewardPool, OneStakerRewardsPoolInstance.contractAddress, "The rewards pool was not set correctly");
 		});
+
+		it("Should fail setting the pool from not owner", async() => {
+
+			let AutoStakingInstanceNew = await deployer.deploy(AutoStake, {}, stakingTokenAddress, throttleRoundBlocks, bOne, endBlock);
+			let OneStakerRewardsPoolInstanceNew = await deployer.deploy(
+				OneStakerRewardsPool,
+				{},
+				stakingTokenAddress,
+				startBlock,
+				endBlock,
+				[stakingTokenAddress],
+				[bOne],
+				ethers.constants.MaxUint256,
+				AutoStakingInstance.contractAddress
+			);
+
+			await assert.revertWith(AutoStakingInstance.from(bobAccount.signer.address).setPool(OneStakerRewardsPoolInstance.contractAddress),"Ownable: caller is not the owner")
+		})
 	})
 
 	describe("Staking", async function(){

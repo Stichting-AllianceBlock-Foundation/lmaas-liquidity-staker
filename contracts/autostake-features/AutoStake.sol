@@ -5,6 +5,7 @@ pragma solidity 0.6.12;
 import "openzeppelin-solidity/contracts/math/Math.sol";
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import "openzeppelin-solidity/contracts/utils/ReentrancyGuard.sol";
+import "openzeppelin-solidity/contracts/access/Ownable.sol";
 import "./../interfaces/IRewardsPoolBase.sol";
 import "./../interfaces/IERC20Detailed.sol";
 import "./../SafeERC20Detailed.sol";
@@ -13,7 +14,7 @@ import "./../ThrottledExit.sol";
 
 // Based on ideas here: https://github.com/harvest-finance/harvest/blob/7a455967e40e980d4cfb2115bd000fbd6b201cc1/contracts/AutoStake.sol
 
-contract AutoStake is ReentrancyGuard, StakeLock, ThrottledExit {
+contract AutoStake is ReentrancyGuard, StakeLock, ThrottledExit, Ownable {
 	using SafeMath for uint256;
 	using SafeERC20Detailed for IERC20Detailed;
 
@@ -35,7 +36,7 @@ contract AutoStake is ReentrancyGuard, StakeLock, ThrottledExit {
 		setThrottleParams(_throttleRoundBlocks, _throttleRoundCap, stakeEnd);
 	}
 
-	function setPool(address pool) public {
+	function setPool(address pool) public onlyOwner {
 		require(address(rewardPool) == address(0x0), "Reward pool already set");
 		rewardPool = IRewardsPoolBase(pool);
 	}
