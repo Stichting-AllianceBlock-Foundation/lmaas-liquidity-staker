@@ -40,10 +40,14 @@ const deploy = async (network, secret, etherscanApiKey) => {
 	const currentBlock = await deployer.provider.getBlock('latest');
 	const blocksInADay = 6646
 	startBlock = currentBlock.number + 20;
-	endBlock = startBlock + (blocksInADay * 10);
-	const blockDelta = endBlock - startBlock;
+	endBlock = startBlock +  500;
+	endBlock3 = startBlock + (blocksInADay * 30);
+	endBlock6 = startBlock + (blocksInADay * 60);
+	endBlock12 = startBlock + (blocksInADay * 120);
+	const blockDelta = endBlock12 - startBlock;
 	const amountToTransfer = rewardsPerBock[0].mul(blockDelta)
 	const amount = amountToTransfer.add(amountToTransfer)
+	const allRewards = amountToTransfer.mul(5)
 
 	TreasuryInstance = await deployer.deploy(Treasury, {}, UniswapRouterKovan, KovanALBTAddress);
 	console.log(TreasuryInstance.contractAddress, "Treasury address")
@@ -51,14 +55,34 @@ const deploy = async (network, secret, etherscanApiKey) => {
 	NonCompoundingRewardsPoolFactoryInstance = await deployer.deploy(NonCompoundingRewardsPoolFactory, {}, TreasuryInstance.contractAddress, KovanALBTAddress);
 	console.log(NonCompoundingRewardsPoolFactoryInstance.contractAddress, "Non Compounding Factory address")	
 	
-	let mint = await albtInstance.mint(NonCompoundingRewardsPoolFactoryInstance.contractAddress, amount);
+	let mint = await albtInstance.mint(NonCompoundingRewardsPoolFactoryInstance.contractAddress, allRewards);
 	await mint.wait();
 	
-	let poolDeployment = await NonCompoundingRewardsPoolFactoryInstance.deploy(KovanEthALbtStaking, startBlock, endBlock, rewardTokensAddresses, rewardsPerBock, stakeLimit, throttleRoundBlocks, throttleRoundCap);
+	let poolDeployment = await NonCompoundingRewardsPoolFactoryInstance.deploy(KovanALBTAddress, startBlock, endBlock, rewardTokensAddresses, rewardsPerBock, stakeLimit, throttleRoundBlocks, throttleRoundCap);
 	await poolDeployment.wait()
 	
 	let nonCompoundingPool = await NonCompoundingRewardsPoolFactoryInstance.rewardsPools(0);
-	console.log(nonCompoundingPool, "First NonCompoundingPool address")
+	console.log(nonCompoundingPool, "First NonCompoundingPool address 1")
+
+	let poolDeployment3 = await NonCompoundingRewardsPoolFactoryInstance.deploy(KovanALBTAddress, startBlock, endBlock3, rewardTokensAddresses, rewardsPerBock, stakeLimit, throttleRoundBlocks, throttleRoundCap);
+	await poolDeployment3.wait()
+	
+	let nonCompoundingPool3 = await NonCompoundingRewardsPoolFactoryInstance.rewardsPools(1);
+	console.log(nonCompoundingPool3, "First NonCompoundingPool address 3")
+
+	let poolDeployment6 = await NonCompoundingRewardsPoolFactoryInstance.deploy(KovanALBTAddress, startBlock, endBlock6, rewardTokensAddresses, rewardsPerBock, stakeLimit, throttleRoundBlocks, throttleRoundCap);
+	await poolDeployment6.wait()
+	
+	let nonCompoundingPool6 = await NonCompoundingRewardsPoolFactoryInstance.rewardsPools(2);
+	console.log(nonCompoundingPool6, "First NonCompoundingPool address 6")
+
+	let poolDeployment12 = await NonCompoundingRewardsPoolFactoryInstance.deploy(KovanALBTAddress, startBlock, endBlock12, rewardTokensAddresses, rewardsPerBock, stakeLimit, throttleRoundBlocks, throttleRoundCap);
+	await poolDeployment12.wait()
+	
+	let nonCompoundingPool12 = await NonCompoundingRewardsPoolFactoryInstance.rewardsPools(3);
+	console.log(nonCompoundingPool12, "First NonCompoundingPool address 12")
+
+	
 };
 
 module.exports = {
