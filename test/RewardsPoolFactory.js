@@ -23,6 +23,7 @@ describe('RewardsPoolFactory', () => {
     const amount = ethers.utils.parseEther("5184000");
     const stakeLimit = amount;
     const amountToTransfer = ethers.utils.parseEther("10000");
+    const contractStakeLimit = ethers.utils.parseEther('10') // 10 tokens
 
 	const setupRewardsPoolParameters = async (deployer) => {
 		rewardTokensInstances = [];
@@ -75,7 +76,7 @@ describe('RewardsPoolFactory', () => {
             for (i = 0; i < rewardTokensAddresses.length; i++) {
                 await rewardTokensInstances[i].transfer(RewardsPoolFactoryInstance.contractAddress, amountToTransfer);
             }
-            await RewardsPoolFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock, rewardTokensAddresses,rewardPerBlock, stakeLimit);
+            await RewardsPoolFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock, rewardTokensAddresses,rewardPerBlock, stakeLimit, contractStakeLimit);
 
             const firstRewardsPool = await RewardsPoolFactoryInstance.rewardsPools(0);
 			const RewardsPoolContract = await etherlime.ContractAt(RewardsPoolBase, firstRewardsPool);
@@ -91,7 +92,7 @@ describe('RewardsPoolFactory', () => {
             for (i = 0; i < rewardTokensAddresses.length; i++) {
                 await rewardTokensInstances[i].transfer(RewardsPoolFactoryInstance.contractAddress, amountToTransfer);
             }
-            await RewardsPoolFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock, rewardTokensAddresses,rewardPerBlock, stakeLimit);
+            await RewardsPoolFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock, rewardTokensAddresses,rewardPerBlock, stakeLimit, contractStakeLimit);
 			let rewardsPoolLength = await RewardsPoolFactoryInstance.getRewardsPoolNumber()
 			let rewardsPoolAddress = await RewardsPoolFactoryInstance.rewardsPools((rewardsPoolLength - 1) )
 
@@ -120,33 +121,37 @@ describe('RewardsPoolFactory', () => {
         });
 
         it('Should fail on deploying not from owner', async () => {
-            await assert.revert(RewardsPoolFactoryInstance.from(bobAccount).deploy(stakingTokenAddress, startBlock, endBlock, rewardTokensAddresses,rewardPerBlock, stakeLimit));
+            await assert.revert(RewardsPoolFactoryInstance.from(bobAccount).deploy(stakingTokenAddress, startBlock, endBlock, rewardTokensAddresses,rewardPerBlock, stakeLimit, contractStakeLimit));
         });
 
         it('Should fail on deploying with zero address as staking token', async () => {
-            await assert.revertWith(RewardsPoolFactoryInstance.deploy(ethers.constants.AddressZero, startBlock, endBlock, rewardTokensAddresses,rewardPerBlock, stakeLimit), "RewardsPoolFactory::deploy: Staking token address can't be zero address");
+            await assert.revertWith(RewardsPoolFactoryInstance.deploy(ethers.constants.AddressZero, startBlock, endBlock, rewardTokensAddresses,rewardPerBlock, stakeLimit, contractStakeLimit), "RewardsPoolFactory::deploy: Staking token address can't be zero address");
         });
      
 
         it('Should fail on deploying with empty token and reward arrays', async () => {
             const errorString = "RewardsPoolFactory::deploy: RewardsTokens array could not be empty"
             const errorStringMatchingSizes = "RewardsPoolFactory::deploy: RewardsTokens and RewardPerBlock should have a matching sizes"
-            await assert.revertWith(RewardsPoolFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock, [],rewardPerBlock, stakeLimit), errorString);
-            await assert.revertWith(RewardsPoolFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock, rewardTokensAddresses,[], stakeLimit), errorStringMatchingSizes);
+            await assert.revertWith(RewardsPoolFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock, [],rewardPerBlock, stakeLimit, contractStakeLimit), errorString);
+            await assert.revertWith(RewardsPoolFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock, rewardTokensAddresses,[], stakeLimit, contractStakeLimit), errorStringMatchingSizes);
         });
 
         it('Should fail if the reward amount is not greater than zero', async () => {
             const errorString = "RewardsPoolFactory::deploy: Reward token address could not be invalid"
-            await assert.revertWith(RewardsPoolFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock, [ethers.constants.AddressZero],rewardPerBlock, stakeLimit), errorString);
+            await assert.revertWith(RewardsPoolFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock, [ethers.constants.AddressZero],rewardPerBlock, stakeLimit, contractStakeLimit), errorString);
         });
 
         it('Should fail if the reward token amount is invalid address', async () => {
             const errorString = "RewardsPoolFactory::deploy: Reward per block must be greater than zero"
-            await assert.revertWith(RewardsPoolFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock, rewardTokensAddresses,[0], stakeLimit), errorString);
+            await assert.revertWith(RewardsPoolFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock, rewardTokensAddresses,[0], stakeLimit, contractStakeLimit), errorString);
         });
 
-        it('Should fail on deploying not from owner', async () => {
-            await assert.revertWith(RewardsPoolFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock, rewardTokensAddresses,rewardPerBlock, 0), "RewardsPoolFactory::deploy: Stake limit must be more than 0");
+        it('Should fail on deploying zero stake limit', async () => {
+            await assert.revertWith(RewardsPoolFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock, rewardTokensAddresses,rewardPerBlock, 0, contractStakeLimit), "RewardsPoolFactory::deploy: Stake limit must be more than 0");
+        });
+
+        it('Should fail on deploying with zero contract stake limit', async () => {
+            await assert.revertWith(RewardsPoolFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock, rewardTokensAddresses,rewardPerBlock, stakeLimit, 0), "Constructor:: Contract Stake limit needs to be more than 0");
         });
 
         describe('Extending Rewards', async function () {
@@ -154,7 +159,7 @@ describe('RewardsPoolFactory', () => {
                 for (i = 0; i < rewardTokensAddresses.length; i++) {
                     await rewardTokensInstances[i].transfer(RewardsPoolFactoryInstance.contractAddress, amountToTransfer);
                 }
-                await RewardsPoolFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock, rewardTokensAddresses,rewardPerBlock, stakeLimit);
+                await RewardsPoolFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock, rewardTokensAddresses,rewardPerBlock, stakeLimit, contractStakeLimit);
             }); 
 
             const calculateRewardsAmount = async (startBlock, endBlock, rewardsPerBlock) => {

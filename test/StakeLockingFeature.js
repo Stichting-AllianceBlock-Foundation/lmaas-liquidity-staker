@@ -29,6 +29,7 @@ describe('StakeLockingFeature', () => {
 	const stakeLimit = amount;
 	const bOne = ethers.utils.parseEther("1");
 	const standardStakingAmount = ethers.utils.parseEther('5') // 5 tokens
+	const contractStakeLimit = ethers.utils.parseEther('10') // 10 tokens
 
 
 	const setupRewardsPoolParameters = async (deployer) => {
@@ -74,7 +75,8 @@ describe('StakeLockingFeature', () => {
 			endBlock,
             rewardTokensAddresses,
             rewardPerBlock,
-			stakeLimit
+			stakeLimit,
+			contractStakeLimit
 		);
 
 		await rewardTokensInstances[0].mint(StakeLockingFeatureInstance.contractAddress,amount);

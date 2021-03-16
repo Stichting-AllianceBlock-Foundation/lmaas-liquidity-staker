@@ -22,6 +22,7 @@ contract RewardsPoolBase is ReentrancyGuard {
 	uint256[] public accumulatedRewardMultiplier;
 	address public rewardsPoolFactory;
 	uint256 public stakeLimit;
+	uint256 public contractStakeLimit;
 
 	struct UserInfo {
 		uint256 firstStakedBlockNumber;
@@ -45,7 +46,8 @@ contract RewardsPoolBase is ReentrancyGuard {
 		uint256 _endBlock,
 		address[] memory _rewardsTokens,
 		uint256[] memory _rewardPerBlock,
-		uint256 _stakeLimit
+		uint256 _stakeLimit,
+		uint256 _contractStakeLimit
 	) public {
 		require(
 			_startBlock > _getBlock(),
@@ -60,6 +62,7 @@ contract RewardsPoolBase is ReentrancyGuard {
 			"Constructor::Rewards per block and rewards tokens must be with the same length."
 		);
 		require(_stakeLimit != 0, "Constructor::Stake limit needs to be more than 0");
+		require(_contractStakeLimit != 0, "Constructor:: Contract Stake limit needs to be more than 0");
 
 		stakingToken = _stakingToken;
 		rewardPerBlock = _rewardPerBlock;
@@ -69,6 +72,7 @@ contract RewardsPoolBase is ReentrancyGuard {
 		lastRewardBlock = startBlock;
 		rewardsPoolFactory = msg.sender;
 		stakeLimit = _stakeLimit;
+		contractStakeLimit = _contractStakeLimit;
 		for (uint256 i = 0; i < rewardsTokens.length; i++) {
 			accumulatedRewardMultiplier.push(0);
 		}
@@ -95,6 +99,7 @@ contract RewardsPoolBase is ReentrancyGuard {
 	modifier onlyUnderStakeLimit(address staker, uint256 newStake) {
 		UserInfo storage user = userInfo[staker];
 		require(user.amountStaked.add(newStake) <= stakeLimit, "onlyUnderStakeLimit::Stake limit reached");
+		require(totalStaked.add(newStake) <= contractStakeLimit, "onlyUnderStakeLimit::Contract Stake limit reached");
 		_;
 	}
 

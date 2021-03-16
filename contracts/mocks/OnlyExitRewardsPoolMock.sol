@@ -12,8 +12,9 @@ contract OnlyExitRewardsPoolMock is RewardsPoolBase, OnlyExitFeature {
         uint256 _endBlock,
         address[] memory _rewardsTokens,
         uint256[] memory _rewardPerBlock,
-		uint256 _stakeLimit
-    ) public RewardsPoolBase(_stakingToken, _startBlock, _endBlock, _rewardsTokens, _rewardPerBlock, _stakeLimit) {
+		uint256 _stakeLimit,
+		uint256 _contractStakeLimit
+    ) public RewardsPoolBase(_stakingToken, _startBlock, _endBlock, _rewardsTokens, _rewardPerBlock, _stakeLimit,_contractStakeLimit) {
 
 	}
 

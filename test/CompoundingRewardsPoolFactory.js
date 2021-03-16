@@ -24,6 +24,7 @@ describe('CompoundingRewardsPoolFactory', () => { // These tests must be skipped
     const rewardTokensCount = 1; // 5 rewards tokens for tests
     const amount = ethers.utils.parseEther("5184000");
     const stakeLimit = amount;
+    const contractStakeLimit = amount
     const amountToTransfer = ethers.utils.parseEther("10000");
     const bOne = ethers.utils.parseEther("1");
 	const standardStakingAmount = ethers.utils.parseEther('5') // 5 tokens
@@ -65,7 +66,7 @@ describe('CompoundingRewardsPoolFactory', () => { // These tests must be skipped
 
         it('Should deploy base rewards pool successfully', async () => {
             await stakingTokenInstance.mint(CompoundingRewardsPoolFactoryInstance.contractAddress, amount);
-            await CompoundingRewardsPoolFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock, bOne, standardStakingAmount, 20, standardStakingAmount);
+            await CompoundingRewardsPoolFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock, bOne, standardStakingAmount, 20, standardStakingAmount, contractStakeLimit);
 
             const firstStakerContract = await CompoundingRewardsPoolFactoryInstance.rewardsPools(0);
 			const StakerContract = await etherlime.ContractAt(CompoundingRewardsPoolStaker, firstStakerContract);
@@ -80,30 +81,30 @@ describe('CompoundingRewardsPoolFactory', () => { // These tests must be skipped
         });
 
         it('Should fail on deploying not from owner', async () => {
-            await assert.revert(CompoundingRewardsPoolFactoryInstance.from(bobAccount).deploy(stakingTokenAddress, startBlock, endBlock,bOne, stakeLimit, 5, stakeLimit));
+            await assert.revert(CompoundingRewardsPoolFactoryInstance.from(bobAccount).deploy(stakingTokenAddress, startBlock, endBlock,bOne, stakeLimit, 5, stakeLimit, contractStakeLimit));
         });
 
         it('Should fail on deploying with zero address as staking token', async () => {
-            await assert.revertWith(CompoundingRewardsPoolFactoryInstance.deploy(ethers.constants.AddressZero, startBlock, endBlock,bOne, stakeLimit, 5, stakeLimit), "CompoundingRewardsPoolFactory::deploy: Staking token address can't be zero address");
+            await assert.revertWith(CompoundingRewardsPoolFactoryInstance.deploy(ethers.constants.AddressZero, startBlock, endBlock,bOne, stakeLimit, 5, stakeLimit, contractStakeLimit), "CompoundingRewardsPoolFactory::deploy: Staking token address can't be zero address");
         });
      
         it('Should fail if the reward amount is not greater than zero', async () => {
             const errorString = "CompoundingRewardsPoolFactory::deploy: Reward per block must be more than 0"
-            await assert.revertWith(CompoundingRewardsPoolFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock, 0, standardStakingAmount, 20, standardStakingAmount), errorString);
+            await assert.revertWith(CompoundingRewardsPoolFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock, 0, standardStakingAmount, 20, standardStakingAmount, contractStakeLimit), errorString);
         });
 
         it('Should fail on zero stake limit', async () => {
-            await assert.revertWith(CompoundingRewardsPoolFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock, bOne, 0, 20, standardStakingAmount), "CompoundingRewardsPoolFactory::deploy: Stake limit must be more than 0");
+            await assert.revertWith(CompoundingRewardsPoolFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock, bOne, 0, 20, standardStakingAmount, contractStakeLimit), "CompoundingRewardsPoolFactory::deploy: Stake limit must be more than 0");
         });
 
         it('Should fail on zero throttle rounds or cap', async () => {
-            await assert.revertWith(CompoundingRewardsPoolFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock, bOne, standardStakingAmount, 0, standardStakingAmount), "CompoundingRewardsPoolFactory::deploy: Throttle round blocks must be more than 0");
-            await assert.revertWith(CompoundingRewardsPoolFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock, bOne, standardStakingAmount, 20, 0), "CompoundingRewardsPoolFactory::deploy: Throttle round cap must be more than 0");
+            await assert.revertWith(CompoundingRewardsPoolFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock, bOne, standardStakingAmount, 0, standardStakingAmount, contractStakeLimit), "CompoundingRewardsPoolFactory::deploy: Throttle round blocks must be more than 0");
+            await assert.revertWith(CompoundingRewardsPoolFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock, bOne, standardStakingAmount, 20, 0, contractStakeLimit), "CompoundingRewardsPoolFactory::deploy: Throttle round cap must be more than 0");
         });
 
         it('Should fail if not enough reward is sent', async () => {
             await stakingTokenInstance.mint(CompoundingRewardsPoolFactoryInstance.contractAddress, 1);
-            await assert.revertWith(CompoundingRewardsPoolFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock, bOne, standardStakingAmount, 20, standardStakingAmount), "SafeERC20: low-level call failed");
+            await assert.revertWith(CompoundingRewardsPoolFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock, bOne, standardStakingAmount, 20, standardStakingAmount, contractStakeLimit), "SafeERC20: low-level call failed");
         });
 
         describe('Whitelisting', async function () {
@@ -112,8 +113,8 @@ describe('CompoundingRewardsPoolFactory', () => { // These tests must be skipped
             let receiver;
             beforeEach(async () => {
                 await stakingTokenInstance.mint(CompoundingRewardsPoolFactoryInstance.contractAddress, amount);
-                await CompoundingRewardsPoolFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock, bOne, standardStakingAmount, 20, standardStakingAmount);
-                await CompoundingRewardsPoolFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock+10, bOne, standardStakingAmount, 20, standardStakingAmount);
+                await CompoundingRewardsPoolFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock, bOne, standardStakingAmount, 20, standardStakingAmount, contractStakeLimit);
+                await CompoundingRewardsPoolFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock+10, bOne, standardStakingAmount, 20, standardStakingAmount, contractStakeLimit);
                 const transfererAddress = await CompoundingRewardsPoolFactoryInstance.rewardsPools(0);
                 const receiverAddress = await CompoundingRewardsPoolFactoryInstance.rewardsPools(1);
                 transferer = await etherlime.ContractAt(CompoundingRewardsPoolStaker, transfererAddress);

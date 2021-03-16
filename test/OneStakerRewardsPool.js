@@ -28,6 +28,7 @@ describe('OneStakerRewardsPool', () => {
 	const stakeLimit = ethers.constants.MaxUint256;
 	const bOne = ethers.utils.parseEther("1");
 	const standardStakingAmount = ethers.utils.parseEther('5') // 5 tokens
+	const contractStakeLimit = ethers.utils.parseEther('10') // 10 tokens
 
 
 	const setupRewardsPoolParameters = async (deployer) => {
@@ -74,7 +75,8 @@ describe('OneStakerRewardsPool', () => {
             rewardTokensAddresses,
             rewardPerBlock,
 			stakeLimit,
-			staker.signer.address
+			staker.signer.address,
+			contractStakeLimit
 		);
 
 		await rewardTokensInstances[0].mint(OneStakerRewardsPoolInstance.contractAddress,amount);

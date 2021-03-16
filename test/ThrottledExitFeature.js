@@ -31,6 +31,7 @@ describe('ThrottledExitFeature', () => {
 	const stakeLimit = amount;
 	const bOne = ethers.utils.parseEther("1");
 	const standardStakingAmount = ethers.utils.parseEther('5') // 5 tokens
+	const contractStakeLimit = ethers.utils.parseEther('10') // 10 tokens
 
 
 	const setupRewardsPoolParameters = async (deployer) => {
@@ -66,7 +67,8 @@ describe('ThrottledExitFeature', () => {
 			rewardPerBlock,
 			stakeLimit,
 			_throttleRoundBlocks,
-			_throttleRoundCap
+			_throttleRoundCap,
+			contractStakeLimit
 		);
 
 		await rewardTokensInstances[0].mint(ThrottledExitFeatureInstance.contractAddress, amount);

@@ -43,6 +43,7 @@ describe('LMC', () => {
 	const standardStakingAmount = ethers.utils.parseEther('5') // 5 tokens
 	const additionalRewards = [bTen]
 	const stakeLimit = amount;
+	const contractStakeLimit = ethers.utils.parseEther('35') // 10 tokens
 	let throttleRoundBlocks = 10;
 	let throttleRoundCap = ethers.utils.parseEther("1");
 	
@@ -101,7 +102,8 @@ describe('LMC', () => {
             rewardTokensAddresses,
             rewardPerBlock,
 			rewardTokensAddresses[0],
-			stakeLimit
+			stakeLimit,
+			contractStakeLimit
 		);
 
 		
@@ -385,6 +387,8 @@ describe('LMC', () => {
 				//Prepare new Contracts
 				await setupRewardsPoolParameters(deployer)
 				await setupRewardsPoolParameters(deployer)
+
+				const _contractStakeLimit = amount
 	
 				let NewLmcInstance = await deployer.deploy(
 					LMC,
@@ -395,7 +399,8 @@ describe('LMC', () => {
 					rewardTokensAddresses,
 					rewardPerBlock,
 					rewardTokensAddresses[0],
-					stakeLimit
+					stakeLimit,
+					_contractStakeLimit
 				);
 				
 				
@@ -422,7 +427,8 @@ describe('LMC', () => {
 					throttleRoundBlocks,
 					throttleRoundCap,
 					treasury.signer.address,
-					externalRewardsTokenAddress
+					externalRewardsTokenAddress,
+					_contractStakeLimit
 				);
 
 				

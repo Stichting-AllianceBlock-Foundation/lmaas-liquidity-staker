@@ -35,6 +35,7 @@ describe('NonCompoundingRewardsPool', () => {
 	const stakeLimit = amount;
 	const bOne = ethers.utils.parseEther("1");
 	const standardStakingAmount = ethers.utils.parseEther('5') // 5 tokens
+	const contractStakeLimit = ethers.utils.parseEther('10') // 10 tokens
 
 
 
@@ -73,7 +74,8 @@ describe('NonCompoundingRewardsPool', () => {
 			_throttleRoundBlocks,
 			_throttleRoundCap,
 			treasury.signer.address,
-			externalRewardsTokenAddress
+			externalRewardsTokenAddress,
+			contractStakeLimit
 		);
 
 		const reward = rewardPerBlock[0].mul(endBlock-startBlock);
