@@ -52,7 +52,8 @@ contract NonCompoundingRewardsPoolFactory is AbstractPoolsFactory, StakeTransfer
 		uint256[] calldata _rewardPerBlock,
 		uint256 _stakeLimit,
 		uint256 _throttleRoundBlocks,
-		uint256 _throttleRoundCap
+		uint256 _throttleRoundCap,
+		uint256 _contractStakeLimit
 	) external onlyOwner {
 		require(
 			_stakingToken != address(0),
@@ -94,7 +95,8 @@ contract NonCompoundingRewardsPoolFactory is AbstractPoolsFactory, StakeTransfer
 					_throttleRoundBlocks,
 					_throttleRoundCap,
 					treasury,
-					externalRewardToken
+					externalRewardToken,
+					_contractStakeLimit
 				)
 			);
 

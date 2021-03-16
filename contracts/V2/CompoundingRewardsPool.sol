@@ -16,8 +16,9 @@ contract CompoundingRewardsPool is RewardsPoolBase, OneStakerFeature, TreasuryOp
 		uint256 _stakeLimit,
 		address _staker,
 		address _treasury,
-		address _externalRewardToken
-	) public RewardsPoolBase(_stakingToken, _startBlock, _endBlock, _rewardsTokens, _rewardPerBlock, _stakeLimit) OneStakerFeature(_staker) TreasuryOperatedFeature(_externalRewardToken, _treasury) {
+		address _externalRewardToken,
+		uint256 _contractStakeLimit
+	) public RewardsPoolBase(_stakingToken, _startBlock, _endBlock, _rewardsTokens, _rewardPerBlock, _stakeLimit, _contractStakeLimit) OneStakerFeature(_staker) TreasuryOperatedFeature(_externalRewardToken, _treasury) {
 	}
 
 	function stake(uint256 _tokenAmount) public override(RewardsPoolBase, OneStakerFeature) {

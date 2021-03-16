@@ -20,8 +20,9 @@ contract NonCompoundingRewardsPool is RewardsPoolBase, OnlyExitFeature, Throttle
 		uint256 _throttleRoundBlocks,
 		uint256 _throttleRoundCap,
 		address _treasury,
-		address _externalRewardToken
-	) public RewardsPoolBase(_stakingToken, _startBlock, _endBlock, _rewardsTokens, _rewardPerBlock, _stakeLimit) TreasuryOperatedFeature(_externalRewardToken, _treasury) StakeLock(_endBlock) {
+		address _externalRewardToken,
+		uint256 _contractStakeLimit
+	) public RewardsPoolBase(_stakingToken, _startBlock, _endBlock, _rewardsTokens, _rewardPerBlock, _stakeLimit, _contractStakeLimit) TreasuryOperatedFeature(_externalRewardToken, _treasury) StakeLock(_endBlock) {
 		setThrottleParams(_throttleRoundBlocks, _throttleRoundCap, _endBlock);
 	}
 

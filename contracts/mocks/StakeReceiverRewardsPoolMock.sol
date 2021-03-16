@@ -12,8 +12,9 @@ contract StakeReceiverRewardsPoolMock is OnlyExitRewardsPoolMock, StakeReceiverF
         uint256 _endBlock,
         address[] memory _rewardsTokens,
         uint256[] memory _rewardPerBlock,
-		uint256 _stakeLimit
-    ) public OnlyExitRewardsPoolMock(_stakingToken, _startBlock, _endBlock, _rewardsTokens, _rewardPerBlock, _stakeLimit) {
+		uint256 _stakeLimit,
+		uint256 _contractStakeLimit
+    ) public OnlyExitRewardsPoolMock(_stakingToken, _startBlock, _endBlock, _rewardsTokens, _rewardPerBlock, _stakeLimit, _contractStakeLimit) {
 
 	}
 

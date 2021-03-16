@@ -27,6 +27,7 @@ describe('LimitedAutoStake', () => {
 	const stakeLimit = amount;
 	const bOne = ethers.utils.parseEther("1");
 	const standardStakingAmount = ethers.utils.parseEther('5') // 5 tokens
+	const contractStakeLimit = ethers.utils.parseEther('10') // 10 tokens
 
 
 	const setupRewardsPoolParameters = async (deployer) => {
@@ -56,7 +57,8 @@ describe('LimitedAutoStake', () => {
 				[stakingTokenAddress],
 				[bOne],
 				ethers.constants.MaxUint256,
-				AutoStakingInstance.contractAddress
+				AutoStakingInstance.contractAddress,
+				contractStakeLimit
 			);
 
 			await AutoStakingInstance.setPool(OneStakerRewardsPoolInstance.contractAddress);
@@ -101,7 +103,8 @@ describe('LimitedAutoStake', () => {
 				[stakingTokenAddress],
 				[bOne],
 				ethers.constants.MaxUint256,
-				AutoStakingInstance.contractAddress
+				AutoStakingInstance.contractAddress,
+				contractStakeLimit
 			);
 
 			await AutoStakingInstance.setPool(OneStakerRewardsPoolInstance.contractAddress);

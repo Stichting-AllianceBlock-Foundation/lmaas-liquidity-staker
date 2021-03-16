@@ -31,6 +31,7 @@ describe('CompoundingRewardsPoolStaker', () => {
 	const amount = ethers.utils.parseEther("5184000");
 	const bOne = ethers.utils.parseEther("1");
 	const standardStakingAmount = ethers.utils.parseEther('5') // 5 tokens
+	const contractStakeLimit = ethers.utils.parseEther('15') // 10 tokens
 
 
 	const setupRewardsPoolParameters = async (deployer) => {
@@ -67,7 +68,8 @@ describe('CompoundingRewardsPoolStaker', () => {
 			ethers.constants.MaxUint256,
 			StakeTransfererAutoStakeInstance.contractAddress, 
 			treasury.signer.address, 
-			externalRewardsTokenAddress
+			externalRewardsTokenAddress,
+			contractStakeLimit
 		);
 
 		await StakeTransfererAutoStakeInstance.setPool(CompoundingRewardsPoolInstance.contractAddress);
@@ -86,7 +88,8 @@ describe('CompoundingRewardsPoolStaker', () => {
 			ethers.constants.MaxUint256,
 			StakeReceiverAutoStakeInstance.contractAddress,
 			treasury.signer.address, 
-			externalRewardsTokenAddress
+			externalRewardsTokenAddress,
+			contractStakeLimit
 		);
 
 		await StakeReceiverAutoStakeInstance.setPool(CompoundingRewardsPoolInstance.contractAddress);
