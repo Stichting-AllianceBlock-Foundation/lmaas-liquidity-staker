@@ -163,18 +163,40 @@ describe('NonCompoundingRewardsPoolFactory', () => {
 
             let transferer;
             let receiver;
+            let notEndedTransferer;
+            let notEndedReceiver;
             beforeEach(async () => {
                 for (i = 0; i < rewardTokensAddresses.length; i++) {
                     await rewardTokensInstances[i].transfer(NonCompoundingRewardsPoolFactoryInstance.contractAddress, amountToTransfer);
                 }
                 await NonCompoundingRewardsPoolFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock, rewardTokensAddresses, rewardPerBlock, stakeLimit, 10, stakeLimit);
                 await NonCompoundingRewardsPoolFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock+10, rewardTokensAddresses, rewardPerBlock, stakeLimit, 10, stakeLimit);
+                await NonCompoundingRewardsPoolFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock+100, rewardTokensAddresses, rewardPerBlock, stakeLimit, 10, stakeLimit);
+                await NonCompoundingRewardsPoolFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock+100, rewardTokensAddresses, rewardPerBlock, stakeLimit, 10, stakeLimit);
+
                 const transfererAddress = await NonCompoundingRewardsPoolFactoryInstance.rewardsPools(0);
                 const receiverAddress = await NonCompoundingRewardsPoolFactoryInstance.rewardsPools(1);
                 transferer = await etherlime.ContractAt(NonCompoundingRewardsPool, transfererAddress);
                 receiver = await etherlime.ContractAt(NonCompoundingRewardsPool, receiverAddress);
 
-                const currentBlock = await deployer.provider.getBlock('latest');
+                const notEndedTransfererrAddress = await NonCompoundingRewardsPoolFactoryInstance.rewardsPools(2);
+                const notEndedReceiverAddress = await NonCompoundingRewardsPoolFactoryInstance.rewardsPools(3);
+                notEndedTransferer = await etherlime.ContractAt(NonCompoundingRewardsPool, notEndedTransfererrAddress);
+                notEndedReceiver = await etherlime.ContractAt(NonCompoundingRewardsPool, notEndedReceiverAddress);
+
+                let currentBlock = await deployer.provider.getBlock('latest');
+                const blocksStartDelta = (startBlock-currentBlock.number);
+                for (let i=0; i<blocksStartDelta; i++) {
+                    await mineBlock(deployer.provider);
+                }
+
+                const standardStakingAmount = ethers.utils.parseEther('5')
+                await stakingTokenInstance.mint(aliceAccount.signer.address, amountToTransfer);
+                await stakingTokenInstance.approve(transferer.contractAddress, ethers.constants.MaxUint256);
+
+                await transferer.from(aliceAccount.signer.address).stake(standardStakingAmount);
+
+                currentBlock = await deployer.provider.getBlock('latest')
                 const blocksDelta = (endBlock-currentBlock.number);
 
                 for (let i=0; i<blocksDelta; i++) {
@@ -191,7 +213,7 @@ describe('NonCompoundingRewardsPoolFactory', () => {
                 const receiverStakesBefore = await receiver.totalStaked();
 
                 await NonCompoundingRewardsPoolFactoryInstance.enableReceivers(transferer.contractAddress, [receiver.contractAddress]);
-                await transferer.exitAndTransfer(receiver.contractAddress);
+                await transferer.from(aliceAccount.signer.address).exitAndTransfer(receiver.contractAddress);
 
                 const transfererSharesAfter = await transferer.totalStaked();
                 const receiverSharesAfter = await receiver.totalStaked();
@@ -208,6 +230,11 @@ describe('NonCompoundingRewardsPoolFactory', () => {
             it('Should fail whitelisting if not called by the owner', async () => {
                 await assert.revertWith(NonCompoundingRewardsPoolFactoryInstance.from(bobAccount.signer).enableReceivers(transferer.contractAddress, [receiver.contractAddress]), "onlyOwner:: The caller is not the owner");
             });
+
+            it("Should fail to migrate if the campaign has not ended", async () => {
+                await NonCompoundingRewardsPoolFactoryInstance.enableReceivers(notEndedTransferer.contractAddress, [notEndedReceiver.contractAddress]);
+                await assert.revertWith(notEndedTransferer.exitAndTransfer(notEndedReceiver.contractAddress), "onlyUnlocked::cannot perform this action until the end of the lock");
+            })
         });
 
     });
