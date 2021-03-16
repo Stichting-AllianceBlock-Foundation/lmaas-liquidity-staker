@@ -35,6 +35,7 @@ describe('LMC Factory', () => { // These tests must be skipped for coverage as c
 	let throttleRoundCap = ethers.utils.parseEther("1");
 	const bTen = ethers.utils.parseEther("10")
 	const bonusPercet = 10000 // In thousands
+    const contractStakeLimit = amount
     
 
 	const setupRewardsPoolParameters = async (deployer) => {
@@ -83,7 +84,7 @@ describe('LMC Factory', () => { // These tests must be skipped for coverage as c
         it('Should deploy the lmc successfully', async () => {
             await stakingTokenInstance.mint(LMCFactoryInstance.contractAddress, amount);
 			await rewardTokensInstances[0].mint(LMCFactoryInstance.contractAddress, amount)
-            await LMCFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock, rewardTokensAddresses, rewardPerBlock,rewardTokensAddresses[0], stakeLimit);
+            await LMCFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock, rewardTokensAddresses, rewardPerBlock,rewardTokensAddresses[0], stakeLimit, contractStakeLimit);
 
             const lmcContract = await LMCFactoryInstance.rewardsPools(0);
 			const LMCInstance = await etherlime.ContractAt(LMC, lmcContract);
@@ -94,34 +95,34 @@ describe('LMC Factory', () => { // These tests must be skipped for coverage as c
         });
 
         it('Should fail on deploying not from owner', async () => {
-            await assert.revert(LMCFactoryInstance.from(bobAccount).deploy(stakingTokenAddress, startBlock, endBlock, rewardTokensAddresses, rewardPerBlock,rewardTokensAddresses[0], stakeLimit));
+            await assert.revert(LMCFactoryInstance.from(bobAccount).deploy(stakingTokenAddress, startBlock, endBlock, rewardTokensAddresses, rewardPerBlock,rewardTokensAddresses[0], stakeLimit, contractStakeLimit));
         });
 
         it('Should fail on deploying with zero address as staking token', async () => {
-            await assert.revertWith(LMCFactoryInstance.deploy(ethers.constants.AddressZero, startBlock, endBlock, rewardTokensAddresses, rewardPerBlock,rewardTokensAddresses[0], stakeLimit), "LiquidityMiningCampaignFactory::deploy: Staking token address can't be zero address");
+            await assert.revertWith(LMCFactoryInstance.deploy(ethers.constants.AddressZero, startBlock, endBlock, rewardTokensAddresses, rewardPerBlock,rewardTokensAddresses[0], stakeLimit, contractStakeLimit), "LiquidityMiningCampaignFactory::deploy: Staking token address can't be zero address");
         });
      
         it('Should fail on zero stake limit', async () => {
-            await assert.revertWith(LMCFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock, rewardTokensAddresses, rewardPerBlock,rewardTokensAddresses[0], 0), "LiquidityMiningCampaignFactory::deploy: Stake limit must be more than 0");
+            await assert.revertWith(LMCFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock, rewardTokensAddresses, rewardPerBlock,rewardTokensAddresses[0], 0, contractStakeLimit), "LiquidityMiningCampaignFactory::deploy: Stake limit must be more than 0");
         });
 
         it('Should fail the rewards pool array is empty', async () => {
-            await assert.revertWith(LMCFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock, [], rewardPerBlock,rewardTokensAddresses[0], stakeLimit), "LiquidityMiningCampaignFactory::deploy: RewardsTokens array could not be empty");
+            await assert.revertWith(LMCFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock, [], rewardPerBlock,rewardTokensAddresses[0], stakeLimit, contractStakeLimit), "LiquidityMiningCampaignFactory::deploy: RewardsTokens array could not be empty");
         });
 		it('Should fail the rewards pool array and rewards amount arrays are with diffferent length ', async () => {
 			rewardPerBlock.push(bOne)
-            await assert.revertWith(LMCFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock, rewardTokensAddresses, rewardPerBlock,rewardTokensAddresses[0], stakeLimit), "LiquidityMiningCampaignFactory::deploy: RewardsTokens and RewardPerBlock should have a matching sizes");
+            await assert.revertWith(LMCFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock, rewardTokensAddresses, rewardPerBlock,rewardTokensAddresses[0], stakeLimit, contractStakeLimit), "LiquidityMiningCampaignFactory::deploy: RewardsTokens and RewardPerBlock should have a matching sizes");
         });
 		it('Should fail the rewards has 0 in the array ', async () => {
 			let rewardZero = [0]
-            await assert.revertWith(LMCFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock, rewardTokensAddresses, rewardZero,rewardTokensAddresses[0], stakeLimit), "LiquidityMiningCampaignFactory::deploy: Reward per block must be greater than zero");
+            await assert.revertWith(LMCFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock, rewardTokensAddresses, rewardZero,rewardTokensAddresses[0], stakeLimit, contractStakeLimit), "LiquidityMiningCampaignFactory::deploy: Reward per block must be greater than zero");
         });
 
         describe('Whitelisting', async function () {
 
             beforeEach(async () => {
 				await rewardTokensInstances[0].mint(LMCFactoryInstance.contractAddress, amount)
-                await LMCFactoryInstance.deploy(stakingTokenInstance.contractAddress, startBlock, endBlock, rewardTokensAddresses, rewardPerBlock, rewardTokensAddresses[0], stakeLimit)
+                await LMCFactoryInstance.deploy(stakingTokenInstance.contractAddress, startBlock, endBlock, rewardTokensAddresses, rewardPerBlock, rewardTokensAddresses[0], stakeLimit, contractStakeLimit)
 				
 				const percentageCalculator = await deployer.deploy(PercentageCalculator);
 				libraries = {
@@ -158,7 +159,8 @@ describe('LMC Factory', () => { // These tests must be skipped for coverage as c
 					throttleRoundBlocks,
 					throttleRoundCap,
 					treasury.signer.address,
-					externalRewardsTokenAddress
+					externalRewardsTokenAddress, 
+                    contractStakeLimit
 				);
 
 				await stakingTokenInstance.approve(LockSchemeInstance.contractAddress, amount);
@@ -204,7 +206,7 @@ describe('LMC Factory', () => { // These tests must be skipped for coverage as c
                 for (i = 0; i < rewardTokensAddresses.length; i++) {
                     await rewardTokensInstances[i].transfer(LMCFactoryInstance.contractAddress, amountToTransfer);
                 }
-                await LMCFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock, rewardTokensAddresses,rewardPerBlock, rewardTokensAddresses[0], stakeLimit);
+                await LMCFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock, rewardTokensAddresses,rewardPerBlock, rewardTokensAddresses[0], stakeLimit, contractStakeLimit);
             });
 
             const calculateRewardsAmount = async (startBlock, endBlock, rewardsPerBlock) => {

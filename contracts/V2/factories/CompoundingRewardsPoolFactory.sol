@@ -36,7 +36,8 @@ contract CompoundingRewardsPoolFactory is AbstractPoolsFactory, StakeTransferEna
 		uint256 _rewardPerBlock,
 		uint256 _stakeLimit, 
 		uint256 _throttleRoundBlocks, 
-		uint256 _throttleRoundCap
+		uint256 _throttleRoundCap,
+		uint256 _contractStakeLimit
 	) external onlyOwner {
 		require(
 			_stakingToken != address(0),
@@ -86,7 +87,8 @@ contract CompoundingRewardsPoolFactory is AbstractPoolsFactory, StakeTransferEna
 				uint256(-1),
 				address(autoStaker),
 				treasury,
-				externalRewardToken
+				externalRewardToken,
+				_contractStakeLimit
 			);
 
 		autoStaker.setPool(address(rewardsPool));

@@ -27,6 +27,7 @@ describe('RewardsPoolBase', () => {
 	const stakeLimit = amount;
 	const bOne = ethers.utils.parseEther("1");
 	const standardStakingAmount = ethers.utils.parseEther('5') // 5 tokens
+	const contractStakeLimit = ethers.utils.parseEther('10') // 10 tokens
 
 
 	const setupRewardsPoolParameters = async (deployer) => {
@@ -72,7 +73,8 @@ describe('RewardsPoolBase', () => {
 			endBlock,
             rewardTokensAddresses,
             rewardPerBlock,
-			stakeLimit
+			stakeLimit,
+			contractStakeLimit
 		);
 
 		await rewardTokensInstances[0].mint(RewardsPoolBaseInstance.contractAddress,amount);
@@ -117,7 +119,8 @@ describe('RewardsPoolBase', () => {
 			endBlock,
             rewardTokensAddresses,
             rewardPerBlock,
-			stakeLimit
+			stakeLimit,
+			contractStakeLimit
 		), "Constructor::Invalid staking token address")
 	})
 
@@ -131,7 +134,8 @@ describe('RewardsPoolBase', () => {
 			endBlock,
             [],
             rewardPerBlock,
-			stakeLimit
+			stakeLimit,
+			contractStakeLimit
 		), "Constructor::Rewards per block and rewards tokens must be with the same length.")
 	})
 
@@ -145,7 +149,8 @@ describe('RewardsPoolBase', () => {
 			endBlock,
             rewardTokensAddresses,
             [],
-			stakeLimit
+			stakeLimit,
+			contractStakeLimit
 		), "Constructor::Rewards per block and rewards tokens must be with the same length.")
 	})
 	
@@ -159,7 +164,8 @@ describe('RewardsPoolBase', () => {
 			endBlock,
             rewardTokensAddresses,
             rewardPerBlock,
-			stakeLimit
+			stakeLimit,
+			contractStakeLimit
 		), "Constructor::The starting block must be in the future.")
 	})
 
@@ -173,7 +179,8 @@ describe('RewardsPoolBase', () => {
 			0,
             rewardTokensAddresses,
             rewardPerBlock,
-			stakeLimit
+			stakeLimit,
+			contractStakeLimit
 		), "Constructor::The end block must be in the future.")
 	})
 
@@ -187,8 +194,23 @@ describe('RewardsPoolBase', () => {
 			endBlock,
             rewardTokensAddresses,
             rewardPerBlock,
-			0
+			0,
+			contractStakeLimit
 		), "Constructor::Stake limit needs to be more than 0")
+	})
+	it("Should fail to deploy RewardsPoolBase with 0 contract staking limit", async() => {
+
+		await assert.revertWith(deployer.deploy(
+			RewardsPoolBase,
+            {},
+            stakingTokenAddress,
+			startBlock,
+			endBlock,
+            rewardTokensAddresses,
+            rewardPerBlock,
+			stakeLimit,
+			0
+		), "Constructor:: Contract Stake limit needs to be more than 0")
 	})
 
 	describe("Staking", function() {
@@ -264,6 +286,10 @@ describe('RewardsPoolBase', () => {
 
 			it("Should fail if amount to stake is more than limit", async() => {
 				await assert.revertWith(RewardsPoolBaseInstance.stake(stakeLimit.mul(2)), "onlyUnderStakeLimit::Stake limit reached");
+			})
+
+			it("Should fail if amount to stake is more than the contract limit", async() => {
+				await assert.revertWith(RewardsPoolBaseInstance.stake(contractStakeLimit.mul(2)), "onlyUnderStakeLimit::Contract Stake limit reached");
 			})
 
 		})
