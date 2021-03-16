@@ -170,10 +170,10 @@ describe('NonCompoundingRewardsPoolFactory', () => {
                 for (i = 0; i < rewardTokensAddresses.length; i++) {
                     await rewardTokensInstances[i].transfer(NonCompoundingRewardsPoolFactoryInstance.contractAddress, amountToTransfer);
                 }
-                await NonCompoundingRewardsPoolFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock, rewardTokensAddresses, rewardPerBlock, stakeLimit, 10, stakeLimit);
-                await NonCompoundingRewardsPoolFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock+10, rewardTokensAddresses, rewardPerBlock, stakeLimit, 10, stakeLimit);
-                await NonCompoundingRewardsPoolFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock+100, rewardTokensAddresses, rewardPerBlock, stakeLimit, 10, stakeLimit);
-                await NonCompoundingRewardsPoolFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock+100, rewardTokensAddresses, rewardPerBlock, stakeLimit, 10, stakeLimit);
+                await NonCompoundingRewardsPoolFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock, rewardTokensAddresses, rewardPerBlock, stakeLimit, 10, stakeLimit, contractStakeLimit);
+                await NonCompoundingRewardsPoolFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock+10, rewardTokensAddresses, rewardPerBlock, stakeLimit, 10, stakeLimit, contractStakeLimit);
+                await NonCompoundingRewardsPoolFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock+100, rewardTokensAddresses, rewardPerBlock, stakeLimit, 10, stakeLimit, contractStakeLimit);
+                await NonCompoundingRewardsPoolFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock+100, rewardTokensAddresses, rewardPerBlock, stakeLimit, 10, stakeLimit, contractStakeLimit);
 
                 const transfererAddress = await NonCompoundingRewardsPoolFactoryInstance.rewardsPools(0);
                 const receiverAddress = await NonCompoundingRewardsPoolFactoryInstance.rewardsPools(1);
