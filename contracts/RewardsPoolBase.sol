@@ -423,13 +423,11 @@ contract RewardsPoolBase is ReentrancyGuard {
 		uint256 currentBlock = _getBlock();
 		uint256 applicableBlock = (currentBlock < endBlock) ? currentBlock : endBlock;
 
-		uint256 blocksSinceLastReward = applicableBlock - lastRewardBlock;
+		uint256 blocksSinceLastReward = applicableBlock.sub(lastRewardBlock);
 
 		uint256 tokenDecimals = IERC20Detailed(rewardsTokens[tokenIndex]).decimals();
 		uint256 tokenMultiplier = 10**tokenDecimals;
 
-		// uint256 blocksSinceLastReward = _getBlock().sub(lastRewardBlock); // Overflow makes sure this is not called too early
-	
 		uint256 newReward =
 			blocksSinceLastReward.mul(rewardPerBlock[tokenIndex]); // Get newly accumulated reward
 		uint256 rewardMultiplierIncrease = newReward.mul(tokenMultiplier).div(totalStaked); // Calculate the multiplier increase
