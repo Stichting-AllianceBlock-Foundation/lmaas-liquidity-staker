@@ -3,7 +3,7 @@ const ethers = require('ethers');
 const NonCompoundingRewardsPoolFactory = require('../build/NonCompoundingRewardsPoolFactory.json');
 const Treasury = require('../build/Treasury.json');
 
-const ALBTAddress =  "0xD21913390c484d490D24F046Da5329F1d778b75b";
+const ALBTAddress =  "0x00a8b738E453fFd858a7edf03bcCfe20412f0Eb0";
 const UniswapRouter = "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D";
 const infuraApiKey = "7797fd5aada5475c831fedefe288a949";
 const etherscanApiKey = "WRQUFHG1QNT2DUNU2YMGQBRTSQFII9A7VD";
