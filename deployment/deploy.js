@@ -3,7 +3,7 @@ const ethers = require('ethers');
 const NonCompoundingRewardsPoolFactory = require('../build/NonCompoundingRewardsPoolFactory.json');
 const Treasury = require('../build/Treasury.json');
 
-const ALBTAddress =  "0x00a8b738E453fFd858a7edf03bcCfe20412f0Eb0";
+const ALBTAddress =  "0xD21913390c484d490D24F046Da5329F1d778b75b";
 const UniswapRouter = "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D";
 const infuraApiKey = "7797fd5aada5475c831fedefe288a949";
 const etherscanApiKey = "WRQUFHG1QNT2DUNU2YMGQBRTSQFII9A7VD";
@@ -53,10 +53,10 @@ const deploy = async (network, secret) => {
 
 	let usersStakeLimit = await ethers.utils.parseEther(`500000`);
 
-	TreasuryInstance = await deployer.deploy(Treasury, {}, UniswapRouter, ALBTAddress);
+	TreasuryInstance = await deployer.deployAndVerify(Treasury, {}, UniswapRouter, ALBTAddress);
 	console.log(TreasuryInstance.contractAddress, "Treasury address")
 	
-	NonCompoundingRewardsPoolFactoryInstance = await deployer.deploy(NonCompoundingRewardsPoolFactory, {}, TreasuryInstance.contractAddress, ALBTAddress);
+	NonCompoundingRewardsPoolFactoryInstance = await deployer.deployAndVerify(NonCompoundingRewardsPoolFactory, {}, TreasuryInstance.contractAddress, ALBTAddress);
 	console.log(NonCompoundingRewardsPoolFactoryInstance.contractAddress, "Non Compounding Factory address")	
 	
 	let poolDeployment3Months = await NonCompoundingRewardsPoolFactoryInstance.deploy(ALBTAddress, startBlock, threeMonthsEndBlock, rewardTokensAddresses, [rewardPerBlockThreeMonths], usersStakeLimit, throttleRoundBlocks, throttleRoundCapThreeMonths, threeMonthsContractLimit);
