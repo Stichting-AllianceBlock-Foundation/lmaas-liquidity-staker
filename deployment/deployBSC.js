@@ -30,77 +30,80 @@ const deploy = async (network, secret, etherscanApiKey) => {
   const longerContractStakeLimit = parseEther(`4000`)
   const throttleRoundCap = parseEther(`400`)
 
-  const currentBlock = await deployer.provider.getBlock('latest')
-  const blocksInADay = 6646
-  const blocksInAMonth = blocksInADay * 30
-  /* 5 blocks per min */
-  /* 30 blocks per hour */
-  /* 7200 blocks per day */
+  const BLOCKS_PER_DAY_BSC = 28800
+  const BLOCKS_PER_HOUR_BSC = BLOCKS_PER_DAY_BSC / 24
+  const BLOCKS_PER_MINUTE_BSC = BLOCKS_PER_HOUR_BSC / 60
+  const BLOCKS_PER_SECOND_BSC = BLOCKS_PER_MINUTE_BSC / 60
+  const BLOCKS_PER_WEEK_BSC = BLOCKS_PER_DAY_BSC * 7
+  const BLOCKS_PER_30_DAYS_BSC = BLOCKS_PER_DAY_BSC * 30
 
-  const startBlock = currentBlock.number + 100              // 5 minutes timeout
-  const endBlock0 = startBlock + (blocksInADay * 7)         // 7 days / 10 minutes of staking
-  const endBlock1 = startBlock + blocksInAMonth             // 1 month / 20 minutes of staking
-  const endBlock3 = startBlock + (blocksInAMonth * 3)       // 3 months / 30 minutes of staking
-  const endBlock6 = startBlock + (blocksInAMonth * 6)       // 6 months of staking
-  const endBlock12 = startBlock + (blocksInAMonth * 12)     // 12 months of staking
-  const endBlock24 = startBlock + (blocksInAMonth * 24)     // 24 monts of staking
+  const currentBlock = await deployer.provider.getBlock('latest')
+
+  const startBlock = currentBlock.number + 5 * BLOCKS_PER_MINUTE_BSC  // 5 minutes timeout
+  const endBlock0 = startBlock + BLOCKS_PER_WEEK_BSC                  // 7 days / 10 minutes of staking
+  const endBlock1 = startBlock + BLOCKS_PER_30_DAYS_BSC                 // 1 month / 20 minutes of staking
+  const endBlock3 = startBlock + (BLOCKS_PER_30_DAYS_BSC * 3)           // 3 months / 30 minutes of staking
+  const endBlock6 = startBlock + (BLOCKS_PER_30_DAYS_BSC * 6)           // 6 months of staking
+  const endBlock12 = startBlock + (BLOCKS_PER_30_DAYS_BSC * 12)         // 12 months of staking
+  const endBlock24 = startBlock + (BLOCKS_PER_30_DAYS_BSC * 24)         // 24 monts of staking
 
   const blockDelta = endBlock24 - startBlock
 
   const amountToTransfer = rewardsPerBock[0].mul(blockDelta)
   const allRewards = amountToTransfer.mul(5)
+  const gasPrice = { gasPrice: 20000000000 }
 
-  const TreasuryInstance = await deployer.deploy(Treasury, {}, PancakeSwapRouter, BSCTestALBTAddress)
+  const TreasuryInstance = await deployer.deploy(Treasury, {}, PancakeSwapRouter, BSCTestALBTAddress, gasPrice)
   console.log('\x1b[36m%s\x1b[0m', `--- Treasury address: ${TreasuryInstance.contractAddress} ---`)
 
-  const NonCompoundingRewardsPoolFactoryInstance = await deployer.deploy(NonCompoundingRewardsPoolFactory, {}, TreasuryInstance.contractAddress, BSCTestALBTAddress)
+  const NonCompoundingRewardsPoolFactoryInstance = await deployer.deploy(NonCompoundingRewardsPoolFactory, {}, TreasuryInstance.contractAddress, BSCTestALBTAddress, gasPrice)
   console.log('\x1b[36m%s\x1b[0m', `--- Factory address: ${NonCompoundingRewardsPoolFactoryInstance.contractAddress} ---`)
 
   // Mint
-  const mint = await albtInstance.mint(NonCompoundingRewardsPoolFactoryInstance.contractAddress, allRewards)
+  const mint = await albtInstance.mint(NonCompoundingRewardsPoolFactoryInstance.contractAddress, allRewards, gasPrice)
   const mintStatus = await mint.wait()
 
-  const poolDeployment0 = await NonCompoundingRewardsPoolFactoryInstance.deploy(BSCTestALBTAddress, startBlock, endBlock0, rewardTokensAddresses, rewardsPerBock, stakeLimit, throttleRoundBlocks, throttleRoundCap, contractStakeLimit)
+  const poolDeployment0 = await NonCompoundingRewardsPoolFactoryInstance.deploy(BSCTestALBTAddress, startBlock, endBlock0, rewardTokensAddresses, rewardsPerBock, stakeLimit, throttleRoundBlocks, throttleRoundCap, contractStakeLimit, gasPrice)
   await poolDeployment0.wait()
 
   let nonCompoundingPool0 = await NonCompoundingRewardsPoolFactoryInstance.rewardsPools(0)
   console.log('\x1b[36m%s\x1b[0m', `--- First NonCompoundingPool address 0: ${nonCompoundingPool0} ---`)
 
-  let poolDeployment = await NonCompoundingRewardsPoolFactoryInstance.deploy(BSCTestALBTAddress, startBlock, endBlock1, rewardTokensAddresses, rewardsPerBock, stakeLimit, throttleRoundBlocks, throttleRoundCap, contractStakeLimit)
+  let poolDeployment = await NonCompoundingRewardsPoolFactoryInstance.deploy(BSCTestALBTAddress, startBlock, endBlock1, rewardTokensAddresses, rewardsPerBock, stakeLimit, throttleRoundBlocks, throttleRoundCap, contractStakeLimit, gasPrice)
   await poolDeployment.wait()
 
   let nonCompoundingPool1 = await NonCompoundingRewardsPoolFactoryInstance.rewardsPools(1)
   console.log('\x1b[36m%s\x1b[0m', `--- First NonCompoundingPool address 1: ${nonCompoundingPool1} ---`)
 
-  let poolDeployment3 = await NonCompoundingRewardsPoolFactoryInstance.deploy(BSCTestALBTAddress, startBlock, endBlock3, rewardTokensAddresses, rewardsPerBock, stakeLimit, throttleRoundBlocks, throttleRoundCap, contractStakeLimit)
+  let poolDeployment3 = await NonCompoundingRewardsPoolFactoryInstance.deploy(BSCTestALBTAddress, startBlock, endBlock3, rewardTokensAddresses, rewardsPerBock, stakeLimit, throttleRoundBlocks, throttleRoundCap, contractStakeLimit, gasPrice)
   await poolDeployment3.wait()
 
   let nonCompoundingPool3 = await NonCompoundingRewardsPoolFactoryInstance.rewardsPools(2)
   console.log('\x1b[36m%s\x1b[0m', `--- First NonCompoundingPool address 3: ${nonCompoundingPool3} ---`)
 
-  let poolDeployment6 = await NonCompoundingRewardsPoolFactoryInstance.deploy(BSCTestALBTAddress, startBlock, endBlock6, rewardTokensAddresses, rewardsPerBock, stakeLimit, throttleRoundBlocks, throttleRoundCap, contractStakeLimit)
+  let poolDeployment6 = await NonCompoundingRewardsPoolFactoryInstance.deploy(BSCTestALBTAddress, startBlock, endBlock6, rewardTokensAddresses, rewardsPerBock, stakeLimit, throttleRoundBlocks, throttleRoundCap, contractStakeLimit, gasPrice)
   await poolDeployment6.wait()
 
   let nonCompoundingPool6 = await NonCompoundingRewardsPoolFactoryInstance.rewardsPools(3)
   console.log('\x1b[36m%s\x1b[0m', `--- First NonCompoundingPool address 6: ${nonCompoundingPool6} ---`)
 
-  let poolDeployment12 = await NonCompoundingRewardsPoolFactoryInstance.deploy(BSCTestALBTAddress, startBlock, endBlock12, rewardTokensAddresses, rewardsPerBock, stakeLimit, throttleRoundBlocks, throttleRoundCap, longerContractStakeLimit)
+  let poolDeployment12 = await NonCompoundingRewardsPoolFactoryInstance.deploy(BSCTestALBTAddress, startBlock, endBlock12, rewardTokensAddresses, rewardsPerBock, stakeLimit, throttleRoundBlocks, throttleRoundCap, longerContractStakeLimit, gasPrice)
   await poolDeployment12.wait()
 
   let nonCompoundingPool12 = await NonCompoundingRewardsPoolFactoryInstance.rewardsPools(4)
   console.log('\x1b[36m%s\x1b[0m', `--- First NonCompoundingPool address 12: ${nonCompoundingPool12} ---`)
 
-  let poolDeployment24 = await NonCompoundingRewardsPoolFactoryInstance.deploy(BSCTestALBTAddress, startBlock, endBlock24, rewardTokensAddresses, rewardsPerBock, stakeLimit, throttleRoundBlocks, throttleRoundCap, longerContractStakeLimit)
+  let poolDeployment24 = await NonCompoundingRewardsPoolFactoryInstance.deploy(BSCTestALBTAddress, startBlock, endBlock24, rewardTokensAddresses, rewardsPerBock, stakeLimit, throttleRoundBlocks, throttleRoundCap, longerContractStakeLimit, gasPrice)
   await poolDeployment24.wait()
 
   let nonCompoundingPool24 = await NonCompoundingRewardsPoolFactoryInstance.rewardsPools(5)
   console.log('\x1b[36m%s\x1b[0m', `--- First NonCompoundingPool address 24: ${nonCompoundingPool24} ---`)
 
-  await NonCompoundingRewardsPoolFactoryInstance.enableReceivers(nonCompoundingPool0, [nonCompoundingPool1, nonCompoundingPool3, nonCompoundingPool6, nonCompoundingPool12, nonCompoundingPool24])
-  await NonCompoundingRewardsPoolFactoryInstance.enableReceivers(nonCompoundingPool1, [nonCompoundingPool1, nonCompoundingPool3, nonCompoundingPool6, nonCompoundingPool12, nonCompoundingPool24])
-  await NonCompoundingRewardsPoolFactoryInstance.enableReceivers(nonCompoundingPool3, [nonCompoundingPool1, nonCompoundingPool3, nonCompoundingPool6, nonCompoundingPool12, nonCompoundingPool24])
-  await NonCompoundingRewardsPoolFactoryInstance.enableReceivers(nonCompoundingPool6, [nonCompoundingPool1, nonCompoundingPool3, nonCompoundingPool6, nonCompoundingPool12, nonCompoundingPool24])
-  await NonCompoundingRewardsPoolFactoryInstance.enableReceivers(nonCompoundingPool24, [nonCompoundingPool1, nonCompoundingPool3, nonCompoundingPool6, nonCompoundingPool12, nonCompoundingPool24])
+  await NonCompoundingRewardsPoolFactoryInstance.enableReceivers(nonCompoundingPool0, [nonCompoundingPool1, nonCompoundingPool3, nonCompoundingPool6, nonCompoundingPool12, nonCompoundingPool24], gasPrice)
+  await NonCompoundingRewardsPoolFactoryInstance.enableReceivers(nonCompoundingPool1, [nonCompoundingPool1, nonCompoundingPool3, nonCompoundingPool6, nonCompoundingPool12, nonCompoundingPool24], gasPrice)
+  await NonCompoundingRewardsPoolFactoryInstance.enableReceivers(nonCompoundingPool3, [nonCompoundingPool1, nonCompoundingPool3, nonCompoundingPool6, nonCompoundingPool12, nonCompoundingPool24], gasPrice)
+  await NonCompoundingRewardsPoolFactoryInstance.enableReceivers(nonCompoundingPool6, [nonCompoundingPool1, nonCompoundingPool3, nonCompoundingPool6, nonCompoundingPool12, nonCompoundingPool24], gasPrice)
+  await NonCompoundingRewardsPoolFactoryInstance.enableReceivers(nonCompoundingPool24, [nonCompoundingPool1, nonCompoundingPool3, nonCompoundingPool6, nonCompoundingPool12, nonCompoundingPool24], gasPrice)
 
   console.log(`
 helperContracts: {
@@ -111,12 +114,12 @@ helperContracts: {
 
   console.log(`
 stakerContracts: {
-    "ALBT-0M": "${nonCompoundingPool0}",
-    "ALBT-1M": "${nonCompoundingPool1}",
-    "ALBT-3M": "${nonCompoundingPool3}",
-    "ALBT-6M": "${nonCompoundingPool6}",
-    "ALBT-12M": "${nonCompoundingPool12}",
-    "ALBT-24M": "${nonCompoundingPool24}"
+    "bALBT-0M": "${nonCompoundingPool0}",
+    "bALBT-1M": "${nonCompoundingPool1}",
+    "bALBT-3M": "${nonCompoundingPool3}",
+    "bALBT-6M": "${nonCompoundingPool6}",
+    "bALBT-12M": "${nonCompoundingPool12}",
+    "bALBT-24M": "${nonCompoundingPool24}"
 },
   `)
 }
