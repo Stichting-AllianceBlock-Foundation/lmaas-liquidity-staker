@@ -3,15 +3,23 @@ const ethers = require('ethers')
 
 const NonCompoundingRewardsPoolFactory = require('../build/NonCompoundingRewardsPoolFactory.json')
 const TestERC20 = require('../build/TestERC20.json')
-const NonCompoundingRewardsPool = require('../build/NonCompoundingRewardsPool.json')
 const Treasury = require('../build/Treasury.json')
 
+// CONTSANTS
+const BLOCKS_PER_DAY_BSC = 28800
+const BLOCKS_PER_HOUR_BSC = BLOCKS_PER_DAY_BSC / 24
+const BLOCKS_PER_MINUTE_BSC = BLOCKS_PER_HOUR_BSC / 60
+const BLOCKS_PER_SECOND_BSC = BLOCKS_PER_MINUTE_BSC / 60
+const BLOCKS_PER_WEEK_BSC = BLOCKS_PER_DAY_BSC * 7
+const BLOCKS_PER_30_DAYS_BSC = BLOCKS_PER_DAY_BSC * 30
+
+// Addresses
 const BSCTestALBTAddress = "0x666e672B2Ada59979Fc4dB7AF9A4710E0E4D51E6"
 const PancakeSwapRouter = "0xd954551853F55deb4Ae31407c423e67B1621424A" //This address is not real
 
 let rewardTokensAddresses = [BSCTestALBTAddress]
 let rewardsPerBock = []
-let throttleRoundBlocks = 36
+let throttleRoundBlocks = BLOCKS_PER_MINUTE_BSC * 10
 
 const deploy = async (network, secret, etherscanApiKey) => {
   const { parseEther } = ethers.utils
@@ -30,19 +38,12 @@ const deploy = async (network, secret, etherscanApiKey) => {
   const longerContractStakeLimit = parseEther(`4000`)
   const throttleRoundCap = parseEther(`400`)
 
-  const BLOCKS_PER_DAY_BSC = 28800
-  const BLOCKS_PER_HOUR_BSC = BLOCKS_PER_DAY_BSC / 24
-  const BLOCKS_PER_MINUTE_BSC = BLOCKS_PER_HOUR_BSC / 60
-  const BLOCKS_PER_SECOND_BSC = BLOCKS_PER_MINUTE_BSC / 60
-  const BLOCKS_PER_WEEK_BSC = BLOCKS_PER_DAY_BSC * 7
-  const BLOCKS_PER_30_DAYS_BSC = BLOCKS_PER_DAY_BSC * 30
-
   const currentBlock = await deployer.provider.getBlock('latest')
 
-  const startBlock = currentBlock.number + 5 * BLOCKS_PER_MINUTE_BSC  // 5 minutes timeout
-  const endBlock0 = startBlock + BLOCKS_PER_WEEK_BSC                  // 7 days / 10 minutes of staking
-  const endBlock1 = startBlock + BLOCKS_PER_30_DAYS_BSC                 // 1 month / 20 minutes of staking
-  const endBlock3 = startBlock + (BLOCKS_PER_30_DAYS_BSC * 3)           // 3 months / 30 minutes of staking
+  const startBlock = currentBlock.number + 5 * BLOCKS_PER_MINUTE_BSC    // 5 minutes timeout
+  const endBlock0 = startBlock + (BLOCKS_PER_MINUTE_BSC * 30)           // 7 days / 30 minutes of staking
+  const endBlock1 = startBlock + BLOCKS_PER_HOUR_BSC                    // 1 month / 60 minutes of staking
+  const endBlock3 = startBlock + (BLOCKS_PER_HOUR_BSC * 24)             // 3 months / 24 hours of staking
   const endBlock6 = startBlock + (BLOCKS_PER_30_DAYS_BSC * 6)           // 6 months of staking
   const endBlock12 = startBlock + (BLOCKS_PER_30_DAYS_BSC * 12)         // 12 months of staking
   const endBlock24 = startBlock + (BLOCKS_PER_30_DAYS_BSC * 24)         // 24 monts of staking
