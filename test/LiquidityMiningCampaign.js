@@ -229,6 +229,84 @@ describe('LMC', () => {
 			})
 		})
 
+	describe("Only Staking", () => {
+
+		beforeEach(async () => {
+			await stakingTokenInstance.approve(LmcInstance.contractAddress, amount);
+			await stakingTokenInstance.from(bobAccount.signer).approve(LmcInstance.contractAddress, amount);
+
+			const currentBlock = await deployer.provider.getBlock('latest');
+			const blocksDelta = (startBlock - currentBlock.number);
+
+			for (let i = 0; i < blocksDelta; i++) {
+				await mineBlock(deployer.provider);
+			}
+		});
+
+		it("Should stake only sucessfully", async () => {
+
+			let currentBlock = await deployer.provider.getBlock('latest');
+			let contractInitialBalance = await stakingTokenInstance.balanceOf(LmcInstance.contractAddress);
+			let userInitialBalance = await stakingTokenInstance.balanceOf(aliceAccount.signer.address);
+
+			await LmcInstance.stake(bTen);
+
+			let contractFinalBalance = await stakingTokenInstance.balanceOf(LmcInstance.contractAddress);
+			let userFinalBalance = await stakingTokenInstance.balanceOf(aliceAccount.signer.address);
+
+			const totalStakedAmount = await LmcInstance.totalStaked();
+			const userInfo = await LmcInstance.userInfo(aliceAccount.signer.address)
+			const userRewardDebt = await LmcInstance.getUserRewardDebt(aliceAccount.signer.address, 0);
+			const userOwedToken = await LmcInstance.getUserOwedTokens(aliceAccount.signer.address, 0);
+
+			currentBlock = await deployer.provider.getBlock('latest');
+
+			assert(contractFinalBalance.eq(contractInitialBalance.add(bTen)), "The balance of the contract was not incremented properly")
+			assert(totalStakedAmount.eq(bTen), "The stake was not successful")
+			assert(userInfo.amountStaked.eq(bTen), "User's staked amount is not correct")
+			assert(userInfo.firstStakedBlockNumber.eq(currentBlock.number), "User's first block is not correct")
+			assert(userRewardDebt.eq(0), "User's reward debt is not correct")
+			assert(userOwedToken.eq(0), "User's reward debt is not correct")
+			assert(userFinalBalance.eq(userInitialBalance.sub(bTen)), "User was not charged for staking");
+
+			await mineBlock(deployer.provider);
+
+			const accumulatedReward = await LmcInstance.getUserAccumulatedReward(aliceAccount.signer.address, 0);
+			assert(accumulatedReward.eq(bOne), "The reward accrued was not 1 token");
+		})
+
+		it("Should stake in two different lmc's", async () => {
+
+			let currentBlock = await deployer.provider.getBlock('latest');
+			let contractInitialBalance = await stakingTokenInstance.balanceOf(LmcInstance.contractAddress);
+
+			await LmcInstance.stake(bTen);
+			await LmcInstance.stake(bTwenty);
+
+			for (let i = 0; i < 6; i++) {
+				await mineBlock(deployer.provider);
+
+			}
+
+			const accumulatedReward = await LmcInstance.getUserAccumulatedReward(aliceAccount.signer.address, 0);
+
+			let contractFinalBalance = await stakingTokenInstance.balanceOf(LmcInstance.contractAddress);
+			const totalStakedAmount = await LmcInstance.totalStaked();
+			const userInfo = await LmcInstance.userInfo(aliceAccount.signer.address)
+
+			currentBlock = await deployer.provider.getBlock('latest');
+
+			assert(contractFinalBalance.eq(contractInitialBalance.add(bTen).add(bTwenty)), "The balance of the contract was not incremented properly")
+			assert(totalStakedAmount.eq(bTen.add(bTwenty)), "The stake was not successful")
+			assert(userInfo.amountStaked.eq(bTen.add(bTwenty)), "User's staked amount is not correct")
+			assert(accumulatedReward.eq(bOne.mul(7)), "The reward accrued was not 1 token");
+		})
+
+		it("Should fail staking with zero amount", async () => {
+			await assert.revertWith(LmcInstance.stakeOnly(0), "stakeOnly::Cannot stake 0");
+		})
+	})
+
 		describe("Withdraw and Exit", () => {
 
 			beforeEach(async () => {

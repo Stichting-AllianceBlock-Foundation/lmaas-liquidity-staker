@@ -22,6 +22,7 @@ contract LiquidityMiningCampaign is StakeTransferer, OnlyExitFeature  {
 	mapping(address => uint256) public userAccruedRewards;
 
 	event StakedAndLocked(address indexed _userAddress, uint256 _tokenAmount, address _lockScheme);
+	event Staked(address indexed _userAddress, uint256 _tokenAmount);
 	event ExitedAndUnlocked(address indexed _userAddress);
 	event BonusTransferred(address indexed _userAddress, uint256 _bonusAmount);
 
@@ -73,6 +74,34 @@ contract LiquidityMiningCampaign is StakeTransferer, OnlyExitFeature  {
 		LockScheme(_lockScheme).lock(_userAddress, _tokenAmount);
 
 		emit StakedAndLocked( _userAddress, _tokenAmount, _lockScheme);
+	}
+
+	function stakeOnly( uint256 _tokenAmount) external nonReentrant{
+		_stakeOnly(msg.sender,_tokenAmount);
+	}
+
+	/** @dev Stakes LP tokens to the campaing and lockes them to a specific lockScheme contract to earn bonuses
+	@param _userAddress the address of the staker
+	@param _tokenAmount the amount to be staked
+	 */
+	function _stakeOnly(address _userAddress ,uint256 _tokenAmount) internal {
+		require(_userAddress != address(0x0), "_stakeOnly::Invalid staker");
+		require(_tokenAmount > 0, "_stakeOnly::Cannot stake 0");
+
+		UserInfo storage user = userInfo[_userAddress];
+
+		uint256 userRewards = 0;
+
+		updateRewardMultipliers();
+		updateUserAccruedReward(_userAddress);
+
+		userRewards = user.tokensOwed[0];
+	
+		userAccruedRewards[_userAddress]	= userRewards;
+		
+		_stake(_tokenAmount, _userAddress, true);
+
+		emit Staked(_userAddress, _tokenAmount);
 	}
 
 	function exitAndUnlock() public nonReentrant {
@@ -177,10 +206,6 @@ contract LiquidityMiningCampaign is StakeTransferer, OnlyExitFeature  {
 	
 	function exit() public override {
 		_exitAndUnlock(msg.sender);
-	}
-
-	function stake(uint256 _tokenAmount) public override {
-		revert("LiquidityMiningCampaign::staking without locking is forbidden");
 	}
 
 	function exitAndTransfer(address transferTo) public override {
