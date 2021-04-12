@@ -16,6 +16,7 @@ describe('LMC', () => {
   let deployer;
 
   let LockSchemeInstance;
+  let LockSchemeInstance0;
   let LockSchemeInstance2;
   let stakingTokenAddress;
   let LmcInstance;
@@ -34,8 +35,10 @@ describe('LMC', () => {
   let lockSchemеsNoLock
   let libraries
 
+  let percentageCalculator;
+
   const rewardTokensCount = 1; // 5 rewards tokens for tests
-  const bonusPercet = 10000 // In thousands
+  const bonusPermile = 10000 // In thousands
   const bonus20 = 20000
   const day = 60 * 24 * 60;
   const amount = ethers.utils.parseEther("5184000");
@@ -44,7 +47,7 @@ describe('LMC', () => {
   const bTen = ethers.utils.parseEther("10")
   const bTwenty = ethers.utils.parseEther("20")
   const standardStakingAmount = ethers.utils.parseEther('5') // 5 tokens
-  const standardStakingAmountNoLock = ethers.utils.parseEther('10') // 5 tokens
+  const standardStakingAmountbTen = ethers.utils.parseEther('10') // 5 tokens
   const additionalRewards = [bTen]
   const stakeLimit = amount;
   const contractStakeLimit = ethers.utils.parseEther('35') // 10 tokens
@@ -123,7 +126,8 @@ describe('LMC', () => {
 
     await setupRewardsPoolParameters(deployer)
 
-    const percentageCalculator = await deployer.deploy(PercentageCalculator);
+    percentageCalculator = await deployer.deploy(PercentageCalculator);
+
     libraries = {
       PercentageCalculator: percentageCalculator.contractAddress
     }
@@ -141,9 +145,9 @@ describe('LMC', () => {
       contractStakeLimit
     );
 
-    LockSchemeInstance = await deployer.deploy(LockScheme, libraries, lockBlock, rampUpBlock, bonusPercet, LmcInstance.contractAddress);
+    LockSchemeInstance = await deployer.deploy(LockScheme, libraries, lockBlock, rampUpBlock, bonusPermile, LmcInstance.contractAddress);
     LockSchemeInstance6 = await deployer.deploy(LockScheme, libraries, secondLockBlock, rampUpBlock, bonus20, LmcInstance.contractAddress);
-    LockSchemeInstance3 = await deployer.deploy(LockScheme, libraries, lockBlock, rampUpBlock, bonusPercet, LmcInstance.contractAddress);
+    LockSchemeInstance3 = await deployer.deploy(LockScheme, libraries, lockBlock, rampUpBlock, bonusPermile, LmcInstance.contractAddress);
 
     lockSchemеs.push(LockSchemeInstance.contractAddress);
     lockSchemеs.push(LockSchemeInstance6.contractAddress);
@@ -432,7 +436,7 @@ describe('LMC', () => {
       );
 
       let lockScheme = [];
-      LockSchemeInstance = await deployer.deploy(LockScheme, libraries, lockBlock, rampUpBlock, bonusPercet, NewLmcInstance.contractAddress);
+      LockSchemeInstance = await deployer.deploy(LockScheme, libraries, lockBlock, rampUpBlock, bonusPermile, NewLmcInstance.contractAddress);
       lockScheme.push(LockSchemeInstance.contractAddress);
 
       await NewLmcInstance.setLockSchemes(lockScheme);
@@ -510,6 +514,58 @@ describe('LMC', () => {
     })
   })
 
+  describe("Withdraw and Exit with Only One Lock Scheme", () => {
+
+    beforeEach(async () => {
+      await stakingTokenInstance.approve(LockSchemeInstance.contractAddress, amount);
+      await stakingTokenInstance.approve(LmcInstance.contractAddress, amount);
+      await stakingTokenInstance.from(bobAccount.signer).approve(LmcInstance.contractAddress, amount);
+      let currentBlock = await deployer.provider.getBlock('latest');
+
+      await LmcInstance.stakeAndLock(bTen, LockSchemeInstance6.contractAddress);
+
+      currentBlock = await deployer.provider.getBlock('latest');
+
+      const blocksDelta2 = (endBlock - currentBlock.number);
+
+      for (let i = 0; i < blocksDelta2; i++) {
+        await mineBlock(deployer.provider);
+      }
+    });
+
+    it("Should withdraw and exit sucessfully", async () => {
+
+      const userInitialBalanceStaking = await stakingTokenInstance.balanceOf(aliceAccount.signer.address);
+      const userInfoInitial = await LmcInstance.userInfo(aliceAccount.signer.address);
+      const userTokensOwedInitial = await LmcInstance.getUserAccumulatedReward(aliceAccount.signer.address, 0);
+      const initialTotalStakedAmount = await LmcInstance.totalStaked();
+      const userInitialBalanceRewards = await rewardTokensInstances[0].balanceOf(aliceAccount.signer.address);
+      const userRewards = await LmcInstance.getUserAccumulatedReward(aliceAccount.signer.address, 0);
+
+      await LmcInstance.exitAndUnlock();
+
+      const bonus = await percentageCalculator.percentageCalc(userRewards, bonus20);
+      let userInfo = await LockSchemeInstance6.userInfo(aliceAccount.signer.address);
+      let userAccruedRewards = await LockSchemeInstance6.getUserAccruedReward(aliceAccount.signer.address);
+      const userFinalBalanceRewards = await rewardTokensInstances[0].balanceOf(aliceAccount.signer.address);
+
+      const userTokensOwed = await LmcInstance.getUserOwedTokens(aliceAccount.signer.address, 0);
+      const userFinalBalanceStaking = await stakingTokenInstance.balanceOf(aliceAccount.signer.address);
+      const userInfoFinal = await LmcInstance.userInfo(aliceAccount.signer.address);
+      const finalTotalStkaedAmount = await LmcInstance.totalStaked();
+
+      assert(userFinalBalanceRewards.gt(userInitialBalanceRewards), "Rewards claim was not successful")
+      assert(userFinalBalanceRewards.eq(userInitialBalanceRewards.add(userRewards.add(bonus))), "User rewards were not calculated properly")
+      assert(userTokensOwed.eq(0), "User tokens owed should be zero")
+      assert(userFinalBalanceStaking.eq(userInitialBalanceStaking.add(standardStakingAmountbTen)), "Withdraw was not successfull")
+      assert(userInfoFinal.amountStaked.eq(userInfoInitial.amountStaked.sub(standardStakingAmountbTen)), "User staked amount is not updated properly")
+      assert(finalTotalStkaedAmount.eq(initialTotalStakedAmount.sub(standardStakingAmountbTen)), "Contract total staked amount is not updated properly")
+
+      assert(userInfo.balance.eq(0), "The transferred amount is not corrent");
+      assert(userAccruedRewards.eq(0), "The rewards were not set properly");
+    })
+  })
+
   describe("No lock", () => {
     beforeEach(async () => {
       await setupRewardsPoolParametersNoLock(deployer);
@@ -528,12 +584,8 @@ describe('LMC', () => {
       );
 
       LockSchemeInstance0 = await deployer.deploy(LockScheme, libraries, lockBlock0, rampUpBlock0, 0, LmcInstanceNoLock.contractAddress);
-      LockSchemeInstance06 = await deployer.deploy(LockScheme, libraries, secondLockBlock, rampUpBlock, bonus20, LmcInstanceNoLock.contractAddress);
-      LockSchemeInstance03 = await deployer.deploy(LockScheme, libraries, lockBlock, rampUpBlock, bonusPercet, LmcInstanceNoLock.contractAddress);
 
       lockSchemеsNoLock.push(LockSchemeInstance0.contractAddress);
-      lockSchemеsNoLock.push(LockSchemeInstance06.contractAddress);
-      lockSchemеsNoLock.push(LockSchemeInstance03.contractAddress);
 
       await LmcInstanceNoLock.setLockSchemes(lockSchemеsNoLock);
       await rewardTokensInstances[0].mint(LmcInstanceNoLock.contractAddress, amount);
@@ -603,12 +655,10 @@ describe('LMC', () => {
         await stakingTokenInstance.approve(LmcInstanceNoLock.contractAddress, amount);
         await stakingTokenInstance.from(bobAccount.signer).approve(LmcInstanceNoLock.contractAddress, amount);
 
-        const currentBlock = await deployer.provider.getBlock('latest');
-        const blocksDelta = (startBlock - currentBlock.number);
-
         await LmcInstanceNoLock.stakeAndLock(bTen, LockSchemeInstance0.contractAddress);
-        // await LmcInstanceNoLock.stakeAndLock(bTwenty, LockSchemeInstance03.contractAddress);
-        // await LmcInstanceNoLock.stakeAndLock(bTen, LockSchemeInstance06.contractAddress);
+
+        const currentBlock = await deployer.provider.getBlock('latest');
+        const blocksDelta = (lockBlock0 - currentBlock.number);
 
         for (let i = 0; i < blocksDelta; i++) {
           await mineBlock(deployer.provider);
@@ -625,13 +675,6 @@ describe('LMC', () => {
         const userInitialBalanceRewards = await rewardTokensInstances[0].balanceOf(aliceAccount.signer.address);
         const userRewards = await LmcInstanceNoLock.getUserAccumulatedReward(aliceAccount.signer.address, 0);
 
-        // console.log('---Before exit and unlock---');
-        // console.log(`userInitialBalanceStaking: ${formatEther(userInitialBalanceStaking)}`);
-        // console.log(`userTokensOwedInitial: ${formatEther(userTokensOwedInitial)}`);
-        // console.log(`initialTotalStakedAmount: ${formatEther(initialTotalStakedAmount)}`);
-        // console.log(`userInitialBalanceRewards: ${formatEther(userInitialBalanceRewards)}`);
-        // console.log(`userRewards: ${formatEther(userRewards)}`);
-
         await LmcInstanceNoLock.exitAndUnlock();
 
         const bonus = await LockSchemeInstance6.getUserBonus(aliceAccount.signer.address);
@@ -645,21 +688,12 @@ describe('LMC', () => {
         const userInfoFinal = await LmcInstanceNoLock.userInfo(aliceAccount.signer.address);
         const finalTotalStkaedAmount = await LmcInstanceNoLock.totalStaked();
 
-        // console.log('---After exit and unlock---');
-        // console.log(`userBonus: ${formatEther(userBonus)}`);
-        // console.log(`userFinalBalanceRewards: ${formatEther(userFinalBalanceRewards)}`);
-        // console.log(`userTokensOwed: ${formatEther(userTokensOwed)}`);
-        // console.log(`userFinalBalanceStaking: ${formatEther(userFinalBalanceStaking)}`);
-        // console.log(`finalTotalStkaedAmount: ${formatEther(finalTotalStkaedAmount)}`);
-        // console.log(`standardStakingAmountNoLock: ${formatEther(standardStakingAmountNoLock)}`);
-
         assert(userFinalBalanceRewards.gt(userInitialBalanceRewards), "Rewards claim was not successful")
-        // This is tweaked to gt
-        assert(userFinalBalanceRewards.gt(userInitialBalanceRewards.add(userRewards.add(bonus))), "User rewards were not calculated properly")
+        assert(userFinalBalanceRewards.eq(userInitialBalanceRewards.add(userRewards.add(bonus))), "User rewards were not calculated properly")
         assert(userTokensOwed.eq(0), "User tokens owed should be zero")
-        assert(userFinalBalanceStaking.eq(userInitialBalanceStaking.add(standardStakingAmountNoLock)), "Withdraw was not successfull")
-        assert(userInfoFinal.amountStaked.eq(userInfoInitial.amountStaked.sub(standardStakingAmountNoLock)), "User staked amount is not updated properly")
-        assert(finalTotalStkaedAmount.eq(initialTotalStakedAmount.sub(standardStakingAmountNoLock)), "Contract total staked amount is not updated properly")
+        assert(userFinalBalanceStaking.eq(userInitialBalanceStaking.add(standardStakingAmountbTen)), "Withdraw was not successfull")
+        assert(userInfoFinal.amountStaked.eq(userInfoInitial.amountStaked.sub(standardStakingAmountbTen)), "User staked amount is not updated properly")
+        assert(finalTotalStkaedAmount.eq(initialTotalStakedAmount.sub(standardStakingAmountbTen)), "Contract total staked amount is not updated properly")
 
         assert(userInfo.balance.eq(0), "The transferred amount is not corrent");
         assert(userAccruedRewards.eq(0), "The rewards were not set properly");
@@ -707,9 +741,6 @@ describe('LMC', () => {
 
         const userFinalBalanceRewards = await rewardTokensInstances[0].balanceOf(aliceAccount.signer.address);
         const userAccruedRewards = await LmcInstanceNoLock.userAccruedRewards(aliceAccount.signer.address);
-
-        console.log(`userInfoLock3 balance: ${formatEther(userInfoLock3.balance)}`);
-        console.log(`userInfoLock6 balance: ${formatEther(userInfoLock6.balance)}`);
 
         assert(contractFinalBalance.eq(contractInitialBalance.sub(bTen).sub(bTwenty)), "The balance of the contract was not incremented properly")
         assert(userInfoLock3.balance.eq(bTwenty), "The transferred amount is not corrent");
