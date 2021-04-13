@@ -67,17 +67,30 @@ const getBalancesByAddress = async (_address, _message = '') => {
   const balanceLMC = await instLMC.balanceOf(_address);
   const balanceRewardTokens = await rewardTokensInstances[0].balanceOf(_address);
   const userInfoLockScheme = await instLockScheme.userInfo(_address);
+  const userBonus = await instLockScheme.getUserBonus(_address);
+  const getUserAccruedReward = await instLockScheme.getUserAccruedReward(_address);
+  const userTokensOwed = await instLMC.getUserOwedTokens(_address, 0);
 
-  console.log(`--- ${_message} ---`);
+  console.log(``);
+  console.log(`========================`);
+  
+  if (_message !== '') {
+    console.log(`--- ${_message} ---`);
+  }
 
   console.log(`Balances:`);
   console.log(`* Staking Token: ${formatEther(balanceStakingToken)}`);
   console.log(`* LMC: ${formatEther(balanceLMC)}`);
   console.log(`* Reward Token: ${formatEther(balanceRewardTokens)}`);
+  console.log(`* User Tokens Owed: ${formatEther(userTokensOwed)}`);
   console.log(``);
   console.log(`User info in Lock Scheme:`);
   console.log(`* Balance: ${formatEther(userInfoLockScheme.balance)}`);
   console.log(`* Accrued Reward: ${formatEther(userInfoLockScheme.accruedReward)}`);
+  console.log(`* Accrued Reward from Function: ${formatEther(getUserAccruedReward)}`);
+  console.log(`* User Bonus: ${formatEther(userBonus)}`);
+  console.log(`========================`);
+  console.log(``);
 }
 
 const setupRewardsPoolParameters = async (deployer) => {
@@ -102,12 +115,12 @@ const setupRewardsPoolParameters = async (deployer) => {
   const currentBlock = await deployer.provider.getBlock('latest');
 
   startBlock = currentBlock.number + 10;
-  endBlock = startBlock + 41;
+  endBlock = startBlock + 61;
   lockBlock = 30;
   rampUpBlock = 20;
 }
 
-describe('LMC Refactored', () => {
+describe.only('LMC Refactored', () => {
 
   beforeEach(async () => {
     // Get deployer
@@ -226,6 +239,42 @@ describe('LMC Refactored', () => {
 
       const accumulatedReward = await instLMC.getUserAccumulatedReward(AAlice.address, 0);
       assert(accumulatedReward.eq(bOne), "The reward accrued was not 1 token");
+    });
+
+    it.only("Should stake and lock sucessfully twice", async () => {
+      const LMCInitialBalance = await instStakingTokens.balanceOf(instLMC.contractAddress);
+      const InitialBalance = await instStakingTokens.balanceOf(AAlice.address);
+
+      // await getBalancesByAddress(AAlice.address, "Before first stake");
+
+      // Stake and Lock 
+      await instLMC.stakeAndLock(bTen, instLockScheme.contractAddress);
+
+      // Mine 10 blocks
+      let blocksDelta = 11;
+
+      for (let i = 0; i < blocksDelta; i++) {
+        await mineBlock(deployer.provider);
+      }
+
+      await getBalancesByAddress(AAlice.address, "Before second stake");
+
+      // Stake and Lock again
+      await instLMC.stakeAndLock(bTen, instLockScheme.contractAddress);
+
+      // Mine 20 blocks
+      blocksDelta = 21;
+
+      for (let i = 0; i < blocksDelta; i++) {
+        await mineBlock(deployer.provider);
+      }
+
+      await getBalancesByAddress(AAlice.address, "Before exit");
+
+      // Exit and Unlock
+      await instLMC.exitAndUnlock();
+
+      await getBalancesByAddress(AAlice.address, "After exit");
     });
   });
 
