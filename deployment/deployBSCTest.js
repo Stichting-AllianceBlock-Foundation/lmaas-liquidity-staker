@@ -57,20 +57,20 @@ const deploy = async (network, secret, etherscanApiKey) => {
   const TreasuryInstance = await deployer.deploy(Treasury, {}, PancakeSwapRouter, BSCTestALBTAddress, gasPrice)
   console.log('\x1b[36m%s\x1b[0m', `--- Treasury address: ${TreasuryInstance.contractAddress} ---`)
 
-  const NonCompoundingRewardsPoolFactoryInstance = await deployer.deploy(NonCompoundingRewardsPoolFactory, {}, TreasuryInstance.contractAddress, BSCTestALBTAddress, gasPrice)
+  const NonCompoundingRewardsPoolFactoryInstance = await deployer.deploy(NonCompoundingRewardsPoolFactory, {}, TreasuryInstance.contractAddress, BSCTestALBTAddress)
   console.log('\x1b[36m%s\x1b[0m', `--- Factory address: ${NonCompoundingRewardsPoolFactoryInstance.contractAddress} ---`)
 
   // Mint
   const mint = await albtInstance.mint(NonCompoundingRewardsPoolFactoryInstance.contractAddress, allRewards, gasPrice)
   const mintStatus = await mint.wait()
 
-  const poolDeployment0 = await NonCompoundingRewardsPoolFactoryInstance.deploy(BSCTestALBTAddress, startBlock, endBlock0, rewardTokensAddresses, rewardsPerBock, stakeLimit, throttleRoundBlocks, throttleRoundCap, contractStakeLimit, gasPrice)
+  const poolDeployment0 = await NonCompoundingRewardsPoolFactoryInstance.deploy(BSCTestALBTAddress, startBlock, endBlock0, rewardTokensAddresses, rewardsPerBock, stakeLimit, throttleRoundBlocks, throttleRoundCap, contractStakeLimit)
   await poolDeployment0.wait()
 
   let nonCompoundingPool0 = await NonCompoundingRewardsPoolFactoryInstance.rewardsPools(0)
   console.log('\x1b[36m%s\x1b[0m', `--- First NonCompoundingPool address 0: ${nonCompoundingPool0} ---`)
 
-  let poolDeployment = await NonCompoundingRewardsPoolFactoryInstance.deploy(BSCTestALBTAddress, startBlock, endBlock1, rewardTokensAddresses, rewardsPerBock, stakeLimit, throttleRoundBlocks, throttleRoundCap, contractStakeLimit, gasPrice)
+  let poolDeployment = await NonCompoundingRewardsPoolFactoryInstance.deploy(BSCTestALBTAddress, startBlock, endBlock1, rewardTokensAddresses, rewardsPerBock, stakeLimit, throttleRoundBlocks, throttleRoundCap, contractStakeLimit)
   await poolDeployment.wait()
 
   let nonCompoundingPool1 = await NonCompoundingRewardsPoolFactoryInstance.rewardsPools(1)
