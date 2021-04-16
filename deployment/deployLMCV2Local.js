@@ -10,17 +10,14 @@ const LockScheme = require('../build/LockScheme.json')
 const PercentageCalculator = require('../build/PercentageCalculator.json')
 
 // CONTSANTS
-const BLOCKS_PER_DAY_BSC = 6500
-const BLOCKS_PER_HOUR_BSC = BLOCKS_PER_DAY_BSC / 24
-const BLOCKS_PER_MINUTE_BSC = BLOCKS_PER_HOUR_BSC / 60
-const BLOCKS_PER_SECOND_BSC = BLOCKS_PER_MINUTE_BSC / 60
-const BLOCKS_PER_WEEK_BSC = BLOCKS_PER_DAY_BSC * 7
-const BLOCKS_PER_30_DAYS_BSC = BLOCKS_PER_DAY_BSC * 30
+const BLOCKS_PER_DAY = 6500
+const BLOCKS_PER_HOUR = 270
+const BLOCKS_PER_MINUTE = 5
 
 let rewardTokensInstances = []
 let rewardTokensAddresses = []
 let rewardsPerBlock = [parseEther("1")]
-let throttleRoundBlocks = BLOCKS_PER_MINUTE_BSC * 10
+let throttleRoundBlocks = BLOCKS_PER_MINUTE * 10
 
 const stakeLimit = parseEther("1000")
 const contractStakeLimit = parseEther("100000000")
@@ -47,9 +44,10 @@ const deploy = async (network, secret, etherscanApiKey) => {
 
   await rewardTokensInstances[0].mint(LMCFactoryInstance.contractAddress, amountReward)
 
+  // LMC settings
   const currentBlock = await deployer.provider.getBlock('latest')
-  const startBlock = currentBlock.number + 15
-  const endBlock = startBlock + 10
+  const startBlock = currentBlock.number + 5
+  const endBlock = startBlock + BLOCKS_PER_DAY * 7
 
   await LMCFactoryInstance.deploy(stakingTokenInstance.contractAddress, startBlock, endBlock, rewardTokensAddresses, rewardsPerBlock, rewardTokensAddresses[0], stakeLimit, contractStakeLimit);
 
@@ -62,11 +60,22 @@ const deploy = async (network, secret, etherscanApiKey) => {
     PercentageCalculator: percentageCalculator.contractAddress
   }
   
-  const lockBlock = startBlock + 30
-  const rampUpBlock = startBlock + 20
-  const bonusPermile = 10000
+  const lockBlock = startBlock + (BLOCKS_PER_DAY * 2)
+  const rampUpBlock = startBlock + (BLOCKS_PER_DAY * 1)
+  const bonusPermile = 50000
 
-  await deployer.deploy(LockScheme, libraries, lockBlock, rampUpBlock, bonusPermile, LMCInstance.contractAddress);
+  const lockSchemеs = [];
+
+  // Deploy Lock Scheme
+  const LSCInstance = await deployer.deploy(LockScheme, libraries, lockBlock, rampUpBlock, bonusPermile, LMCInstance.contractAddress);
+
+  lockSchemеs.push(LSCInstance.contractAddress);
+
+  // Set Lock Scheme
+  await LMCFactoryInstance.setLockSchemesToLMC(lockSchemеs, LMCInstance.contractAddress);
+
+  // Stake some tokens
+  // await LMCInstance.stakeAndLock(parseEther("10"), LSCInstance.contractAddress);
 
   /*
   console.log(`
