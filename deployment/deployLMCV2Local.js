@@ -31,13 +31,12 @@ const deploy = async (network, secret, etherscanApiKey) => {
 
   // Deploy LMC Factory
   const LMCFactoryInstance = await deployer.deploy(LMCFactory, {})
-  console.log('\x1b[36m%s\x1b[0m', `--- LMC Factory address: ${LMCFactoryInstance.contractAddress} ---`)
 
-  // Deploy Staking token
+  // Deploy Staking Token Instances - Only for local
   const stakingTokenInstance = await deployer.deploy(TestERC20, {}, amountReward)
   await stakingTokenInstance.mint(LMCFactoryInstance.contractAddress, amountReward)
 
-  // Rewards tokens
+  // Rewards tokens - Only for local
   let tknInst = await deployer.deploy(TestERC20, {}, amountReward)
   rewardTokensInstances.push(tknInst)
   rewardTokensAddresses.push(tknInst.contractAddress)
@@ -49,6 +48,7 @@ const deploy = async (network, secret, etherscanApiKey) => {
   const startBlock = currentBlock.number + 5
   const endBlock = startBlock + BLOCKS_PER_DAY * 7
 
+  // Deploy LMC
   await LMCFactoryInstance.deploy(stakingTokenInstance.contractAddress, startBlock, endBlock, rewardTokensAddresses, rewardsPerBlock, rewardTokensAddresses[0], stakeLimit, contractStakeLimit);
 
   const lmcAddress = await LMCFactoryInstance.rewardsPools(0);
