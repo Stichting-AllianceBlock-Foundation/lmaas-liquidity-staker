@@ -51,6 +51,18 @@ const gasPrice = { gasPrice: 20000000000 }
 const amountReward = parseEther("100000000000")
 const initialTokensToUser = parseEther("100")
 
+const logTx = async (tx) => {
+  console.log(`Hash: ${tx.hash}`)
+  const txResult = await tx.wait()
+  if (txResult.status === 1) {
+    console.log('\x1b[32m%s\x1b[0m', 'Transaction successful!')
+    console.log('')
+  } else {
+    console.log('\x1b[31m%s\x1b[0m', 'Something bad happened :(')
+    console.log('')
+  }
+}
+
 const deploy = async (network, secret, etherscanApiKey) => {
   const deployer = new etherlime.InfuraPrivateKeyDeployer(secret, network, infuraApiKey)
   const wallet = new ethers.Wallet(secret, deployer.provider)
@@ -58,12 +70,12 @@ const deploy = async (network, secret, etherscanApiKey) => {
   // Set addresses by network
   const rewardTokensAddresses = [
     rewardAddresses[network]["ALBT"],
-    rewardAddresses[network]["ALBT1"],
+    // rewardAddresses[network]["ALBT1"],
   ];
 
   const poolTokenAddresses = [
     poolAddresses[network][protocol]["ETH-ALBT1"],
-    poolAddresses[network][protocol]["ALBT-USDT"],
+    // poolAddresses[network][protocol]["ALBT-USDT"],
   ];
 
   // Set reward rate
@@ -88,15 +100,7 @@ const deploy = async (network, secret, etherscanApiKey) => {
     
     let mint = await rewardTokensInstance.mint(LMCFactoryInstance.contractAddress, amountReward)
 
-    console.log(`Hash: ${mint.hash}`)
-    const txResult = await mint.wait()
-    if (txResult.status === 1) {
-      console.log('\x1b[32m%s\x1b[0m', 'Transaction successful!')
-      console.log('')
-    } else {
-      console.log('\x1b[31m%s\x1b[0m', 'Something bad happened :(')
-      console.log('')
-    }
+    await logTx(mint);
   }
 
   // LMC settings
@@ -114,15 +118,7 @@ const deploy = async (network, secret, etherscanApiKey) => {
     console.log(`Deploying LMC: ${poolTokenAddresses[0]}`)
     let tx = await LMCFactoryInstance.deploy(poolTokenAddresses[0], startBlock, endBlock, rewardTokensAddresses, rewardsPerBlock, rewardTokensAddresses[0], stakeLimit, contractStakeLimit);
 
-    console.log(`Hash: ${tx.hash}`)
-    const txResult = await tx.wait()
-    if (txResult.status === 1) {
-      console.log('\x1b[32m%s\x1b[0m', 'Transaction successful!')
-      console.log('')
-    } else {
-      console.log('\x1b[31m%s\x1b[0m', 'Something bad happened :(')
-      console.log('')
-    }
+    await logTx(tx);
   }
 
   // Get Rewards Pool number
@@ -205,21 +201,12 @@ const deploy = async (network, secret, etherscanApiKey) => {
     // Set Lock Scheme
     let tx = await LMCFactoryInstance.setLockSchemesToLMC(lockSchemеs, LMCAddress)
 
-    console.log(`Hash: ${tx.hash}`)
-    const txResult = await tx.wait()
-    if (txResult.status === 1) {
-      console.log('\x1b[32m%s\x1b[0m', 'Transaction successful!')
-      console.log('')
-    } else {
-      console.log('\x1b[31m%s\x1b[0m', 'Something bad happened :(')
-      console.log('')
-    }
+    await logTx(tx);
   }
 
   // Set Transfered and receiver
   // let tx = await LMCFactoryInstance.enableReceivers("0xEFc4CE3a9b60BDd73a70B1916402fEE698B6aa61", ["0xF5D7fe0BAffaA7978B4799Bf26C50285E709B8c1"]);
-  // console.log(tx.hash);
-  // await tx.wait();
+  // await logTx(mint);
 }
 
 module.exports = {
