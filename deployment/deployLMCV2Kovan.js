@@ -14,18 +14,34 @@ const BLOCKS_PER_DAY = 6500
 const BLOCKS_PER_HOUR = 270
 const BLOCKS_PER_MINUTE = 5
 
+const protocol = "uniswap"
+
 // Addresses
-const KovanALBTAddress = "0xD21913390c484d490D24F046Da5329F1d778b75b"
-const KovanETHALBTStaking = "0x4697038B031F78A9cd3D1A7C42c501543E723C1F"
-const KovanALBT2TESTStaking = "0x41F5C832F6F14a4BA973231fF4dF06Fd5Ae2c271"
-const KovanLMCFactory = "0x6cDa9e4eC662bBf7F547EB53ba462dEe54c473EF"
-const PercentageCalculatorAddress = "0x68b2874397e1ECdAa7B5E041ED3Fd5c873002d7F";
+const rewardAddresses = {
+  "kovan": {
+    "ALBT": "0xD21913390c484d490D24F046Da5329F1d778b75b",
+    "ALBT1": "0xaa62E614c4E9E498259f820A90c18EF0B59c32b0",
+    "ALBT2": "0xAF157961B523F242c4A83F0bCC43091fA206160A",
+    "USDT": "0x06b4cedF8c7b6A490B1032F99373FFF5b7685408",
+  }
+}
+
+const poolAddresses = {
+  "kovan": {
+    "uniswap": {
+      "ETH-ALBT1": "0x4697038B031F78A9cd3D1A7C42c501543E723C1F",
+      "ALBT2-USDT": "0x41F5C832F6F14a4BA973231fF4dF06Fd5Ae2c271",
+      "ALBT-USDT": "0xa5efc1af5dbd006ab4098ee704fea171061bce62",
+    }
+  }
+}
+
+// Set this address for wrapping
+const LMCFactoryAddress = ""
+
+const PercentageCalculatorAddress = "0x68b2874397e1ECdAa7B5E041ED3Fd5c873002d7F"
 const infuraApiKey = "40c2813049e44ec79cb4d7e0d18de173"
 
-const stakingTokenAddresses = [KovanETHALBTStaking, KovanALBT2TESTStaking];
-
-let rewardTokensAddresses = [KovanALBTAddress]
-let rewardsPerBlock = [parseEther("1")]
 let throttleRoundBlocks = BLOCKS_PER_MINUTE * 10
 
 const stakeLimit = parseEther("1000")
@@ -39,22 +55,49 @@ const deploy = async (network, secret, etherscanApiKey) => {
   const deployer = new etherlime.InfuraPrivateKeyDeployer(secret, network, infuraApiKey)
   const wallet = new ethers.Wallet(secret, deployer.provider)
 
+  // Set addresses by network
+  const rewardTokensAddresses = [
+    rewardAddresses[network]["ALBT"],
+    rewardAddresses[network]["ALBT1"],
+  ];
+
+  const poolTokenAddresses = [
+    poolAddresses[network][protocol]["ETH-ALBT1"],
+    poolAddresses[network][protocol]["ALBT-USDT"],
+  ];
+
+  // Set reward rate
+  const rewardsPerBlock = rewardTokensAddresses.map(el => parseEther("1"))
+
   // Deploy LMC Factory
   let LMCFactoryInstance;
 
   // Check for deployed Factory
-  if (KovanLMCFactory !== '') {
-    LMCFactoryInstance = deployer.wrapDeployedContract(LMCFactory, KovanLMCFactory, wallet)
+  if (LMCFactoryAddress !== '') {
+    LMCFactoryInstance = deployer.wrapDeployedContract(LMCFactory, LMCFactoryAddress, wallet)
   } else {
     LMCFactoryInstance = await deployer.deploy(LMCFactory, {})
   }
 
-  // Get Reward Token Instance
-  const rewardTokensInstance = new ethers.Contract(KovanALBTAddress, TestERC20.abi, wallet)
-
   // Mint reward tokens
-  let mint = await rewardTokensInstance.mint(LMCFactoryInstance.contractAddress, amountReward.mul(stakingTokenAddresses.length + 1))
-  await mint.wait();
+  console.log(``)
+  console.log(`Mint reward tokens for Factory LMC`)
+  for (let i = 0; i < rewardTokensAddresses.length; i++) {
+    // Get Reward Token Instance
+    const rewardTokensInstance = new ethers.Contract(rewardTokensAddresses[i], TestERC20.abi, wallet)
+    
+    let mint = await rewardTokensInstance.mint(LMCFactoryInstance.contractAddress, amountReward)
+
+    console.log(`Hash: ${mint.hash}`)
+    const txResult = await mint.wait()
+    if (txResult.status === 1) {
+      console.log('\x1b[32m%s\x1b[0m', 'Transaction successful!')
+      console.log('')
+    } else {
+      console.log('\x1b[31m%s\x1b[0m', 'Something bad happened :(')
+      console.log('')
+    }
+  }
 
   // LMC settings
   const currentBlock = await deployer.provider.getBlock('latest')
@@ -65,13 +108,22 @@ const deploy = async (network, secret, etherscanApiKey) => {
   let LMCInstances = [];
 
   // Deploy LMC
-  // for (let i = 0; i < stakingTokenAddresses.length; i++) {
-  //   let LMCDeployTx1 = await LMCFactoryInstance.deploy(stakingTokenAddresses[0], startBlock, endBlock, rewardTokensAddresses, rewardsPerBlock, rewardTokensAddresses[0], stakeLimit, contractStakeLimit);
-  // await LMCDeployTx1.wait();
+  console.log(``)
+  console.log(`Deploy LMC:`)
+  for (let i = 0; i < poolTokenAddresses.length; i++) {
+    console.log(`Deploying LMC: ${poolTokenAddresses[0]}`)
+    let tx = await LMCFactoryInstance.deploy(poolTokenAddresses[0], startBlock, endBlock, rewardTokensAddresses, rewardsPerBlock, rewardTokensAddresses[0], stakeLimit, contractStakeLimit);
 
-  //   let LMCDeployTx2 = await LMCFactoryInstance.deploy(stakingTokenAddresses[1], startBlock, endBlock, rewardTokensAddresses, rewardsPerBlock, rewardTokensAddresses[0], stakeLimit, contractStakeLimit);
-  //   await LMCDeployTx2.wait();
-  // }
+    console.log(`Hash: ${tx.hash}`)
+    const txResult = await tx.wait()
+    if (txResult.status === 1) {
+      console.log('\x1b[32m%s\x1b[0m', 'Transaction successful!')
+      console.log('')
+    } else {
+      console.log('\x1b[31m%s\x1b[0m', 'Something bad happened :(')
+      console.log('')
+    }
+  }
 
   // Get Rewards Pool number
   let rewardsPoolsLength = await LMCFactoryInstance.getRewardsPoolNumber();
@@ -126,46 +178,48 @@ const deploy = async (network, secret, etherscanApiKey) => {
     }
   ];
 
-  // for (let i = 0; i < rewardsPoolsLength; i++) {
-  //   const LMCAddress = await LMCFactoryInstance.rewardsPools(i);
-  //   const lockSchemеs = [];
+  // Deploy Lock Schemes
+  console.log(``)
+  console.log(`Deploy Lock Schemes:`)
+  for (let i = 0; i < rewardsPoolsLength; i++) {
+    const LMCAddress = await LMCFactoryInstance.rewardsPools(i);
+    const lockSchemеs = [];
 
-  //   for (let j = 0; j < lockSchemеsSettings.length; j++) {
+    console.log(`Deploying Lock Schemes for ${LMCAddress}:`)
+
+    for (let j = 0; j < lockSchemеsSettings.length; j++) {
       
-  //     // Deploy Lock Scheme
-  //     let LSCInstance = await deployer.deploy(
-  //       LockScheme,
-  //       libraries,
-  //       lockSchemеsSettings[j].lockBlock,
-  //       lockSchemеsSettings[j].rampUpBlock,
-  //       lockSchemеsSettings[j].bonusPermile,
-  //       LMCAddress
-  //     );
+      // Deploy Lock Scheme
+      let LSCInstance = await deployer.deploy(
+        LockScheme,
+        libraries,
+        lockSchemеsSettings[j].lockBlock,
+        lockSchemеsSettings[j].rampUpBlock,
+        lockSchemеsSettings[j].bonusPermile,
+        LMCAddress
+      );
 
-  //     lockSchemеs.push(LSCInstance.contractAddress);
-  //   }
+      lockSchemеs.push(LSCInstance.contractAddress);
+    }
   
-  //   // Set Lock Scheme
-  //   let tx = await LMCFactoryInstance.setLockSchemesToLMC(lockSchemеs, LMCAddress);
-  //   await tx.wait();
-  // }
+    // Set Lock Scheme
+    let tx = await LMCFactoryInstance.setLockSchemesToLMC(lockSchemеs, LMCAddress)
+
+    console.log(`Hash: ${tx.hash}`)
+    const txResult = await tx.wait()
+    if (txResult.status === 1) {
+      console.log('\x1b[32m%s\x1b[0m', 'Transaction successful!')
+      console.log('')
+    } else {
+      console.log('\x1b[31m%s\x1b[0m', 'Something bad happened :(')
+      console.log('')
+    }
+  }
 
   // Set Transfered and receiver
-  let tx = await LMCFactoryInstance.enableReceivers("0xb3175EcFA313C5321687665aDFE6429c287bF897", ["0x2CB7Af1b0E42008765b78629bE562C037A6D3411"]);
-  console.log(tx.hash);
-  await tx.wait();
-
-  /* 
-  console.log(`
-rewardContracts: {
-  "ETH-ALBT1": "${LMCAddress}",
-},
-
-lockSchemeAddresses: {
-  "LS1": "${LSCInstance.contractAddress}",
-},
-  `)
-*/
+  // let tx = await LMCFactoryInstance.enableReceivers("0xEFc4CE3a9b60BDd73a70B1916402fEE698B6aa61", ["0xF5D7fe0BAffaA7978B4799Bf26C50285E709B8c1"]);
+  // console.log(tx.hash);
+  // await tx.wait();
 }
 
 module.exports = {
