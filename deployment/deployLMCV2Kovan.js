@@ -14,7 +14,7 @@ const BLOCKS_PER_DAY = 6500
 const BLOCKS_PER_HOUR = 270
 const BLOCKS_PER_MINUTE = 5
 
-const protocol = "uniswap"
+const protocol = "balancer"
 
 // Addresses
 const rewardAddresses = {
@@ -23,6 +23,9 @@ const rewardAddresses = {
     "ALBT1": "0xaa62E614c4E9E498259f820A90c18EF0B59c32b0",
     "ALBT2": "0xAF157961B523F242c4A83F0bCC43091fA206160A",
     "USDT": "0x06b4cedF8c7b6A490B1032F99373FFF5b7685408",
+  },
+  "bsc": {
+    "bALBT": "0x666e672B2Ada59979Fc4dB7AF9A4710E0E4D51E6",
   }
 }
 
@@ -32,7 +35,16 @@ const poolAddresses = {
       "ETH-ALBT1": "0x4697038B031F78A9cd3D1A7C42c501543E723C1F",
       "ALBT2-USDT": "0x41F5C832F6F14a4BA973231fF4dF06Fd5Ae2c271",
       "ALBT-USDT": "0xa5efc1af5dbd006ab4098ee704fea171061bce62",
+    },
+    "balancer": {
+      "ETH-ALBT-USDT": "0x729e628ed77cc6d764cfbe00fa2b73665661cee1",
+      "ETH-ALBT1-USDT": "0x0084f8f6ae73b28874a92754aa21a21d71fcac49",
     }
+  },
+  "bsc": {
+    "pancakeswap": {
+      "BNB-bALBT": "0xd954551853F55deb4Ae31407c423e67B1621424A",
+    },
   }
 }
 
@@ -70,12 +82,12 @@ const deploy = async (network, secret, etherscanApiKey) => {
   // Set addresses by network
   const rewardTokensAddresses = [
     rewardAddresses[network]["ALBT"],
-    // rewardAddresses[network]["ALBT1"],
+    rewardAddresses[network]["ALBT1"],
   ];
 
   const poolTokenAddresses = [
-    poolAddresses[network][protocol]["ETH-ALBT1"],
-    // poolAddresses[network][protocol]["ALBT-USDT"],
+    poolAddresses[network][protocol]["ETH-ALBT-USDT"],
+    poolAddresses[network][protocol]["ETH-ALBT1-USDT"],
   ];
 
   // Set reward rate
