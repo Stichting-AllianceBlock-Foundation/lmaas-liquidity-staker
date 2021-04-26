@@ -24,6 +24,13 @@ const rewardAddresses = {
     "ALBT2": "0xAF157961B523F242c4A83F0bCC43091fA206160A",
     "USDT": "0x06b4cedF8c7b6A490B1032F99373FFF5b7685408",
   },
+  "rinkeby": {
+    "ALBT": "0xA8c09b9FAAe82D48613651a8f25dd3b836f13Cfc",
+    "ALBT1": "0x1461e433BD25a13c2453B285C1F6753FcF623331",
+    "ALBT2": "0xf2A5748568351d4949D240B8a3EC20A38361Cb43",
+    "USDT": "0x39F16Dd4980Ce05Ff538CaF92d808688A15b7058",
+    "WETH": "0x39F16Dd4980Ce05Ff538CaF92d808688A15b7058",
+  },
   "bsc": {
     "bALBT": "0x666e672B2Ada59979Fc4dB7AF9A4710E0E4D51E6",
   }
@@ -41,6 +48,19 @@ const poolAddresses = {
       "ETH-ALBT1-USDT": "0x0084f8f6ae73b28874a92754aa21a21d71fcac49",
     }
   },
+  "rinkeby": {
+    "uniswap": {
+      "ETH-ALBT": "0x5905f2005657C34348B75C9Ca549eDdf96925325",
+      "ETH-ALBT1": "0x41F5C832F6F14a4BA973231fF4dF06Fd5Ae2c271",
+      "ETH-ALBT2": "0xA24F79A7A0668CBCCf5833548054344c9372090d",
+      "ALBT-USDT": "0x48A133a810E1aBB714414f89100d47689bD20D27",
+    },
+    "balancer": {
+      "ETH-ALBT": "0x5e9E09D7b756A821144c85397607ca4B0a02D1CE",
+      "ALBT-USDT": "0xEF309B6B443A87f133fa2e0D2923BEC3837B77e0",
+      "ETH-ALBT-USDT": "0xf25fecf66cde50d233c19d5200a8c44f417398a7",
+    }
+  },
   "bsc": {
     "pancakeswap": {
       "BNB-bALBT": "0xd954551853F55deb4Ae31407c423e67B1621424A",
@@ -49,9 +69,9 @@ const poolAddresses = {
 }
 
 // Set this address for wrapping
-const LMCFactoryAddress = ""
+const LMCFactoryAddress = "0x380c2eE8B87CACaCeF9296021C1fBcB854b8d950"
 
-const PercentageCalculatorAddress = "0x68b2874397e1ECdAa7B5E041ED3Fd5c873002d7F"
+const PercentageCalculatorAddress = "0x67994e7a60c29c68d5F35804Bd658f2AAa491775"
 const infuraApiKey = "40c2813049e44ec79cb4d7e0d18de173"
 
 let throttleRoundBlocks = BLOCKS_PER_MINUTE * 10
@@ -82,12 +102,13 @@ const deploy = async (network, secret, etherscanApiKey) => {
   // Set addresses by network
   const rewardTokensAddresses = [
     rewardAddresses[network]["ALBT"],
-    rewardAddresses[network]["ALBT1"],
+    // rewardAddresses[network]["ALBT1"],
   ];
 
   const poolTokenAddresses = [
-    poolAddresses[network][protocol]["ETH-ALBT-USDT"],
-    poolAddresses[network][protocol]["ETH-ALBT1-USDT"],
+    poolAddresses[network][protocol]["ETH-ALBT"],
+    // poolAddresses[network][protocol]["ETH-ALBT1"],
+    // poolAddresses[network][protocol]["ALBT-USDT"],
   ];
 
   // Set reward rate
@@ -127,8 +148,8 @@ const deploy = async (network, secret, etherscanApiKey) => {
   console.log(``)
   console.log(`Deploy LMC:`)
   for (let i = 0; i < poolTokenAddresses.length; i++) {
-    console.log(`Deploying LMC: ${poolTokenAddresses[0]}`)
-    let tx = await LMCFactoryInstance.deploy(poolTokenAddresses[0], startBlock, endBlock, rewardTokensAddresses, rewardsPerBlock, rewardTokensAddresses[0], stakeLimit, contractStakeLimit);
+    console.log(`Deploying LMC: ${poolTokenAddresses[i]}`)
+    let tx = await LMCFactoryInstance.deploy(poolTokenAddresses[i], startBlock, endBlock, rewardTokensAddresses, rewardsPerBlock, rewardTokensAddresses[0], stakeLimit, contractStakeLimit);
 
     await logTx(tx);
   }
