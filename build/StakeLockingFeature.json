@@ -1,0 +1,1084 @@
+{
+  "contractName": "StakeLockingFeature",
+  "abi": [
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "user",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "token",
+          "type": "address"
+        }
+      ],
+      "name": "Claimed",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "user",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        }
+      ],
+      "name": "Exited",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "newEndBlock",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256[]",
+          "name": "newRewardsPerBlock",
+          "type": "uint256[]"
+        }
+      ],
+      "name": "Extended",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "user",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        }
+      ],
+      "name": "Staked",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "uint256",
+          "name": "rewardsAmount",
+          "type": "uint256"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "recipient",
+          "type": "address"
+        }
+      ],
+      "name": "WithdrawLPRewards",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "user",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        }
+      ],
+      "name": "Withdrawn",
+      "type": "event"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "name": "accumulatedRewardMultiplier",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_userAddress",
+          "type": "address"
+        }
+      ],
+      "name": "balanceOf",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "claim",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "contractStakeLimit",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "endBlock",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "_endBlock",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256[]",
+          "name": "_rewardsPerBlock",
+          "type": "uint256[]"
+        },
+        {
+          "internalType": "uint256[]",
+          "name": "_currentRemainingRewards",
+          "type": "uint256[]"
+        },
+        {
+          "internalType": "uint256[]",
+          "name": "_newRemainingRewards",
+          "type": "uint256[]"
+        }
+      ],
+      "name": "extend",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "getRewardTokensCount",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_userAddress",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "tokenIndex",
+          "type": "uint256"
+        }
+      ],
+      "name": "getUserAccumulatedReward",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_userAddress",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_index",
+          "type": "uint256"
+        }
+      ],
+      "name": "getUserOwedTokens",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_userAddress",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_index",
+          "type": "uint256"
+        }
+      ],
+      "name": "getUserRewardDebt",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_userAddress",
+          "type": "address"
+        }
+      ],
+      "name": "getUserRewardDebtLength",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_userAddress",
+          "type": "address"
+        }
+      ],
+      "name": "getUserTokensOwedLength",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "hasStakingStarted",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "lastRewardBlock",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "lockEndBlock",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "name": "rewardPerBlock",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "rewardsPoolFactory",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "name": "rewardsTokens",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "_tokenAmount",
+          "type": "uint256"
+        }
+      ],
+      "name": "stake",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "stakeLimit",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "stakingToken",
+      "outputs": [
+        {
+          "internalType": "contract IERC20Detailed",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "startBlock",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "totalStaked",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "updateRewardMultipliers",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "name": "userInfo",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "firstStakedBlockNumber",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "amountStaked",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "_tokenAmount",
+          "type": "uint256"
+        }
+      ],
+      "name": "withdraw",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "recipient",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "lpTokenContract",
+          "type": "address"
+        }
+      ],
+      "name": "withdrawLPRewards",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "exit",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    }
+  ],
+  "bytecode": "0x",
+  "deployedBytecode": "0x",
+  "sourceMap": "",
+  "deployedSourceMap": "",
+  "source": "// SPDX-License-Identifier: MIT\n\npragma solidity 0.6.12;\n\nimport \"./../RewardsPoolBase.sol\";\nimport \"./../StakeLock.sol\";\nimport \"./OnlyExitFeature.sol\";\n\nabstract contract StakeLockingFeature is OnlyExitFeature, StakeLock {\n\n\tfunction exit() public virtual override(RewardsPoolBase) onlyUnlocked {\n\t\tRewardsPoolBase.exit();\n\t}\n\n}",
+  "sourcePath": "/home/hellowodl/lmaas-liquidity-staker/contracts/pool-features/StakeLockingFeature.sol",
+  "ast": {
+    "absolutePath": "/home/hellowodl/lmaas-liquidity-staker/contracts/pool-features/StakeLockingFeature.sol",
+    "exportedSymbols": {
+      "StakeLockingFeature": [
+        9912
+      ]
+    },
+    "id": 9913,
+    "license": "MIT",
+    "nodeType": "SourceUnit",
+    "nodes": [
+      {
+        "id": 9891,
+        "literals": [
+          "solidity",
+          "0.6",
+          ".12"
+        ],
+        "nodeType": "PragmaDirective",
+        "src": "33:23:48"
+      },
+      {
+        "absolutePath": "/home/hellowodl/lmaas-liquidity-staker/contracts/RewardsPoolBase.sol",
+        "file": "./../RewardsPoolBase.sol",
+        "id": 9892,
+        "nodeType": "ImportDirective",
+        "scope": 9913,
+        "sourceUnit": 3170,
+        "src": "58:34:48",
+        "symbolAliases": [],
+        "unitAlias": ""
+      },
+      {
+        "absolutePath": "/home/hellowodl/lmaas-liquidity-staker/contracts/StakeLock.sol",
+        "file": "./../StakeLock.sol",
+        "id": 9893,
+        "nodeType": "ImportDirective",
+        "scope": 9913,
+        "sourceUnit": 3736,
+        "src": "93:28:48",
+        "symbolAliases": [],
+        "unitAlias": ""
+      },
+      {
+        "absolutePath": "/home/hellowodl/lmaas-liquidity-staker/contracts/pool-features/OnlyExitFeature.sol",
+        "file": "./OnlyExitFeature.sol",
+        "id": 9894,
+        "nodeType": "ImportDirective",
+        "scope": 9913,
+        "sourceUnit": 9890,
+        "src": "122:31:48",
+        "symbolAliases": [],
+        "unitAlias": ""
+      },
+      {
+        "abstract": true,
+        "baseContracts": [
+          {
+            "arguments": null,
+            "baseName": {
+              "contractScope": null,
+              "id": 9895,
+              "name": "OnlyExitFeature",
+              "nodeType": "UserDefinedTypeName",
+              "referencedDeclaration": 9889,
+              "src": "196:15:48",
+              "typeDescriptions": {
+                "typeIdentifier": "t_contract$_OnlyExitFeature_$9889",
+                "typeString": "contract OnlyExitFeature"
+              }
+            },
+            "id": 9896,
+            "nodeType": "InheritanceSpecifier",
+            "src": "196:15:48"
+          },
+          {
+            "arguments": null,
+            "baseName": {
+              "contractScope": null,
+              "id": 9897,
+              "name": "StakeLock",
+              "nodeType": "UserDefinedTypeName",
+              "referencedDeclaration": 3735,
+              "src": "213:9:48",
+              "typeDescriptions": {
+                "typeIdentifier": "t_contract$_StakeLock_$3735",
+                "typeString": "contract StakeLock"
+              }
+            },
+            "id": 9898,
+            "nodeType": "InheritanceSpecifier",
+            "src": "213:9:48"
+          }
+        ],
+        "contractDependencies": [
+          3169,
+          3735,
+          9889,
+          12910
+        ],
+        "contractKind": "contract",
+        "documentation": null,
+        "fullyImplemented": false,
+        "id": 9912,
+        "linearizedBaseContracts": [
+          9912,
+          3735,
+          9889,
+          3169,
+          12910
+        ],
+        "name": "StakeLockingFeature",
+        "nodeType": "ContractDefinition",
+        "nodes": [
+          {
+            "baseFunctions": [
+              2278
+            ],
+            "body": {
+              "id": 9910,
+              "nodeType": "Block",
+              "src": "297:30:48",
+              "statements": [
+                {
+                  "expression": {
+                    "argumentTypes": null,
+                    "arguments": [],
+                    "expression": {
+                      "argumentTypes": [],
+                      "expression": {
+                        "argumentTypes": null,
+                        "id": 9905,
+                        "name": "RewardsPoolBase",
+                        "nodeType": "Identifier",
+                        "overloadedDeclarations": [],
+                        "referencedDeclaration": 3169,
+                        "src": "301:15:48",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_type$_t_contract$_RewardsPoolBase_$3169_$",
+                          "typeString": "type(contract RewardsPoolBase)"
+                        }
+                      },
+                      "id": 9907,
+                      "isConstant": false,
+                      "isLValue": false,
+                      "isPure": false,
+                      "lValueRequested": false,
+                      "memberName": "exit",
+                      "nodeType": "MemberAccess",
+                      "referencedDeclaration": 2278,
+                      "src": "301:20:48",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_function_internal_nonpayable$__$returns$__$",
+                        "typeString": "function ()"
+                      }
+                    },
+                    "id": 9908,
+                    "isConstant": false,
+                    "isLValue": false,
+                    "isPure": false,
+                    "kind": "functionCall",
+                    "lValueRequested": false,
+                    "names": [],
+                    "nodeType": "FunctionCall",
+                    "src": "301:22:48",
+                    "tryCall": false,
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_tuple$__$",
+                      "typeString": "tuple()"
+                    }
+                  },
+                  "id": 9909,
+                  "nodeType": "ExpressionStatement",
+                  "src": "301:22:48"
+                }
+              ]
+            },
+            "documentation": null,
+            "functionSelector": "e9fad8ee",
+            "id": 9911,
+            "implemented": true,
+            "kind": "function",
+            "modifiers": [
+              {
+                "arguments": null,
+                "id": 9903,
+                "modifierName": {
+                  "argumentTypes": null,
+                  "id": 9902,
+                  "name": "onlyUnlocked",
+                  "nodeType": "Identifier",
+                  "overloadedDeclarations": [],
+                  "referencedDeclaration": 3734,
+                  "src": "284:12:48",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_modifier$__$",
+                    "typeString": "modifier ()"
+                  }
+                },
+                "nodeType": "ModifierInvocation",
+                "src": "284:12:48"
+              }
+            ],
+            "name": "exit",
+            "nodeType": "FunctionDefinition",
+            "overrides": {
+              "id": 9901,
+              "nodeType": "OverrideSpecifier",
+              "overrides": [
+                {
+                  "contractScope": null,
+                  "id": 9900,
+                  "name": "RewardsPoolBase",
+                  "nodeType": "UserDefinedTypeName",
+                  "referencedDeclaration": 3169,
+                  "src": "267:15:48",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_contract$_RewardsPoolBase_$3169",
+                    "typeString": "contract RewardsPoolBase"
+                  }
+                }
+              ],
+              "src": "258:25:48"
+            },
+            "parameters": {
+              "id": 9899,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "240:2:48"
+            },
+            "returnParameters": {
+              "id": 9904,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "297:0:48"
+            },
+            "scope": 9912,
+            "src": "227:100:48",
+            "stateMutability": "nonpayable",
+            "virtual": true,
+            "visibility": "public"
+          }
+        ],
+        "scope": 9913,
+        "src": "155:175:48"
+      }
+    ],
+    "src": "33:297:48"
+  },
+  "legacyAST": {
+    "absolutePath": "/home/hellowodl/lmaas-liquidity-staker/contracts/pool-features/StakeLockingFeature.sol",
+    "exportedSymbols": {
+      "StakeLockingFeature": [
+        9912
+      ]
+    },
+    "id": 9913,
+    "license": "MIT",
+    "nodeType": "SourceUnit",
+    "nodes": [
+      {
+        "id": 9891,
+        "literals": [
+          "solidity",
+          "0.6",
+          ".12"
+        ],
+        "nodeType": "PragmaDirective",
+        "src": "33:23:48"
+      },
+      {
+        "absolutePath": "/home/hellowodl/lmaas-liquidity-staker/contracts/RewardsPoolBase.sol",
+        "file": "./../RewardsPoolBase.sol",
+        "id": 9892,
+        "nodeType": "ImportDirective",
+        "scope": 9913,
+        "sourceUnit": 3170,
+        "src": "58:34:48",
+        "symbolAliases": [],
+        "unitAlias": ""
+      },
+      {
+        "absolutePath": "/home/hellowodl/lmaas-liquidity-staker/contracts/StakeLock.sol",
+        "file": "./../StakeLock.sol",
+        "id": 9893,
+        "nodeType": "ImportDirective",
+        "scope": 9913,
+        "sourceUnit": 3736,
+        "src": "93:28:48",
+        "symbolAliases": [],
+        "unitAlias": ""
+      },
+      {
+        "absolutePath": "/home/hellowodl/lmaas-liquidity-staker/contracts/pool-features/OnlyExitFeature.sol",
+        "file": "./OnlyExitFeature.sol",
+        "id": 9894,
+        "nodeType": "ImportDirective",
+        "scope": 9913,
+        "sourceUnit": 9890,
+        "src": "122:31:48",
+        "symbolAliases": [],
+        "unitAlias": ""
+      },
+      {
+        "abstract": true,
+        "baseContracts": [
+          {
+            "arguments": null,
+            "baseName": {
+              "contractScope": null,
+              "id": 9895,
+              "name": "OnlyExitFeature",
+              "nodeType": "UserDefinedTypeName",
+              "referencedDeclaration": 9889,
+              "src": "196:15:48",
+              "typeDescriptions": {
+                "typeIdentifier": "t_contract$_OnlyExitFeature_$9889",
+                "typeString": "contract OnlyExitFeature"
+              }
+            },
+            "id": 9896,
+            "nodeType": "InheritanceSpecifier",
+            "src": "196:15:48"
+          },
+          {
+            "arguments": null,
+            "baseName": {
+              "contractScope": null,
+              "id": 9897,
+              "name": "StakeLock",
+              "nodeType": "UserDefinedTypeName",
+              "referencedDeclaration": 3735,
+              "src": "213:9:48",
+              "typeDescriptions": {
+                "typeIdentifier": "t_contract$_StakeLock_$3735",
+                "typeString": "contract StakeLock"
+              }
+            },
+            "id": 9898,
+            "nodeType": "InheritanceSpecifier",
+            "src": "213:9:48"
+          }
+        ],
+        "contractDependencies": [
+          3169,
+          3735,
+          9889,
+          12910
+        ],
+        "contractKind": "contract",
+        "documentation": null,
+        "fullyImplemented": false,
+        "id": 9912,
+        "linearizedBaseContracts": [
+          9912,
+          3735,
+          9889,
+          3169,
+          12910
+        ],
+        "name": "StakeLockingFeature",
+        "nodeType": "ContractDefinition",
+        "nodes": [
+          {
+            "baseFunctions": [
+              2278
+            ],
+            "body": {
+              "id": 9910,
+              "nodeType": "Block",
+              "src": "297:30:48",
+              "statements": [
+                {
+                  "expression": {
+                    "argumentTypes": null,
+                    "arguments": [],
+                    "expression": {
+                      "argumentTypes": [],
+                      "expression": {
+                        "argumentTypes": null,
+                        "id": 9905,
+                        "name": "RewardsPoolBase",
+                        "nodeType": "Identifier",
+                        "overloadedDeclarations": [],
+                        "referencedDeclaration": 3169,
+                        "src": "301:15:48",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_type$_t_contract$_RewardsPoolBase_$3169_$",
+                          "typeString": "type(contract RewardsPoolBase)"
+                        }
+                      },
+                      "id": 9907,
+                      "isConstant": false,
+                      "isLValue": false,
+                      "isPure": false,
+                      "lValueRequested": false,
+                      "memberName": "exit",
+                      "nodeType": "MemberAccess",
+                      "referencedDeclaration": 2278,
+                      "src": "301:20:48",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_function_internal_nonpayable$__$returns$__$",
+                        "typeString": "function ()"
+                      }
+                    },
+                    "id": 9908,
+                    "isConstant": false,
+                    "isLValue": false,
+                    "isPure": false,
+                    "kind": "functionCall",
+                    "lValueRequested": false,
+                    "names": [],
+                    "nodeType": "FunctionCall",
+                    "src": "301:22:48",
+                    "tryCall": false,
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_tuple$__$",
+                      "typeString": "tuple()"
+                    }
+                  },
+                  "id": 9909,
+                  "nodeType": "ExpressionStatement",
+                  "src": "301:22:48"
+                }
+              ]
+            },
+            "documentation": null,
+            "functionSelector": "e9fad8ee",
+            "id": 9911,
+            "implemented": true,
+            "kind": "function",
+            "modifiers": [
+              {
+                "arguments": null,
+                "id": 9903,
+                "modifierName": {
+                  "argumentTypes": null,
+                  "id": 9902,
+                  "name": "onlyUnlocked",
+                  "nodeType": "Identifier",
+                  "overloadedDeclarations": [],
+                  "referencedDeclaration": 3734,
+                  "src": "284:12:48",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_modifier$__$",
+                    "typeString": "modifier ()"
+                  }
+                },
+                "nodeType": "ModifierInvocation",
+                "src": "284:12:48"
+              }
+            ],
+            "name": "exit",
+            "nodeType": "FunctionDefinition",
+            "overrides": {
+              "id": 9901,
+              "nodeType": "OverrideSpecifier",
+              "overrides": [
+                {
+                  "contractScope": null,
+                  "id": 9900,
+                  "name": "RewardsPoolBase",
+                  "nodeType": "UserDefinedTypeName",
+                  "referencedDeclaration": 3169,
+                  "src": "267:15:48",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_contract$_RewardsPoolBase_$3169",
+                    "typeString": "contract RewardsPoolBase"
+                  }
+                }
+              ],
+              "src": "258:25:48"
+            },
+            "parameters": {
+              "id": 9899,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "240:2:48"
+            },
+            "returnParameters": {
+              "id": 9904,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "297:0:48"
+            },
+            "scope": 9912,
+            "src": "227:100:48",
+            "stateMutability": "nonpayable",
+            "virtual": true,
+            "visibility": "public"
+          }
+        ],
+        "scope": 9913,
+        "src": "155:175:48"
+      }
+    ],
+    "src": "33:297:48"
+  },
+  "compiler": {
+    "name": "solc",
+    "version": "0.6.12+commit.27d51765.Emscripten.clang",
+    "optimizer": false,
+    "runs": 200
+  },
+  "networks": {},
+  "schemaVersion": "2.3.5",
+  "updatedAt": "2021-04-27T17:14:31.173Z"
+}

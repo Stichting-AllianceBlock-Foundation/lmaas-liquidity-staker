@@ -1,0 +1,1209 @@
+{
+  "contractName": "OnlyExitFeature",
+  "abi": [
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "user",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "token",
+          "type": "address"
+        }
+      ],
+      "name": "Claimed",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "user",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        }
+      ],
+      "name": "Exited",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "newEndBlock",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256[]",
+          "name": "newRewardsPerBlock",
+          "type": "uint256[]"
+        }
+      ],
+      "name": "Extended",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "user",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        }
+      ],
+      "name": "Staked",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "uint256",
+          "name": "rewardsAmount",
+          "type": "uint256"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "recipient",
+          "type": "address"
+        }
+      ],
+      "name": "WithdrawLPRewards",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "user",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        }
+      ],
+      "name": "Withdrawn",
+      "type": "event"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "name": "accumulatedRewardMultiplier",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_userAddress",
+          "type": "address"
+        }
+      ],
+      "name": "balanceOf",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "contractStakeLimit",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "endBlock",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "exit",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "_endBlock",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256[]",
+          "name": "_rewardsPerBlock",
+          "type": "uint256[]"
+        },
+        {
+          "internalType": "uint256[]",
+          "name": "_currentRemainingRewards",
+          "type": "uint256[]"
+        },
+        {
+          "internalType": "uint256[]",
+          "name": "_newRemainingRewards",
+          "type": "uint256[]"
+        }
+      ],
+      "name": "extend",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "getRewardTokensCount",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_userAddress",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "tokenIndex",
+          "type": "uint256"
+        }
+      ],
+      "name": "getUserAccumulatedReward",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_userAddress",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_index",
+          "type": "uint256"
+        }
+      ],
+      "name": "getUserOwedTokens",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_userAddress",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_index",
+          "type": "uint256"
+        }
+      ],
+      "name": "getUserRewardDebt",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_userAddress",
+          "type": "address"
+        }
+      ],
+      "name": "getUserRewardDebtLength",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_userAddress",
+          "type": "address"
+        }
+      ],
+      "name": "getUserTokensOwedLength",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "hasStakingStarted",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "lastRewardBlock",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "name": "rewardPerBlock",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "rewardsPoolFactory",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "name": "rewardsTokens",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "_tokenAmount",
+          "type": "uint256"
+        }
+      ],
+      "name": "stake",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "stakeLimit",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "stakingToken",
+      "outputs": [
+        {
+          "internalType": "contract IERC20Detailed",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "startBlock",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "totalStaked",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "updateRewardMultipliers",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "name": "userInfo",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "firstStakedBlockNumber",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "amountStaked",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "recipient",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "lpTokenContract",
+          "type": "address"
+        }
+      ],
+      "name": "withdrawLPRewards",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "_tokenAmount",
+          "type": "uint256"
+        }
+      ],
+      "name": "withdraw",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "claim",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    }
+  ],
+  "bytecode": "0x",
+  "deployedBytecode": "0x",
+  "sourceMap": "",
+  "deployedSourceMap": "",
+  "source": "// SPDX-License-Identifier: MIT\n\npragma solidity 0.6.12;\n\nimport \"./../RewardsPoolBase.sol\";\n\nabstract contract OnlyExitFeature is RewardsPoolBase {\n\n\n\t//Without the passed argument the function is not overriden\n\tfunction withdraw(uint256 _tokenAmount) public override virtual {\n\t\trevert(\"OnlyExitFeature::cannot withdraw from this contract. Only exit.\");\n\t}\n\n\tfunction claim() public override virtual {\n\t\trevert(\"OnlyExitFeature::cannot claim from this contract. Only exit.\");\n\t}\n\n}",
+  "sourcePath": "/home/hellowodl/lmaas-liquidity-staker/contracts/pool-features/OnlyExitFeature.sol",
+  "ast": {
+    "absolutePath": "/home/hellowodl/lmaas-liquidity-staker/contracts/pool-features/OnlyExitFeature.sol",
+    "exportedSymbols": {
+      "OnlyExitFeature": [
+        9889
+      ]
+    },
+    "id": 9890,
+    "license": "MIT",
+    "nodeType": "SourceUnit",
+    "nodes": [
+      {
+        "id": 9865,
+        "literals": [
+          "solidity",
+          "0.6",
+          ".12"
+        ],
+        "nodeType": "PragmaDirective",
+        "src": "33:23:47"
+      },
+      {
+        "absolutePath": "/home/hellowodl/lmaas-liquidity-staker/contracts/RewardsPoolBase.sol",
+        "file": "./../RewardsPoolBase.sol",
+        "id": 9866,
+        "nodeType": "ImportDirective",
+        "scope": 9890,
+        "sourceUnit": 3170,
+        "src": "58:34:47",
+        "symbolAliases": [],
+        "unitAlias": ""
+      },
+      {
+        "abstract": true,
+        "baseContracts": [
+          {
+            "arguments": null,
+            "baseName": {
+              "contractScope": null,
+              "id": 9867,
+              "name": "RewardsPoolBase",
+              "nodeType": "UserDefinedTypeName",
+              "referencedDeclaration": 3169,
+              "src": "131:15:47",
+              "typeDescriptions": {
+                "typeIdentifier": "t_contract$_RewardsPoolBase_$3169",
+                "typeString": "contract RewardsPoolBase"
+              }
+            },
+            "id": 9868,
+            "nodeType": "InheritanceSpecifier",
+            "src": "131:15:47"
+          }
+        ],
+        "contractDependencies": [
+          3169,
+          12910
+        ],
+        "contractKind": "contract",
+        "documentation": null,
+        "fullyImplemented": false,
+        "id": 9889,
+        "linearizedBaseContracts": [
+          9889,
+          3169,
+          12910
+        ],
+        "name": "OnlyExitFeature",
+        "nodeType": "ContractDefinition",
+        "nodes": [
+          {
+            "baseFunctions": [
+              2152
+            ],
+            "body": {
+              "id": 9878,
+              "nodeType": "Block",
+              "src": "277:81:47",
+              "statements": [
+                {
+                  "expression": {
+                    "argumentTypes": null,
+                    "arguments": [
+                      {
+                        "argumentTypes": null,
+                        "hexValue": "4f6e6c7945786974466561747572653a3a63616e6e6f742077697468647261772066726f6d207468697320636f6e74726163742e204f6e6c7920657869742e",
+                        "id": 9875,
+                        "isConstant": false,
+                        "isLValue": false,
+                        "isPure": true,
+                        "kind": "string",
+                        "lValueRequested": false,
+                        "nodeType": "Literal",
+                        "src": "288:65:47",
+                        "subdenomination": null,
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_stringliteral_6359280153cccd0ad86844f7fbe70eeaf138092f696bc68d95d28526c3374873",
+                          "typeString": "literal_string \"OnlyExitFeature::cannot withdraw from this contract. Only exit.\""
+                        },
+                        "value": "OnlyExitFeature::cannot withdraw from this contract. Only exit."
+                      }
+                    ],
+                    "expression": {
+                      "argumentTypes": [
+                        {
+                          "typeIdentifier": "t_stringliteral_6359280153cccd0ad86844f7fbe70eeaf138092f696bc68d95d28526c3374873",
+                          "typeString": "literal_string \"OnlyExitFeature::cannot withdraw from this contract. Only exit.\""
+                        }
+                      ],
+                      "id": 9874,
+                      "name": "revert",
+                      "nodeType": "Identifier",
+                      "overloadedDeclarations": [
+                        -19,
+                        -19
+                      ],
+                      "referencedDeclaration": -19,
+                      "src": "281:6:47",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_function_revert_pure$_t_string_memory_ptr_$returns$__$",
+                        "typeString": "function (string memory) pure"
+                      }
+                    },
+                    "id": 9876,
+                    "isConstant": false,
+                    "isLValue": false,
+                    "isPure": false,
+                    "kind": "functionCall",
+                    "lValueRequested": false,
+                    "names": [],
+                    "nodeType": "FunctionCall",
+                    "src": "281:73:47",
+                    "tryCall": false,
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_tuple$__$",
+                      "typeString": "tuple()"
+                    }
+                  },
+                  "id": 9877,
+                  "nodeType": "ExpressionStatement",
+                  "src": "281:73:47"
+                }
+              ]
+            },
+            "documentation": null,
+            "functionSelector": "2e1a7d4d",
+            "id": 9879,
+            "implemented": true,
+            "kind": "function",
+            "modifiers": [],
+            "name": "withdraw",
+            "nodeType": "FunctionDefinition",
+            "overrides": {
+              "id": 9872,
+              "nodeType": "OverrideSpecifier",
+              "overrides": [],
+              "src": "260:8:47"
+            },
+            "parameters": {
+              "id": 9871,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 9870,
+                  "mutability": "mutable",
+                  "name": "_tokenAmount",
+                  "nodeType": "VariableDeclaration",
+                  "overrides": null,
+                  "scope": 9879,
+                  "src": "231:20:47",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_uint256",
+                    "typeString": "uint256"
+                  },
+                  "typeName": {
+                    "id": 9869,
+                    "name": "uint256",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "231:7:47",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint256",
+                      "typeString": "uint256"
+                    }
+                  },
+                  "value": null,
+                  "visibility": "internal"
+                }
+              ],
+              "src": "230:22:47"
+            },
+            "returnParameters": {
+              "id": 9873,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "277:0:47"
+            },
+            "scope": 9889,
+            "src": "213:145:47",
+            "stateMutability": "nonpayable",
+            "virtual": true,
+            "visibility": "public"
+          },
+          {
+            "baseFunctions": [
+              2068
+            ],
+            "body": {
+              "id": 9887,
+              "nodeType": "Block",
+              "src": "402:78:47",
+              "statements": [
+                {
+                  "expression": {
+                    "argumentTypes": null,
+                    "arguments": [
+                      {
+                        "argumentTypes": null,
+                        "hexValue": "4f6e6c7945786974466561747572653a3a63616e6e6f7420636c61696d2066726f6d207468697320636f6e74726163742e204f6e6c7920657869742e",
+                        "id": 9884,
+                        "isConstant": false,
+                        "isLValue": false,
+                        "isPure": true,
+                        "kind": "string",
+                        "lValueRequested": false,
+                        "nodeType": "Literal",
+                        "src": "413:62:47",
+                        "subdenomination": null,
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_stringliteral_75ff79f4ccb37de6df157a5f239eccab657858e048de9fb9dfb6748aa0107db9",
+                          "typeString": "literal_string \"OnlyExitFeature::cannot claim from this contract. Only exit.\""
+                        },
+                        "value": "OnlyExitFeature::cannot claim from this contract. Only exit."
+                      }
+                    ],
+                    "expression": {
+                      "argumentTypes": [
+                        {
+                          "typeIdentifier": "t_stringliteral_75ff79f4ccb37de6df157a5f239eccab657858e048de9fb9dfb6748aa0107db9",
+                          "typeString": "literal_string \"OnlyExitFeature::cannot claim from this contract. Only exit.\""
+                        }
+                      ],
+                      "id": 9883,
+                      "name": "revert",
+                      "nodeType": "Identifier",
+                      "overloadedDeclarations": [
+                        -19,
+                        -19
+                      ],
+                      "referencedDeclaration": -19,
+                      "src": "406:6:47",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_function_revert_pure$_t_string_memory_ptr_$returns$__$",
+                        "typeString": "function (string memory) pure"
+                      }
+                    },
+                    "id": 9885,
+                    "isConstant": false,
+                    "isLValue": false,
+                    "isPure": false,
+                    "kind": "functionCall",
+                    "lValueRequested": false,
+                    "names": [],
+                    "nodeType": "FunctionCall",
+                    "src": "406:70:47",
+                    "tryCall": false,
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_tuple$__$",
+                      "typeString": "tuple()"
+                    }
+                  },
+                  "id": 9886,
+                  "nodeType": "ExpressionStatement",
+                  "src": "406:70:47"
+                }
+              ]
+            },
+            "documentation": null,
+            "functionSelector": "4e71d92d",
+            "id": 9888,
+            "implemented": true,
+            "kind": "function",
+            "modifiers": [],
+            "name": "claim",
+            "nodeType": "FunctionDefinition",
+            "overrides": {
+              "id": 9881,
+              "nodeType": "OverrideSpecifier",
+              "overrides": [],
+              "src": "385:8:47"
+            },
+            "parameters": {
+              "id": 9880,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "375:2:47"
+            },
+            "returnParameters": {
+              "id": 9882,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "402:0:47"
+            },
+            "scope": 9889,
+            "src": "361:119:47",
+            "stateMutability": "nonpayable",
+            "virtual": true,
+            "visibility": "public"
+          }
+        ],
+        "scope": 9890,
+        "src": "94:389:47"
+      }
+    ],
+    "src": "33:450:47"
+  },
+  "legacyAST": {
+    "absolutePath": "/home/hellowodl/lmaas-liquidity-staker/contracts/pool-features/OnlyExitFeature.sol",
+    "exportedSymbols": {
+      "OnlyExitFeature": [
+        9889
+      ]
+    },
+    "id": 9890,
+    "license": "MIT",
+    "nodeType": "SourceUnit",
+    "nodes": [
+      {
+        "id": 9865,
+        "literals": [
+          "solidity",
+          "0.6",
+          ".12"
+        ],
+        "nodeType": "PragmaDirective",
+        "src": "33:23:47"
+      },
+      {
+        "absolutePath": "/home/hellowodl/lmaas-liquidity-staker/contracts/RewardsPoolBase.sol",
+        "file": "./../RewardsPoolBase.sol",
+        "id": 9866,
+        "nodeType": "ImportDirective",
+        "scope": 9890,
+        "sourceUnit": 3170,
+        "src": "58:34:47",
+        "symbolAliases": [],
+        "unitAlias": ""
+      },
+      {
+        "abstract": true,
+        "baseContracts": [
+          {
+            "arguments": null,
+            "baseName": {
+              "contractScope": null,
+              "id": 9867,
+              "name": "RewardsPoolBase",
+              "nodeType": "UserDefinedTypeName",
+              "referencedDeclaration": 3169,
+              "src": "131:15:47",
+              "typeDescriptions": {
+                "typeIdentifier": "t_contract$_RewardsPoolBase_$3169",
+                "typeString": "contract RewardsPoolBase"
+              }
+            },
+            "id": 9868,
+            "nodeType": "InheritanceSpecifier",
+            "src": "131:15:47"
+          }
+        ],
+        "contractDependencies": [
+          3169,
+          12910
+        ],
+        "contractKind": "contract",
+        "documentation": null,
+        "fullyImplemented": false,
+        "id": 9889,
+        "linearizedBaseContracts": [
+          9889,
+          3169,
+          12910
+        ],
+        "name": "OnlyExitFeature",
+        "nodeType": "ContractDefinition",
+        "nodes": [
+          {
+            "baseFunctions": [
+              2152
+            ],
+            "body": {
+              "id": 9878,
+              "nodeType": "Block",
+              "src": "277:81:47",
+              "statements": [
+                {
+                  "expression": {
+                    "argumentTypes": null,
+                    "arguments": [
+                      {
+                        "argumentTypes": null,
+                        "hexValue": "4f6e6c7945786974466561747572653a3a63616e6e6f742077697468647261772066726f6d207468697320636f6e74726163742e204f6e6c7920657869742e",
+                        "id": 9875,
+                        "isConstant": false,
+                        "isLValue": false,
+                        "isPure": true,
+                        "kind": "string",
+                        "lValueRequested": false,
+                        "nodeType": "Literal",
+                        "src": "288:65:47",
+                        "subdenomination": null,
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_stringliteral_6359280153cccd0ad86844f7fbe70eeaf138092f696bc68d95d28526c3374873",
+                          "typeString": "literal_string \"OnlyExitFeature::cannot withdraw from this contract. Only exit.\""
+                        },
+                        "value": "OnlyExitFeature::cannot withdraw from this contract. Only exit."
+                      }
+                    ],
+                    "expression": {
+                      "argumentTypes": [
+                        {
+                          "typeIdentifier": "t_stringliteral_6359280153cccd0ad86844f7fbe70eeaf138092f696bc68d95d28526c3374873",
+                          "typeString": "literal_string \"OnlyExitFeature::cannot withdraw from this contract. Only exit.\""
+                        }
+                      ],
+                      "id": 9874,
+                      "name": "revert",
+                      "nodeType": "Identifier",
+                      "overloadedDeclarations": [
+                        -19,
+                        -19
+                      ],
+                      "referencedDeclaration": -19,
+                      "src": "281:6:47",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_function_revert_pure$_t_string_memory_ptr_$returns$__$",
+                        "typeString": "function (string memory) pure"
+                      }
+                    },
+                    "id": 9876,
+                    "isConstant": false,
+                    "isLValue": false,
+                    "isPure": false,
+                    "kind": "functionCall",
+                    "lValueRequested": false,
+                    "names": [],
+                    "nodeType": "FunctionCall",
+                    "src": "281:73:47",
+                    "tryCall": false,
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_tuple$__$",
+                      "typeString": "tuple()"
+                    }
+                  },
+                  "id": 9877,
+                  "nodeType": "ExpressionStatement",
+                  "src": "281:73:47"
+                }
+              ]
+            },
+            "documentation": null,
+            "functionSelector": "2e1a7d4d",
+            "id": 9879,
+            "implemented": true,
+            "kind": "function",
+            "modifiers": [],
+            "name": "withdraw",
+            "nodeType": "FunctionDefinition",
+            "overrides": {
+              "id": 9872,
+              "nodeType": "OverrideSpecifier",
+              "overrides": [],
+              "src": "260:8:47"
+            },
+            "parameters": {
+              "id": 9871,
+              "nodeType": "ParameterList",
+              "parameters": [
+                {
+                  "constant": false,
+                  "id": 9870,
+                  "mutability": "mutable",
+                  "name": "_tokenAmount",
+                  "nodeType": "VariableDeclaration",
+                  "overrides": null,
+                  "scope": 9879,
+                  "src": "231:20:47",
+                  "stateVariable": false,
+                  "storageLocation": "default",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_uint256",
+                    "typeString": "uint256"
+                  },
+                  "typeName": {
+                    "id": 9869,
+                    "name": "uint256",
+                    "nodeType": "ElementaryTypeName",
+                    "src": "231:7:47",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint256",
+                      "typeString": "uint256"
+                    }
+                  },
+                  "value": null,
+                  "visibility": "internal"
+                }
+              ],
+              "src": "230:22:47"
+            },
+            "returnParameters": {
+              "id": 9873,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "277:0:47"
+            },
+            "scope": 9889,
+            "src": "213:145:47",
+            "stateMutability": "nonpayable",
+            "virtual": true,
+            "visibility": "public"
+          },
+          {
+            "baseFunctions": [
+              2068
+            ],
+            "body": {
+              "id": 9887,
+              "nodeType": "Block",
+              "src": "402:78:47",
+              "statements": [
+                {
+                  "expression": {
+                    "argumentTypes": null,
+                    "arguments": [
+                      {
+                        "argumentTypes": null,
+                        "hexValue": "4f6e6c7945786974466561747572653a3a63616e6e6f7420636c61696d2066726f6d207468697320636f6e74726163742e204f6e6c7920657869742e",
+                        "id": 9884,
+                        "isConstant": false,
+                        "isLValue": false,
+                        "isPure": true,
+                        "kind": "string",
+                        "lValueRequested": false,
+                        "nodeType": "Literal",
+                        "src": "413:62:47",
+                        "subdenomination": null,
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_stringliteral_75ff79f4ccb37de6df157a5f239eccab657858e048de9fb9dfb6748aa0107db9",
+                          "typeString": "literal_string \"OnlyExitFeature::cannot claim from this contract. Only exit.\""
+                        },
+                        "value": "OnlyExitFeature::cannot claim from this contract. Only exit."
+                      }
+                    ],
+                    "expression": {
+                      "argumentTypes": [
+                        {
+                          "typeIdentifier": "t_stringliteral_75ff79f4ccb37de6df157a5f239eccab657858e048de9fb9dfb6748aa0107db9",
+                          "typeString": "literal_string \"OnlyExitFeature::cannot claim from this contract. Only exit.\""
+                        }
+                      ],
+                      "id": 9883,
+                      "name": "revert",
+                      "nodeType": "Identifier",
+                      "overloadedDeclarations": [
+                        -19,
+                        -19
+                      ],
+                      "referencedDeclaration": -19,
+                      "src": "406:6:47",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_function_revert_pure$_t_string_memory_ptr_$returns$__$",
+                        "typeString": "function (string memory) pure"
+                      }
+                    },
+                    "id": 9885,
+                    "isConstant": false,
+                    "isLValue": false,
+                    "isPure": false,
+                    "kind": "functionCall",
+                    "lValueRequested": false,
+                    "names": [],
+                    "nodeType": "FunctionCall",
+                    "src": "406:70:47",
+                    "tryCall": false,
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_tuple$__$",
+                      "typeString": "tuple()"
+                    }
+                  },
+                  "id": 9886,
+                  "nodeType": "ExpressionStatement",
+                  "src": "406:70:47"
+                }
+              ]
+            },
+            "documentation": null,
+            "functionSelector": "4e71d92d",
+            "id": 9888,
+            "implemented": true,
+            "kind": "function",
+            "modifiers": [],
+            "name": "claim",
+            "nodeType": "FunctionDefinition",
+            "overrides": {
+              "id": 9881,
+              "nodeType": "OverrideSpecifier",
+              "overrides": [],
+              "src": "385:8:47"
+            },
+            "parameters": {
+              "id": 9880,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "375:2:47"
+            },
+            "returnParameters": {
+              "id": 9882,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "402:0:47"
+            },
+            "scope": 9889,
+            "src": "361:119:47",
+            "stateMutability": "nonpayable",
+            "virtual": true,
+            "visibility": "public"
+          }
+        ],
+        "scope": 9890,
+        "src": "94:389:47"
+      }
+    ],
+    "src": "33:450:47"
+  },
+  "compiler": {
+    "name": "solc",
+    "version": "0.6.12+commit.27d51765.Emscripten.clang",
+    "optimizer": false,
+    "runs": 200
+  },
+  "networks": {},
+  "schemaVersion": "2.3.5",
+  "updatedAt": "2021-04-27T17:14:31.173Z"
+}

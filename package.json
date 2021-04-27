@@ -1,6 +1,6 @@
 {
   "name": "etherlime-project",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "description": "This is the default package.json generated for your project",
   "main": "index.js",
   "scripts": {
@@ -21,6 +21,8 @@
     "solc": "^0.6.12"
   },
   "devDependencies": {
+    "@typechain/ethers-v5": "^6.0.5",
+    "typechain": "^4.0.3",
     "prettier": "^2.2.1",
     "prettier-plugin-solidity": "^1.0.0-beta.5"
   }

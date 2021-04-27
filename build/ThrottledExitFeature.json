@@ -1,0 +1,3624 @@
+{
+  "contractName": "ThrottledExitFeature",
+  "abi": [
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "user",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "token",
+          "type": "address"
+        }
+      ],
+      "name": "Claimed",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "user",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "stake",
+          "type": "uint256"
+        }
+      ],
+      "name": "ExitCompleted",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "user",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "exitBlock",
+          "type": "uint256"
+        }
+      ],
+      "name": "ExitRequested",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "user",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        }
+      ],
+      "name": "Exited",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "newEndBlock",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256[]",
+          "name": "newRewardsPerBlock",
+          "type": "uint256[]"
+        }
+      ],
+      "name": "Extended",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "user",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        }
+      ],
+      "name": "Staked",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "uint256",
+          "name": "rewardsAmount",
+          "type": "uint256"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "recipient",
+          "type": "address"
+        }
+      ],
+      "name": "WithdrawLPRewards",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "user",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        }
+      ],
+      "name": "Withdrawn",
+      "type": "event"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "name": "accumulatedRewardMultiplier",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_userAddress",
+          "type": "address"
+        }
+      ],
+      "name": "balanceOf",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "claim",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "contractStakeLimit",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "endBlock",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "name": "exitInfo",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "exitBlock",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "exitStake",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "_endBlock",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256[]",
+          "name": "_rewardsPerBlock",
+          "type": "uint256[]"
+        },
+        {
+          "internalType": "uint256[]",
+          "name": "_currentRemainingRewards",
+          "type": "uint256[]"
+        },
+        {
+          "internalType": "uint256[]",
+          "name": "_newRemainingRewards",
+          "type": "uint256[]"
+        }
+      ],
+      "name": "extend",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "tokenIndex",
+          "type": "uint256"
+        }
+      ],
+      "name": "getPendingReward",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "getRewardTokensCount",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_userAddress",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "tokenIndex",
+          "type": "uint256"
+        }
+      ],
+      "name": "getUserAccumulatedReward",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_userAddress",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_index",
+          "type": "uint256"
+        }
+      ],
+      "name": "getUserOwedTokens",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_userAddress",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_index",
+          "type": "uint256"
+        }
+      ],
+      "name": "getUserRewardDebt",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_userAddress",
+          "type": "address"
+        }
+      ],
+      "name": "getUserRewardDebtLength",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_userAddress",
+          "type": "address"
+        }
+      ],
+      "name": "getUserTokensOwedLength",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "hasStakingStarted",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "lastRewardBlock",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "lockEndBlock",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "nextAvailableExitBlock",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "nextAvailableRoundExitVolume",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "name": "rewardPerBlock",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "rewardsPoolFactory",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "name": "rewardsTokens",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "_tokenAmount",
+          "type": "uint256"
+        }
+      ],
+      "name": "stake",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "stakeLimit",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "stakingToken",
+      "outputs": [
+        {
+          "internalType": "contract IERC20Detailed",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "startBlock",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "throttleRoundBlocks",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "throttleRoundCap",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "totalStaked",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "updateRewardMultipliers",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "name": "userInfo",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "firstStakedBlockNumber",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "amountStaked",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "_tokenAmount",
+          "type": "uint256"
+        }
+      ],
+      "name": "withdraw",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "recipient",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "lpTokenContract",
+          "type": "address"
+        }
+      ],
+      "name": "withdrawLPRewards",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "exit",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "completeExit",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    }
+  ],
+  "bytecode": "0x",
+  "deployedBytecode": "0x",
+  "sourceMap": "",
+  "deployedSourceMap": "",
+  "source": "// SPDX-License-Identifier: MIT\n\npragma solidity 0.6.12;\n\nimport \"openzeppelin-solidity/contracts/math/SafeMath.sol\";\nimport \"./../RewardsPoolBase.sol\";\nimport \"./StakeLockingFeature.sol\";\nimport \"./../interfaces/IERC20Detailed.sol\";\nimport \"./../SafeERC20Detailed.sol\";\nimport \"./../ThrottledExit.sol\";\n\n\nabstract contract ThrottledExitFeature is StakeLockingFeature, ThrottledExit {\n\tusing SafeMath for uint256;\n\tusing SafeERC20Detailed for IERC20Detailed;\n\n\tfunction exit() virtual public override onlyUnlocked nonReentrant {\n\t\tUserInfo storage user = userInfo[msg.sender];\n\n\t\tupdateRewardMultipliers(); // Update the accumulated multipliers for everyone\n\n\t\tif (user.amountStaked == 0) {\n\t\t\treturn;\n\t\t}\n\n\t\tupdateUserAccruedReward(msg.sender); // Update the accrued reward for this specific user\n\n\t\tinitiateExit(user.amountStaked, rewardsTokens.length, user.tokensOwed);\n\n\t\ttotalStaked = totalStaked.sub(user.amountStaked);\n\t\tuser.amountStaked = 0;\n\n\t\tfor (uint256 i = 0; i < rewardsTokens.length; i++) {\n\t\t\tuser.tokensOwed[i] = 0;\n\t\t\tuser.rewardDebt[i] = 0;\n\t\t}\n\t}\n\n\tfunction completeExit() virtual public onlyUnlocked nonReentrant {\n\t\tfinalizeExit(address(stakingToken), rewardsTokens);\n\t}\n\n}",
+  "sourcePath": "/home/hellowodl/lmaas-liquidity-staker/contracts/pool-features/ThrottledExitFeature.sol",
+  "ast": {
+    "absolutePath": "/home/hellowodl/lmaas-liquidity-staker/contracts/pool-features/ThrottledExitFeature.sol",
+    "exportedSymbols": {
+      "ThrottledExitFeature": [
+        10217
+      ]
+    },
+    "id": 10218,
+    "license": "MIT",
+    "nodeType": "SourceUnit",
+    "nodes": [
+      {
+        "id": 10101,
+        "literals": [
+          "solidity",
+          "0.6",
+          ".12"
+        ],
+        "nodeType": "PragmaDirective",
+        "src": "33:23:51"
+      },
+      {
+        "absolutePath": "openzeppelin-solidity/contracts/math/SafeMath.sol",
+        "file": "openzeppelin-solidity/contracts/math/SafeMath.sol",
+        "id": 10102,
+        "nodeType": "ImportDirective",
+        "scope": 10218,
+        "sourceUnit": 11155,
+        "src": "58:59:51",
+        "symbolAliases": [],
+        "unitAlias": ""
+      },
+      {
+        "absolutePath": "/home/hellowodl/lmaas-liquidity-staker/contracts/RewardsPoolBase.sol",
+        "file": "./../RewardsPoolBase.sol",
+        "id": 10103,
+        "nodeType": "ImportDirective",
+        "scope": 10218,
+        "sourceUnit": 3170,
+        "src": "118:34:51",
+        "symbolAliases": [],
+        "unitAlias": ""
+      },
+      {
+        "absolutePath": "/home/hellowodl/lmaas-liquidity-staker/contracts/pool-features/StakeLockingFeature.sol",
+        "file": "./StakeLockingFeature.sol",
+        "id": 10104,
+        "nodeType": "ImportDirective",
+        "scope": 10218,
+        "sourceUnit": 9913,
+        "src": "153:35:51",
+        "symbolAliases": [],
+        "unitAlias": ""
+      },
+      {
+        "absolutePath": "/home/hellowodl/lmaas-liquidity-staker/contracts/interfaces/IERC20Detailed.sol",
+        "file": "./../interfaces/IERC20Detailed.sol",
+        "id": 10105,
+        "nodeType": "ImportDirective",
+        "scope": 10218,
+        "sourceUnit": 8882,
+        "src": "189:44:51",
+        "symbolAliases": [],
+        "unitAlias": ""
+      },
+      {
+        "absolutePath": "/home/hellowodl/lmaas-liquidity-staker/contracts/SafeERC20Detailed.sol",
+        "file": "./../SafeERC20Detailed.sol",
+        "id": 10106,
+        "nodeType": "ImportDirective",
+        "scope": 10218,
+        "sourceUnit": 3701,
+        "src": "234:36:51",
+        "symbolAliases": [],
+        "unitAlias": ""
+      },
+      {
+        "absolutePath": "/home/hellowodl/lmaas-liquidity-staker/contracts/ThrottledExit.sol",
+        "file": "./../ThrottledExit.sol",
+        "id": 10107,
+        "nodeType": "ImportDirective",
+        "scope": 10218,
+        "sourceUnit": 4204,
+        "src": "271:32:51",
+        "symbolAliases": [],
+        "unitAlias": ""
+      },
+      {
+        "abstract": true,
+        "baseContracts": [
+          {
+            "arguments": null,
+            "baseName": {
+              "contractScope": null,
+              "id": 10108,
+              "name": "StakeLockingFeature",
+              "nodeType": "UserDefinedTypeName",
+              "referencedDeclaration": 9912,
+              "src": "348:19:51",
+              "typeDescriptions": {
+                "typeIdentifier": "t_contract$_StakeLockingFeature_$9912",
+                "typeString": "contract StakeLockingFeature"
+              }
+            },
+            "id": 10109,
+            "nodeType": "InheritanceSpecifier",
+            "src": "348:19:51"
+          },
+          {
+            "arguments": null,
+            "baseName": {
+              "contractScope": null,
+              "id": 10110,
+              "name": "ThrottledExit",
+              "nodeType": "UserDefinedTypeName",
+              "referencedDeclaration": 4203,
+              "src": "369:13:51",
+              "typeDescriptions": {
+                "typeIdentifier": "t_contract$_ThrottledExit_$4203",
+                "typeString": "contract ThrottledExit"
+              }
+            },
+            "id": 10111,
+            "nodeType": "InheritanceSpecifier",
+            "src": "369:13:51"
+          }
+        ],
+        "contractDependencies": [
+          3169,
+          3735,
+          4203,
+          9889,
+          9912,
+          12910
+        ],
+        "contractKind": "contract",
+        "documentation": null,
+        "fullyImplemented": false,
+        "id": 10217,
+        "linearizedBaseContracts": [
+          10217,
+          4203,
+          9912,
+          3735,
+          9889,
+          3169,
+          12910
+        ],
+        "name": "ThrottledExitFeature",
+        "nodeType": "ContractDefinition",
+        "nodes": [
+          {
+            "id": 10114,
+            "libraryName": {
+              "contractScope": null,
+              "id": 10112,
+              "name": "SafeMath",
+              "nodeType": "UserDefinedTypeName",
+              "referencedDeclaration": 11154,
+              "src": "392:8:51",
+              "typeDescriptions": {
+                "typeIdentifier": "t_contract$_SafeMath_$11154",
+                "typeString": "library SafeMath"
+              }
+            },
+            "nodeType": "UsingForDirective",
+            "src": "386:27:51",
+            "typeName": {
+              "id": 10113,
+              "name": "uint256",
+              "nodeType": "ElementaryTypeName",
+              "src": "405:7:51",
+              "typeDescriptions": {
+                "typeIdentifier": "t_uint256",
+                "typeString": "uint256"
+              }
+            }
+          },
+          {
+            "id": 10117,
+            "libraryName": {
+              "contractScope": null,
+              "id": 10115,
+              "name": "SafeERC20Detailed",
+              "nodeType": "UserDefinedTypeName",
+              "referencedDeclaration": 3700,
+              "src": "421:17:51",
+              "typeDescriptions": {
+                "typeIdentifier": "t_contract$_SafeERC20Detailed_$3700",
+                "typeString": "library SafeERC20Detailed"
+              }
+            },
+            "nodeType": "UsingForDirective",
+            "src": "415:43:51",
+            "typeName": {
+              "contractScope": null,
+              "id": 10116,
+              "name": "IERC20Detailed",
+              "nodeType": "UserDefinedTypeName",
+              "referencedDeclaration": 8881,
+              "src": "443:14:51",
+              "typeDescriptions": {
+                "typeIdentifier": "t_contract$_IERC20Detailed_$8881",
+                "typeString": "contract IERC20Detailed"
+              }
+            }
+          },
+          {
+            "baseFunctions": [
+              9911
+            ],
+            "body": {
+              "id": 10199,
+              "nodeType": "Block",
+              "src": "527:540:51",
+              "statements": [
+                {
+                  "assignments": [
+                    10126
+                  ],
+                  "declarations": [
+                    {
+                      "constant": false,
+                      "id": 10126,
+                      "mutability": "mutable",
+                      "name": "user",
+                      "nodeType": "VariableDeclaration",
+                      "overrides": null,
+                      "scope": 10199,
+                      "src": "531:21:51",
+                      "stateVariable": false,
+                      "storageLocation": "storage",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_struct$_UserInfo_$1671_storage_ptr",
+                        "typeString": "struct RewardsPoolBase.UserInfo"
+                      },
+                      "typeName": {
+                        "contractScope": null,
+                        "id": 10125,
+                        "name": "UserInfo",
+                        "nodeType": "UserDefinedTypeName",
+                        "referencedDeclaration": 1671,
+                        "src": "531:8:51",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_struct$_UserInfo_$1671_storage_ptr",
+                          "typeString": "struct RewardsPoolBase.UserInfo"
+                        }
+                      },
+                      "value": null,
+                      "visibility": "internal"
+                    }
+                  ],
+                  "id": 10131,
+                  "initialValue": {
+                    "argumentTypes": null,
+                    "baseExpression": {
+                      "argumentTypes": null,
+                      "id": 10127,
+                      "name": "userInfo",
+                      "nodeType": "Identifier",
+                      "overloadedDeclarations": [],
+                      "referencedDeclaration": 1675,
+                      "src": "555:8:51",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_mapping$_t_address_$_t_struct$_UserInfo_$1671_storage_$",
+                        "typeString": "mapping(address => struct RewardsPoolBase.UserInfo storage ref)"
+                      }
+                    },
+                    "id": 10130,
+                    "indexExpression": {
+                      "argumentTypes": null,
+                      "expression": {
+                        "argumentTypes": null,
+                        "id": 10128,
+                        "name": "msg",
+                        "nodeType": "Identifier",
+                        "overloadedDeclarations": [],
+                        "referencedDeclaration": -15,
+                        "src": "564:3:51",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_magic_message",
+                          "typeString": "msg"
+                        }
+                      },
+                      "id": 10129,
+                      "isConstant": false,
+                      "isLValue": false,
+                      "isPure": false,
+                      "lValueRequested": false,
+                      "memberName": "sender",
+                      "nodeType": "MemberAccess",
+                      "referencedDeclaration": null,
+                      "src": "564:10:51",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_address_payable",
+                        "typeString": "address payable"
+                      }
+                    },
+                    "isConstant": false,
+                    "isLValue": true,
+                    "isPure": false,
+                    "lValueRequested": false,
+                    "nodeType": "IndexAccess",
+                    "src": "555:20:51",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_struct$_UserInfo_$1671_storage",
+                      "typeString": "struct RewardsPoolBase.UserInfo storage ref"
+                    }
+                  },
+                  "nodeType": "VariableDeclarationStatement",
+                  "src": "531:44:51"
+                },
+                {
+                  "expression": {
+                    "argumentTypes": null,
+                    "arguments": [],
+                    "expression": {
+                      "argumentTypes": [],
+                      "id": 10132,
+                      "name": "updateRewardMultipliers",
+                      "nodeType": "Identifier",
+                      "overloadedDeclarations": [],
+                      "referencedDeclaration": 2459,
+                      "src": "580:23:51",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_function_internal_nonpayable$__$returns$__$",
+                        "typeString": "function ()"
+                      }
+                    },
+                    "id": 10133,
+                    "isConstant": false,
+                    "isLValue": false,
+                    "isPure": false,
+                    "kind": "functionCall",
+                    "lValueRequested": false,
+                    "names": [],
+                    "nodeType": "FunctionCall",
+                    "src": "580:25:51",
+                    "tryCall": false,
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_tuple$__$",
+                      "typeString": "tuple()"
+                    }
+                  },
+                  "id": 10134,
+                  "nodeType": "ExpressionStatement",
+                  "src": "580:25:51"
+                },
+                {
+                  "condition": {
+                    "argumentTypes": null,
+                    "commonType": {
+                      "typeIdentifier": "t_uint256",
+                      "typeString": "uint256"
+                    },
+                    "id": 10138,
+                    "isConstant": false,
+                    "isLValue": false,
+                    "isPure": false,
+                    "lValueRequested": false,
+                    "leftExpression": {
+                      "argumentTypes": null,
+                      "expression": {
+                        "argumentTypes": null,
+                        "id": 10135,
+                        "name": "user",
+                        "nodeType": "Identifier",
+                        "overloadedDeclarations": [],
+                        "referencedDeclaration": 10126,
+                        "src": "665:4:51",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_struct$_UserInfo_$1671_storage_ptr",
+                          "typeString": "struct RewardsPoolBase.UserInfo storage pointer"
+                        }
+                      },
+                      "id": 10136,
+                      "isConstant": false,
+                      "isLValue": true,
+                      "isPure": false,
+                      "lValueRequested": false,
+                      "memberName": "amountStaked",
+                      "nodeType": "MemberAccess",
+                      "referencedDeclaration": 1664,
+                      "src": "665:17:51",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_uint256",
+                        "typeString": "uint256"
+                      }
+                    },
+                    "nodeType": "BinaryOperation",
+                    "operator": "==",
+                    "rightExpression": {
+                      "argumentTypes": null,
+                      "hexValue": "30",
+                      "id": 10137,
+                      "isConstant": false,
+                      "isLValue": false,
+                      "isPure": true,
+                      "kind": "number",
+                      "lValueRequested": false,
+                      "nodeType": "Literal",
+                      "src": "686:1:51",
+                      "subdenomination": null,
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_rational_0_by_1",
+                        "typeString": "int_const 0"
+                      },
+                      "value": "0"
+                    },
+                    "src": "665:22:51",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_bool",
+                      "typeString": "bool"
+                    }
+                  },
+                  "falseBody": null,
+                  "id": 10141,
+                  "nodeType": "IfStatement",
+                  "src": "661:44:51",
+                  "trueBody": {
+                    "id": 10140,
+                    "nodeType": "Block",
+                    "src": "689:16:51",
+                    "statements": [
+                      {
+                        "expression": null,
+                        "functionReturnParameters": 10124,
+                        "id": 10139,
+                        "nodeType": "Return",
+                        "src": "694:7:51"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "expression": {
+                    "argumentTypes": null,
+                    "arguments": [
+                      {
+                        "argumentTypes": null,
+                        "expression": {
+                          "argumentTypes": null,
+                          "id": 10143,
+                          "name": "msg",
+                          "nodeType": "Identifier",
+                          "overloadedDeclarations": [],
+                          "referencedDeclaration": -15,
+                          "src": "733:3:51",
+                          "typeDescriptions": {
+                            "typeIdentifier": "t_magic_message",
+                            "typeString": "msg"
+                          }
+                        },
+                        "id": 10144,
+                        "isConstant": false,
+                        "isLValue": false,
+                        "isPure": false,
+                        "lValueRequested": false,
+                        "memberName": "sender",
+                        "nodeType": "MemberAccess",
+                        "referencedDeclaration": null,
+                        "src": "733:10:51",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_address_payable",
+                          "typeString": "address payable"
+                        }
+                      }
+                    ],
+                    "expression": {
+                      "argumentTypes": [
+                        {
+                          "typeIdentifier": "t_address_payable",
+                          "typeString": "address payable"
+                        }
+                      ],
+                      "id": 10142,
+                      "name": "updateUserAccruedReward",
+                      "nodeType": "Identifier",
+                      "overloadedDeclarations": [],
+                      "referencedDeclaration": 2509,
+                      "src": "709:23:51",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_function_internal_nonpayable$_t_address_$returns$__$",
+                        "typeString": "function (address)"
+                      }
+                    },
+                    "id": 10145,
+                    "isConstant": false,
+                    "isLValue": false,
+                    "isPure": false,
+                    "kind": "functionCall",
+                    "lValueRequested": false,
+                    "names": [],
+                    "nodeType": "FunctionCall",
+                    "src": "709:35:51",
+                    "tryCall": false,
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_tuple$__$",
+                      "typeString": "tuple()"
+                    }
+                  },
+                  "id": 10146,
+                  "nodeType": "ExpressionStatement",
+                  "src": "709:35:51"
+                },
+                {
+                  "expression": {
+                    "argumentTypes": null,
+                    "arguments": [
+                      {
+                        "argumentTypes": null,
+                        "expression": {
+                          "argumentTypes": null,
+                          "id": 10148,
+                          "name": "user",
+                          "nodeType": "Identifier",
+                          "overloadedDeclarations": [],
+                          "referencedDeclaration": 10126,
+                          "src": "814:4:51",
+                          "typeDescriptions": {
+                            "typeIdentifier": "t_struct$_UserInfo_$1671_storage_ptr",
+                            "typeString": "struct RewardsPoolBase.UserInfo storage pointer"
+                          }
+                        },
+                        "id": 10149,
+                        "isConstant": false,
+                        "isLValue": true,
+                        "isPure": false,
+                        "lValueRequested": false,
+                        "memberName": "amountStaked",
+                        "nodeType": "MemberAccess",
+                        "referencedDeclaration": 1664,
+                        "src": "814:17:51",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_uint256",
+                          "typeString": "uint256"
+                        }
+                      },
+                      {
+                        "argumentTypes": null,
+                        "expression": {
+                          "argumentTypes": null,
+                          "id": 10150,
+                          "name": "rewardsTokens",
+                          "nodeType": "Identifier",
+                          "overloadedDeclarations": [],
+                          "referencedDeclaration": 1643,
+                          "src": "833:13:51",
+                          "typeDescriptions": {
+                            "typeIdentifier": "t_array$_t_address_$dyn_storage",
+                            "typeString": "address[] storage ref"
+                          }
+                        },
+                        "id": 10151,
+                        "isConstant": false,
+                        "isLValue": false,
+                        "isPure": false,
+                        "lValueRequested": false,
+                        "memberName": "length",
+                        "nodeType": "MemberAccess",
+                        "referencedDeclaration": null,
+                        "src": "833:20:51",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_uint256",
+                          "typeString": "uint256"
+                        }
+                      },
+                      {
+                        "argumentTypes": null,
+                        "expression": {
+                          "argumentTypes": null,
+                          "id": 10152,
+                          "name": "user",
+                          "nodeType": "Identifier",
+                          "overloadedDeclarations": [],
+                          "referencedDeclaration": 10126,
+                          "src": "855:4:51",
+                          "typeDescriptions": {
+                            "typeIdentifier": "t_struct$_UserInfo_$1671_storage_ptr",
+                            "typeString": "struct RewardsPoolBase.UserInfo storage pointer"
+                          }
+                        },
+                        "id": 10153,
+                        "isConstant": false,
+                        "isLValue": true,
+                        "isPure": false,
+                        "lValueRequested": false,
+                        "memberName": "tokensOwed",
+                        "nodeType": "MemberAccess",
+                        "referencedDeclaration": 1670,
+                        "src": "855:15:51",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_array$_t_uint256_$dyn_storage",
+                          "typeString": "uint256[] storage ref"
+                        }
+                      }
+                    ],
+                    "expression": {
+                      "argumentTypes": [
+                        {
+                          "typeIdentifier": "t_uint256",
+                          "typeString": "uint256"
+                        },
+                        {
+                          "typeIdentifier": "t_uint256",
+                          "typeString": "uint256"
+                        },
+                        {
+                          "typeIdentifier": "t_array$_t_uint256_$dyn_storage",
+                          "typeString": "uint256[] storage ref"
+                        }
+                      ],
+                      "id": 10147,
+                      "name": "initiateExit",
+                      "nodeType": "Identifier",
+                      "overloadedDeclarations": [],
+                      "referencedDeclaration": 3976,
+                      "src": "801:12:51",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_function_internal_nonpayable$_t_uint256_$_t_uint256_$_t_array$_t_uint256_$dyn_memory_ptr_$returns$__$",
+                        "typeString": "function (uint256,uint256,uint256[] memory)"
+                      }
+                    },
+                    "id": 10154,
+                    "isConstant": false,
+                    "isLValue": false,
+                    "isPure": false,
+                    "kind": "functionCall",
+                    "lValueRequested": false,
+                    "names": [],
+                    "nodeType": "FunctionCall",
+                    "src": "801:70:51",
+                    "tryCall": false,
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_tuple$__$",
+                      "typeString": "tuple()"
+                    }
+                  },
+                  "id": 10155,
+                  "nodeType": "ExpressionStatement",
+                  "src": "801:70:51"
+                },
+                {
+                  "expression": {
+                    "argumentTypes": null,
+                    "id": 10162,
+                    "isConstant": false,
+                    "isLValue": false,
+                    "isPure": false,
+                    "lValueRequested": false,
+                    "leftHandSide": {
+                      "argumentTypes": null,
+                      "id": 10156,
+                      "name": "totalStaked",
+                      "nodeType": "Identifier",
+                      "overloadedDeclarations": [],
+                      "referencedDeclaration": 1637,
+                      "src": "876:11:51",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_uint256",
+                        "typeString": "uint256"
+                      }
+                    },
+                    "nodeType": "Assignment",
+                    "operator": "=",
+                    "rightHandSide": {
+                      "argumentTypes": null,
+                      "arguments": [
+                        {
+                          "argumentTypes": null,
+                          "expression": {
+                            "argumentTypes": null,
+                            "id": 10159,
+                            "name": "user",
+                            "nodeType": "Identifier",
+                            "overloadedDeclarations": [],
+                            "referencedDeclaration": 10126,
+                            "src": "906:4:51",
+                            "typeDescriptions": {
+                              "typeIdentifier": "t_struct$_UserInfo_$1671_storage_ptr",
+                              "typeString": "struct RewardsPoolBase.UserInfo storage pointer"
+                            }
+                          },
+                          "id": 10160,
+                          "isConstant": false,
+                          "isLValue": true,
+                          "isPure": false,
+                          "lValueRequested": false,
+                          "memberName": "amountStaked",
+                          "nodeType": "MemberAccess",
+                          "referencedDeclaration": 1664,
+                          "src": "906:17:51",
+                          "typeDescriptions": {
+                            "typeIdentifier": "t_uint256",
+                            "typeString": "uint256"
+                          }
+                        }
+                      ],
+                      "expression": {
+                        "argumentTypes": [
+                          {
+                            "typeIdentifier": "t_uint256",
+                            "typeString": "uint256"
+                          }
+                        ],
+                        "expression": {
+                          "argumentTypes": null,
+                          "id": 10157,
+                          "name": "totalStaked",
+                          "nodeType": "Identifier",
+                          "overloadedDeclarations": [],
+                          "referencedDeclaration": 1637,
+                          "src": "890:11:51",
+                          "typeDescriptions": {
+                            "typeIdentifier": "t_uint256",
+                            "typeString": "uint256"
+                          }
+                        },
+                        "id": 10158,
+                        "isConstant": false,
+                        "isLValue": false,
+                        "isPure": false,
+                        "lValueRequested": false,
+                        "memberName": "sub",
+                        "nodeType": "MemberAccess",
+                        "referencedDeclaration": 11003,
+                        "src": "890:15:51",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_function_internal_pure$_t_uint256_$_t_uint256_$returns$_t_uint256_$bound_to$_t_uint256_$",
+                          "typeString": "function (uint256,uint256) pure returns (uint256)"
+                        }
+                      },
+                      "id": 10161,
+                      "isConstant": false,
+                      "isLValue": false,
+                      "isPure": false,
+                      "kind": "functionCall",
+                      "lValueRequested": false,
+                      "names": [],
+                      "nodeType": "FunctionCall",
+                      "src": "890:34:51",
+                      "tryCall": false,
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_uint256",
+                        "typeString": "uint256"
+                      }
+                    },
+                    "src": "876:48:51",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint256",
+                      "typeString": "uint256"
+                    }
+                  },
+                  "id": 10163,
+                  "nodeType": "ExpressionStatement",
+                  "src": "876:48:51"
+                },
+                {
+                  "expression": {
+                    "argumentTypes": null,
+                    "id": 10168,
+                    "isConstant": false,
+                    "isLValue": false,
+                    "isPure": false,
+                    "lValueRequested": false,
+                    "leftHandSide": {
+                      "argumentTypes": null,
+                      "expression": {
+                        "argumentTypes": null,
+                        "id": 10164,
+                        "name": "user",
+                        "nodeType": "Identifier",
+                        "overloadedDeclarations": [],
+                        "referencedDeclaration": 10126,
+                        "src": "928:4:51",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_struct$_UserInfo_$1671_storage_ptr",
+                          "typeString": "struct RewardsPoolBase.UserInfo storage pointer"
+                        }
+                      },
+                      "id": 10166,
+                      "isConstant": false,
+                      "isLValue": true,
+                      "isPure": false,
+                      "lValueRequested": true,
+                      "memberName": "amountStaked",
+                      "nodeType": "MemberAccess",
+                      "referencedDeclaration": 1664,
+                      "src": "928:17:51",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_uint256",
+                        "typeString": "uint256"
+                      }
+                    },
+                    "nodeType": "Assignment",
+                    "operator": "=",
+                    "rightHandSide": {
+                      "argumentTypes": null,
+                      "hexValue": "30",
+                      "id": 10167,
+                      "isConstant": false,
+                      "isLValue": false,
+                      "isPure": true,
+                      "kind": "number",
+                      "lValueRequested": false,
+                      "nodeType": "Literal",
+                      "src": "948:1:51",
+                      "subdenomination": null,
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_rational_0_by_1",
+                        "typeString": "int_const 0"
+                      },
+                      "value": "0"
+                    },
+                    "src": "928:21:51",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint256",
+                      "typeString": "uint256"
+                    }
+                  },
+                  "id": 10169,
+                  "nodeType": "ExpressionStatement",
+                  "src": "928:21:51"
+                },
+                {
+                  "body": {
+                    "id": 10197,
+                    "nodeType": "Block",
+                    "src": "1005:59:51",
+                    "statements": [
+                      {
+                        "expression": {
+                          "argumentTypes": null,
+                          "id": 10187,
+                          "isConstant": false,
+                          "isLValue": false,
+                          "isPure": false,
+                          "lValueRequested": false,
+                          "leftHandSide": {
+                            "argumentTypes": null,
+                            "baseExpression": {
+                              "argumentTypes": null,
+                              "expression": {
+                                "argumentTypes": null,
+                                "id": 10181,
+                                "name": "user",
+                                "nodeType": "Identifier",
+                                "overloadedDeclarations": [],
+                                "referencedDeclaration": 10126,
+                                "src": "1010:4:51",
+                                "typeDescriptions": {
+                                  "typeIdentifier": "t_struct$_UserInfo_$1671_storage_ptr",
+                                  "typeString": "struct RewardsPoolBase.UserInfo storage pointer"
+                                }
+                              },
+                              "id": 10184,
+                              "isConstant": false,
+                              "isLValue": true,
+                              "isPure": false,
+                              "lValueRequested": false,
+                              "memberName": "tokensOwed",
+                              "nodeType": "MemberAccess",
+                              "referencedDeclaration": 1670,
+                              "src": "1010:15:51",
+                              "typeDescriptions": {
+                                "typeIdentifier": "t_array$_t_uint256_$dyn_storage",
+                                "typeString": "uint256[] storage ref"
+                              }
+                            },
+                            "id": 10185,
+                            "indexExpression": {
+                              "argumentTypes": null,
+                              "id": 10183,
+                              "name": "i",
+                              "nodeType": "Identifier",
+                              "overloadedDeclarations": [],
+                              "referencedDeclaration": 10171,
+                              "src": "1026:1:51",
+                              "typeDescriptions": {
+                                "typeIdentifier": "t_uint256",
+                                "typeString": "uint256"
+                              }
+                            },
+                            "isConstant": false,
+                            "isLValue": true,
+                            "isPure": false,
+                            "lValueRequested": true,
+                            "nodeType": "IndexAccess",
+                            "src": "1010:18:51",
+                            "typeDescriptions": {
+                              "typeIdentifier": "t_uint256",
+                              "typeString": "uint256"
+                            }
+                          },
+                          "nodeType": "Assignment",
+                          "operator": "=",
+                          "rightHandSide": {
+                            "argumentTypes": null,
+                            "hexValue": "30",
+                            "id": 10186,
+                            "isConstant": false,
+                            "isLValue": false,
+                            "isPure": true,
+                            "kind": "number",
+                            "lValueRequested": false,
+                            "nodeType": "Literal",
+                            "src": "1031:1:51",
+                            "subdenomination": null,
+                            "typeDescriptions": {
+                              "typeIdentifier": "t_rational_0_by_1",
+                              "typeString": "int_const 0"
+                            },
+                            "value": "0"
+                          },
+                          "src": "1010:22:51",
+                          "typeDescriptions": {
+                            "typeIdentifier": "t_uint256",
+                            "typeString": "uint256"
+                          }
+                        },
+                        "id": 10188,
+                        "nodeType": "ExpressionStatement",
+                        "src": "1010:22:51"
+                      },
+                      {
+                        "expression": {
+                          "argumentTypes": null,
+                          "id": 10195,
+                          "isConstant": false,
+                          "isLValue": false,
+                          "isPure": false,
+                          "lValueRequested": false,
+                          "leftHandSide": {
+                            "argumentTypes": null,
+                            "baseExpression": {
+                              "argumentTypes": null,
+                              "expression": {
+                                "argumentTypes": null,
+                                "id": 10189,
+                                "name": "user",
+                                "nodeType": "Identifier",
+                                "overloadedDeclarations": [],
+                                "referencedDeclaration": 10126,
+                                "src": "1037:4:51",
+                                "typeDescriptions": {
+                                  "typeIdentifier": "t_struct$_UserInfo_$1671_storage_ptr",
+                                  "typeString": "struct RewardsPoolBase.UserInfo storage pointer"
+                                }
+                              },
+                              "id": 10192,
+                              "isConstant": false,
+                              "isLValue": true,
+                              "isPure": false,
+                              "lValueRequested": false,
+                              "memberName": "rewardDebt",
+                              "nodeType": "MemberAccess",
+                              "referencedDeclaration": 1667,
+                              "src": "1037:15:51",
+                              "typeDescriptions": {
+                                "typeIdentifier": "t_array$_t_uint256_$dyn_storage",
+                                "typeString": "uint256[] storage ref"
+                              }
+                            },
+                            "id": 10193,
+                            "indexExpression": {
+                              "argumentTypes": null,
+                              "id": 10191,
+                              "name": "i",
+                              "nodeType": "Identifier",
+                              "overloadedDeclarations": [],
+                              "referencedDeclaration": 10171,
+                              "src": "1053:1:51",
+                              "typeDescriptions": {
+                                "typeIdentifier": "t_uint256",
+                                "typeString": "uint256"
+                              }
+                            },
+                            "isConstant": false,
+                            "isLValue": true,
+                            "isPure": false,
+                            "lValueRequested": true,
+                            "nodeType": "IndexAccess",
+                            "src": "1037:18:51",
+                            "typeDescriptions": {
+                              "typeIdentifier": "t_uint256",
+                              "typeString": "uint256"
+                            }
+                          },
+                          "nodeType": "Assignment",
+                          "operator": "=",
+                          "rightHandSide": {
+                            "argumentTypes": null,
+                            "hexValue": "30",
+                            "id": 10194,
+                            "isConstant": false,
+                            "isLValue": false,
+                            "isPure": true,
+                            "kind": "number",
+                            "lValueRequested": false,
+                            "nodeType": "Literal",
+                            "src": "1058:1:51",
+                            "subdenomination": null,
+                            "typeDescriptions": {
+                              "typeIdentifier": "t_rational_0_by_1",
+                              "typeString": "int_const 0"
+                            },
+                            "value": "0"
+                          },
+                          "src": "1037:22:51",
+                          "typeDescriptions": {
+                            "typeIdentifier": "t_uint256",
+                            "typeString": "uint256"
+                          }
+                        },
+                        "id": 10196,
+                        "nodeType": "ExpressionStatement",
+                        "src": "1037:22:51"
+                      }
+                    ]
+                  },
+                  "condition": {
+                    "argumentTypes": null,
+                    "commonType": {
+                      "typeIdentifier": "t_uint256",
+                      "typeString": "uint256"
+                    },
+                    "id": 10177,
+                    "isConstant": false,
+                    "isLValue": false,
+                    "isPure": false,
+                    "lValueRequested": false,
+                    "leftExpression": {
+                      "argumentTypes": null,
+                      "id": 10174,
+                      "name": "i",
+                      "nodeType": "Identifier",
+                      "overloadedDeclarations": [],
+                      "referencedDeclaration": 10171,
+                      "src": "974:1:51",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_uint256",
+                        "typeString": "uint256"
+                      }
+                    },
+                    "nodeType": "BinaryOperation",
+                    "operator": "<",
+                    "rightExpression": {
+                      "argumentTypes": null,
+                      "expression": {
+                        "argumentTypes": null,
+                        "id": 10175,
+                        "name": "rewardsTokens",
+                        "nodeType": "Identifier",
+                        "overloadedDeclarations": [],
+                        "referencedDeclaration": 1643,
+                        "src": "978:13:51",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_array$_t_address_$dyn_storage",
+                          "typeString": "address[] storage ref"
+                        }
+                      },
+                      "id": 10176,
+                      "isConstant": false,
+                      "isLValue": false,
+                      "isPure": false,
+                      "lValueRequested": false,
+                      "memberName": "length",
+                      "nodeType": "MemberAccess",
+                      "referencedDeclaration": null,
+                      "src": "978:20:51",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_uint256",
+                        "typeString": "uint256"
+                      }
+                    },
+                    "src": "974:24:51",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_bool",
+                      "typeString": "bool"
+                    }
+                  },
+                  "id": 10198,
+                  "initializationExpression": {
+                    "assignments": [
+                      10171
+                    ],
+                    "declarations": [
+                      {
+                        "constant": false,
+                        "id": 10171,
+                        "mutability": "mutable",
+                        "name": "i",
+                        "nodeType": "VariableDeclaration",
+                        "overrides": null,
+                        "scope": 10198,
+                        "src": "959:9:51",
+                        "stateVariable": false,
+                        "storageLocation": "default",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_uint256",
+                          "typeString": "uint256"
+                        },
+                        "typeName": {
+                          "id": 10170,
+                          "name": "uint256",
+                          "nodeType": "ElementaryTypeName",
+                          "src": "959:7:51",
+                          "typeDescriptions": {
+                            "typeIdentifier": "t_uint256",
+                            "typeString": "uint256"
+                          }
+                        },
+                        "value": null,
+                        "visibility": "internal"
+                      }
+                    ],
+                    "id": 10173,
+                    "initialValue": {
+                      "argumentTypes": null,
+                      "hexValue": "30",
+                      "id": 10172,
+                      "isConstant": false,
+                      "isLValue": false,
+                      "isPure": true,
+                      "kind": "number",
+                      "lValueRequested": false,
+                      "nodeType": "Literal",
+                      "src": "971:1:51",
+                      "subdenomination": null,
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_rational_0_by_1",
+                        "typeString": "int_const 0"
+                      },
+                      "value": "0"
+                    },
+                    "nodeType": "VariableDeclarationStatement",
+                    "src": "959:13:51"
+                  },
+                  "loopExpression": {
+                    "expression": {
+                      "argumentTypes": null,
+                      "id": 10179,
+                      "isConstant": false,
+                      "isLValue": false,
+                      "isPure": false,
+                      "lValueRequested": false,
+                      "nodeType": "UnaryOperation",
+                      "operator": "++",
+                      "prefix": false,
+                      "src": "1000:3:51",
+                      "subExpression": {
+                        "argumentTypes": null,
+                        "id": 10178,
+                        "name": "i",
+                        "nodeType": "Identifier",
+                        "overloadedDeclarations": [],
+                        "referencedDeclaration": 10171,
+                        "src": "1000:1:51",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_uint256",
+                          "typeString": "uint256"
+                        }
+                      },
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_uint256",
+                        "typeString": "uint256"
+                      }
+                    },
+                    "id": 10180,
+                    "nodeType": "ExpressionStatement",
+                    "src": "1000:3:51"
+                  },
+                  "nodeType": "ForStatement",
+                  "src": "954:110:51"
+                }
+              ]
+            },
+            "documentation": null,
+            "functionSelector": "e9fad8ee",
+            "id": 10200,
+            "implemented": true,
+            "kind": "function",
+            "modifiers": [
+              {
+                "arguments": null,
+                "id": 10121,
+                "modifierName": {
+                  "argumentTypes": null,
+                  "id": 10120,
+                  "name": "onlyUnlocked",
+                  "nodeType": "Identifier",
+                  "overloadedDeclarations": [],
+                  "referencedDeclaration": 3734,
+                  "src": "501:12:51",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_modifier$__$",
+                    "typeString": "modifier ()"
+                  }
+                },
+                "nodeType": "ModifierInvocation",
+                "src": "501:12:51"
+              },
+              {
+                "arguments": null,
+                "id": 10123,
+                "modifierName": {
+                  "argumentTypes": null,
+                  "id": 10122,
+                  "name": "nonReentrant",
+                  "nodeType": "Identifier",
+                  "overloadedDeclarations": [],
+                  "referencedDeclaration": 12909,
+                  "src": "514:12:51",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_modifier$__$",
+                    "typeString": "modifier ()"
+                  }
+                },
+                "nodeType": "ModifierInvocation",
+                "src": "514:12:51"
+              }
+            ],
+            "name": "exit",
+            "nodeType": "FunctionDefinition",
+            "overrides": {
+              "id": 10119,
+              "nodeType": "OverrideSpecifier",
+              "overrides": [],
+              "src": "492:8:51"
+            },
+            "parameters": {
+              "id": 10118,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "474:2:51"
+            },
+            "returnParameters": {
+              "id": 10124,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "527:0:51"
+            },
+            "scope": 10217,
+            "src": "461:606:51",
+            "stateMutability": "nonpayable",
+            "virtual": true,
+            "visibility": "public"
+          },
+          {
+            "body": {
+              "id": 10215,
+              "nodeType": "Block",
+              "src": "1135:58:51",
+              "statements": [
+                {
+                  "expression": {
+                    "argumentTypes": null,
+                    "arguments": [
+                      {
+                        "argumentTypes": null,
+                        "arguments": [
+                          {
+                            "argumentTypes": null,
+                            "id": 10210,
+                            "name": "stakingToken",
+                            "nodeType": "Identifier",
+                            "overloadedDeclarations": [],
+                            "referencedDeclaration": 1645,
+                            "src": "1160:12:51",
+                            "typeDescriptions": {
+                              "typeIdentifier": "t_contract$_IERC20Detailed_$8881",
+                              "typeString": "contract IERC20Detailed"
+                            }
+                          }
+                        ],
+                        "expression": {
+                          "argumentTypes": [
+                            {
+                              "typeIdentifier": "t_contract$_IERC20Detailed_$8881",
+                              "typeString": "contract IERC20Detailed"
+                            }
+                          ],
+                          "id": 10209,
+                          "isConstant": false,
+                          "isLValue": false,
+                          "isPure": true,
+                          "lValueRequested": false,
+                          "nodeType": "ElementaryTypeNameExpression",
+                          "src": "1152:7:51",
+                          "typeDescriptions": {
+                            "typeIdentifier": "t_type$_t_address_$",
+                            "typeString": "type(address)"
+                          },
+                          "typeName": {
+                            "id": 10208,
+                            "name": "address",
+                            "nodeType": "ElementaryTypeName",
+                            "src": "1152:7:51",
+                            "typeDescriptions": {
+                              "typeIdentifier": null,
+                              "typeString": null
+                            }
+                          }
+                        },
+                        "id": 10211,
+                        "isConstant": false,
+                        "isLValue": false,
+                        "isPure": false,
+                        "kind": "typeConversion",
+                        "lValueRequested": false,
+                        "names": [],
+                        "nodeType": "FunctionCall",
+                        "src": "1152:21:51",
+                        "tryCall": false,
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_address",
+                          "typeString": "address"
+                        }
+                      },
+                      {
+                        "argumentTypes": null,
+                        "id": 10212,
+                        "name": "rewardsTokens",
+                        "nodeType": "Identifier",
+                        "overloadedDeclarations": [],
+                        "referencedDeclaration": 1643,
+                        "src": "1175:13:51",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_array$_t_address_$dyn_storage",
+                          "typeString": "address[] storage ref"
+                        }
+                      }
+                    ],
+                    "expression": {
+                      "argumentTypes": [
+                        {
+                          "typeIdentifier": "t_address",
+                          "typeString": "address"
+                        },
+                        {
+                          "typeIdentifier": "t_array$_t_address_$dyn_storage",
+                          "typeString": "address[] storage ref"
+                        }
+                      ],
+                      "id": 10207,
+                      "name": "finalizeExit",
+                      "nodeType": "Identifier",
+                      "overloadedDeclarations": [],
+                      "referencedDeclaration": 4069,
+                      "src": "1139:12:51",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_function_internal_nonpayable$_t_address_$_t_array$_t_address_$dyn_memory_ptr_$returns$__$",
+                        "typeString": "function (address,address[] memory)"
+                      }
+                    },
+                    "id": 10213,
+                    "isConstant": false,
+                    "isLValue": false,
+                    "isPure": false,
+                    "kind": "functionCall",
+                    "lValueRequested": false,
+                    "names": [],
+                    "nodeType": "FunctionCall",
+                    "src": "1139:50:51",
+                    "tryCall": false,
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_tuple$__$",
+                      "typeString": "tuple()"
+                    }
+                  },
+                  "id": 10214,
+                  "nodeType": "ExpressionStatement",
+                  "src": "1139:50:51"
+                }
+              ]
+            },
+            "documentation": null,
+            "functionSelector": "b01eb660",
+            "id": 10216,
+            "implemented": true,
+            "kind": "function",
+            "modifiers": [
+              {
+                "arguments": null,
+                "id": 10203,
+                "modifierName": {
+                  "argumentTypes": null,
+                  "id": 10202,
+                  "name": "onlyUnlocked",
+                  "nodeType": "Identifier",
+                  "overloadedDeclarations": [],
+                  "referencedDeclaration": 3734,
+                  "src": "1109:12:51",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_modifier$__$",
+                    "typeString": "modifier ()"
+                  }
+                },
+                "nodeType": "ModifierInvocation",
+                "src": "1109:12:51"
+              },
+              {
+                "arguments": null,
+                "id": 10205,
+                "modifierName": {
+                  "argumentTypes": null,
+                  "id": 10204,
+                  "name": "nonReentrant",
+                  "nodeType": "Identifier",
+                  "overloadedDeclarations": [],
+                  "referencedDeclaration": 12909,
+                  "src": "1122:12:51",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_modifier$__$",
+                    "typeString": "modifier ()"
+                  }
+                },
+                "nodeType": "ModifierInvocation",
+                "src": "1122:12:51"
+              }
+            ],
+            "name": "completeExit",
+            "nodeType": "FunctionDefinition",
+            "overrides": null,
+            "parameters": {
+              "id": 10201,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "1091:2:51"
+            },
+            "returnParameters": {
+              "id": 10206,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "1135:0:51"
+            },
+            "scope": 10217,
+            "src": "1070:123:51",
+            "stateMutability": "nonpayable",
+            "virtual": true,
+            "visibility": "public"
+          }
+        ],
+        "scope": 10218,
+        "src": "306:890:51"
+      }
+    ],
+    "src": "33:1163:51"
+  },
+  "legacyAST": {
+    "absolutePath": "/home/hellowodl/lmaas-liquidity-staker/contracts/pool-features/ThrottledExitFeature.sol",
+    "exportedSymbols": {
+      "ThrottledExitFeature": [
+        10217
+      ]
+    },
+    "id": 10218,
+    "license": "MIT",
+    "nodeType": "SourceUnit",
+    "nodes": [
+      {
+        "id": 10101,
+        "literals": [
+          "solidity",
+          "0.6",
+          ".12"
+        ],
+        "nodeType": "PragmaDirective",
+        "src": "33:23:51"
+      },
+      {
+        "absolutePath": "openzeppelin-solidity/contracts/math/SafeMath.sol",
+        "file": "openzeppelin-solidity/contracts/math/SafeMath.sol",
+        "id": 10102,
+        "nodeType": "ImportDirective",
+        "scope": 10218,
+        "sourceUnit": 11155,
+        "src": "58:59:51",
+        "symbolAliases": [],
+        "unitAlias": ""
+      },
+      {
+        "absolutePath": "/home/hellowodl/lmaas-liquidity-staker/contracts/RewardsPoolBase.sol",
+        "file": "./../RewardsPoolBase.sol",
+        "id": 10103,
+        "nodeType": "ImportDirective",
+        "scope": 10218,
+        "sourceUnit": 3170,
+        "src": "118:34:51",
+        "symbolAliases": [],
+        "unitAlias": ""
+      },
+      {
+        "absolutePath": "/home/hellowodl/lmaas-liquidity-staker/contracts/pool-features/StakeLockingFeature.sol",
+        "file": "./StakeLockingFeature.sol",
+        "id": 10104,
+        "nodeType": "ImportDirective",
+        "scope": 10218,
+        "sourceUnit": 9913,
+        "src": "153:35:51",
+        "symbolAliases": [],
+        "unitAlias": ""
+      },
+      {
+        "absolutePath": "/home/hellowodl/lmaas-liquidity-staker/contracts/interfaces/IERC20Detailed.sol",
+        "file": "./../interfaces/IERC20Detailed.sol",
+        "id": 10105,
+        "nodeType": "ImportDirective",
+        "scope": 10218,
+        "sourceUnit": 8882,
+        "src": "189:44:51",
+        "symbolAliases": [],
+        "unitAlias": ""
+      },
+      {
+        "absolutePath": "/home/hellowodl/lmaas-liquidity-staker/contracts/SafeERC20Detailed.sol",
+        "file": "./../SafeERC20Detailed.sol",
+        "id": 10106,
+        "nodeType": "ImportDirective",
+        "scope": 10218,
+        "sourceUnit": 3701,
+        "src": "234:36:51",
+        "symbolAliases": [],
+        "unitAlias": ""
+      },
+      {
+        "absolutePath": "/home/hellowodl/lmaas-liquidity-staker/contracts/ThrottledExit.sol",
+        "file": "./../ThrottledExit.sol",
+        "id": 10107,
+        "nodeType": "ImportDirective",
+        "scope": 10218,
+        "sourceUnit": 4204,
+        "src": "271:32:51",
+        "symbolAliases": [],
+        "unitAlias": ""
+      },
+      {
+        "abstract": true,
+        "baseContracts": [
+          {
+            "arguments": null,
+            "baseName": {
+              "contractScope": null,
+              "id": 10108,
+              "name": "StakeLockingFeature",
+              "nodeType": "UserDefinedTypeName",
+              "referencedDeclaration": 9912,
+              "src": "348:19:51",
+              "typeDescriptions": {
+                "typeIdentifier": "t_contract$_StakeLockingFeature_$9912",
+                "typeString": "contract StakeLockingFeature"
+              }
+            },
+            "id": 10109,
+            "nodeType": "InheritanceSpecifier",
+            "src": "348:19:51"
+          },
+          {
+            "arguments": null,
+            "baseName": {
+              "contractScope": null,
+              "id": 10110,
+              "name": "ThrottledExit",
+              "nodeType": "UserDefinedTypeName",
+              "referencedDeclaration": 4203,
+              "src": "369:13:51",
+              "typeDescriptions": {
+                "typeIdentifier": "t_contract$_ThrottledExit_$4203",
+                "typeString": "contract ThrottledExit"
+              }
+            },
+            "id": 10111,
+            "nodeType": "InheritanceSpecifier",
+            "src": "369:13:51"
+          }
+        ],
+        "contractDependencies": [
+          3169,
+          3735,
+          4203,
+          9889,
+          9912,
+          12910
+        ],
+        "contractKind": "contract",
+        "documentation": null,
+        "fullyImplemented": false,
+        "id": 10217,
+        "linearizedBaseContracts": [
+          10217,
+          4203,
+          9912,
+          3735,
+          9889,
+          3169,
+          12910
+        ],
+        "name": "ThrottledExitFeature",
+        "nodeType": "ContractDefinition",
+        "nodes": [
+          {
+            "id": 10114,
+            "libraryName": {
+              "contractScope": null,
+              "id": 10112,
+              "name": "SafeMath",
+              "nodeType": "UserDefinedTypeName",
+              "referencedDeclaration": 11154,
+              "src": "392:8:51",
+              "typeDescriptions": {
+                "typeIdentifier": "t_contract$_SafeMath_$11154",
+                "typeString": "library SafeMath"
+              }
+            },
+            "nodeType": "UsingForDirective",
+            "src": "386:27:51",
+            "typeName": {
+              "id": 10113,
+              "name": "uint256",
+              "nodeType": "ElementaryTypeName",
+              "src": "405:7:51",
+              "typeDescriptions": {
+                "typeIdentifier": "t_uint256",
+                "typeString": "uint256"
+              }
+            }
+          },
+          {
+            "id": 10117,
+            "libraryName": {
+              "contractScope": null,
+              "id": 10115,
+              "name": "SafeERC20Detailed",
+              "nodeType": "UserDefinedTypeName",
+              "referencedDeclaration": 3700,
+              "src": "421:17:51",
+              "typeDescriptions": {
+                "typeIdentifier": "t_contract$_SafeERC20Detailed_$3700",
+                "typeString": "library SafeERC20Detailed"
+              }
+            },
+            "nodeType": "UsingForDirective",
+            "src": "415:43:51",
+            "typeName": {
+              "contractScope": null,
+              "id": 10116,
+              "name": "IERC20Detailed",
+              "nodeType": "UserDefinedTypeName",
+              "referencedDeclaration": 8881,
+              "src": "443:14:51",
+              "typeDescriptions": {
+                "typeIdentifier": "t_contract$_IERC20Detailed_$8881",
+                "typeString": "contract IERC20Detailed"
+              }
+            }
+          },
+          {
+            "baseFunctions": [
+              9911
+            ],
+            "body": {
+              "id": 10199,
+              "nodeType": "Block",
+              "src": "527:540:51",
+              "statements": [
+                {
+                  "assignments": [
+                    10126
+                  ],
+                  "declarations": [
+                    {
+                      "constant": false,
+                      "id": 10126,
+                      "mutability": "mutable",
+                      "name": "user",
+                      "nodeType": "VariableDeclaration",
+                      "overrides": null,
+                      "scope": 10199,
+                      "src": "531:21:51",
+                      "stateVariable": false,
+                      "storageLocation": "storage",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_struct$_UserInfo_$1671_storage_ptr",
+                        "typeString": "struct RewardsPoolBase.UserInfo"
+                      },
+                      "typeName": {
+                        "contractScope": null,
+                        "id": 10125,
+                        "name": "UserInfo",
+                        "nodeType": "UserDefinedTypeName",
+                        "referencedDeclaration": 1671,
+                        "src": "531:8:51",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_struct$_UserInfo_$1671_storage_ptr",
+                          "typeString": "struct RewardsPoolBase.UserInfo"
+                        }
+                      },
+                      "value": null,
+                      "visibility": "internal"
+                    }
+                  ],
+                  "id": 10131,
+                  "initialValue": {
+                    "argumentTypes": null,
+                    "baseExpression": {
+                      "argumentTypes": null,
+                      "id": 10127,
+                      "name": "userInfo",
+                      "nodeType": "Identifier",
+                      "overloadedDeclarations": [],
+                      "referencedDeclaration": 1675,
+                      "src": "555:8:51",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_mapping$_t_address_$_t_struct$_UserInfo_$1671_storage_$",
+                        "typeString": "mapping(address => struct RewardsPoolBase.UserInfo storage ref)"
+                      }
+                    },
+                    "id": 10130,
+                    "indexExpression": {
+                      "argumentTypes": null,
+                      "expression": {
+                        "argumentTypes": null,
+                        "id": 10128,
+                        "name": "msg",
+                        "nodeType": "Identifier",
+                        "overloadedDeclarations": [],
+                        "referencedDeclaration": -15,
+                        "src": "564:3:51",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_magic_message",
+                          "typeString": "msg"
+                        }
+                      },
+                      "id": 10129,
+                      "isConstant": false,
+                      "isLValue": false,
+                      "isPure": false,
+                      "lValueRequested": false,
+                      "memberName": "sender",
+                      "nodeType": "MemberAccess",
+                      "referencedDeclaration": null,
+                      "src": "564:10:51",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_address_payable",
+                        "typeString": "address payable"
+                      }
+                    },
+                    "isConstant": false,
+                    "isLValue": true,
+                    "isPure": false,
+                    "lValueRequested": false,
+                    "nodeType": "IndexAccess",
+                    "src": "555:20:51",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_struct$_UserInfo_$1671_storage",
+                      "typeString": "struct RewardsPoolBase.UserInfo storage ref"
+                    }
+                  },
+                  "nodeType": "VariableDeclarationStatement",
+                  "src": "531:44:51"
+                },
+                {
+                  "expression": {
+                    "argumentTypes": null,
+                    "arguments": [],
+                    "expression": {
+                      "argumentTypes": [],
+                      "id": 10132,
+                      "name": "updateRewardMultipliers",
+                      "nodeType": "Identifier",
+                      "overloadedDeclarations": [],
+                      "referencedDeclaration": 2459,
+                      "src": "580:23:51",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_function_internal_nonpayable$__$returns$__$",
+                        "typeString": "function ()"
+                      }
+                    },
+                    "id": 10133,
+                    "isConstant": false,
+                    "isLValue": false,
+                    "isPure": false,
+                    "kind": "functionCall",
+                    "lValueRequested": false,
+                    "names": [],
+                    "nodeType": "FunctionCall",
+                    "src": "580:25:51",
+                    "tryCall": false,
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_tuple$__$",
+                      "typeString": "tuple()"
+                    }
+                  },
+                  "id": 10134,
+                  "nodeType": "ExpressionStatement",
+                  "src": "580:25:51"
+                },
+                {
+                  "condition": {
+                    "argumentTypes": null,
+                    "commonType": {
+                      "typeIdentifier": "t_uint256",
+                      "typeString": "uint256"
+                    },
+                    "id": 10138,
+                    "isConstant": false,
+                    "isLValue": false,
+                    "isPure": false,
+                    "lValueRequested": false,
+                    "leftExpression": {
+                      "argumentTypes": null,
+                      "expression": {
+                        "argumentTypes": null,
+                        "id": 10135,
+                        "name": "user",
+                        "nodeType": "Identifier",
+                        "overloadedDeclarations": [],
+                        "referencedDeclaration": 10126,
+                        "src": "665:4:51",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_struct$_UserInfo_$1671_storage_ptr",
+                          "typeString": "struct RewardsPoolBase.UserInfo storage pointer"
+                        }
+                      },
+                      "id": 10136,
+                      "isConstant": false,
+                      "isLValue": true,
+                      "isPure": false,
+                      "lValueRequested": false,
+                      "memberName": "amountStaked",
+                      "nodeType": "MemberAccess",
+                      "referencedDeclaration": 1664,
+                      "src": "665:17:51",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_uint256",
+                        "typeString": "uint256"
+                      }
+                    },
+                    "nodeType": "BinaryOperation",
+                    "operator": "==",
+                    "rightExpression": {
+                      "argumentTypes": null,
+                      "hexValue": "30",
+                      "id": 10137,
+                      "isConstant": false,
+                      "isLValue": false,
+                      "isPure": true,
+                      "kind": "number",
+                      "lValueRequested": false,
+                      "nodeType": "Literal",
+                      "src": "686:1:51",
+                      "subdenomination": null,
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_rational_0_by_1",
+                        "typeString": "int_const 0"
+                      },
+                      "value": "0"
+                    },
+                    "src": "665:22:51",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_bool",
+                      "typeString": "bool"
+                    }
+                  },
+                  "falseBody": null,
+                  "id": 10141,
+                  "nodeType": "IfStatement",
+                  "src": "661:44:51",
+                  "trueBody": {
+                    "id": 10140,
+                    "nodeType": "Block",
+                    "src": "689:16:51",
+                    "statements": [
+                      {
+                        "expression": null,
+                        "functionReturnParameters": 10124,
+                        "id": 10139,
+                        "nodeType": "Return",
+                        "src": "694:7:51"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "expression": {
+                    "argumentTypes": null,
+                    "arguments": [
+                      {
+                        "argumentTypes": null,
+                        "expression": {
+                          "argumentTypes": null,
+                          "id": 10143,
+                          "name": "msg",
+                          "nodeType": "Identifier",
+                          "overloadedDeclarations": [],
+                          "referencedDeclaration": -15,
+                          "src": "733:3:51",
+                          "typeDescriptions": {
+                            "typeIdentifier": "t_magic_message",
+                            "typeString": "msg"
+                          }
+                        },
+                        "id": 10144,
+                        "isConstant": false,
+                        "isLValue": false,
+                        "isPure": false,
+                        "lValueRequested": false,
+                        "memberName": "sender",
+                        "nodeType": "MemberAccess",
+                        "referencedDeclaration": null,
+                        "src": "733:10:51",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_address_payable",
+                          "typeString": "address payable"
+                        }
+                      }
+                    ],
+                    "expression": {
+                      "argumentTypes": [
+                        {
+                          "typeIdentifier": "t_address_payable",
+                          "typeString": "address payable"
+                        }
+                      ],
+                      "id": 10142,
+                      "name": "updateUserAccruedReward",
+                      "nodeType": "Identifier",
+                      "overloadedDeclarations": [],
+                      "referencedDeclaration": 2509,
+                      "src": "709:23:51",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_function_internal_nonpayable$_t_address_$returns$__$",
+                        "typeString": "function (address)"
+                      }
+                    },
+                    "id": 10145,
+                    "isConstant": false,
+                    "isLValue": false,
+                    "isPure": false,
+                    "kind": "functionCall",
+                    "lValueRequested": false,
+                    "names": [],
+                    "nodeType": "FunctionCall",
+                    "src": "709:35:51",
+                    "tryCall": false,
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_tuple$__$",
+                      "typeString": "tuple()"
+                    }
+                  },
+                  "id": 10146,
+                  "nodeType": "ExpressionStatement",
+                  "src": "709:35:51"
+                },
+                {
+                  "expression": {
+                    "argumentTypes": null,
+                    "arguments": [
+                      {
+                        "argumentTypes": null,
+                        "expression": {
+                          "argumentTypes": null,
+                          "id": 10148,
+                          "name": "user",
+                          "nodeType": "Identifier",
+                          "overloadedDeclarations": [],
+                          "referencedDeclaration": 10126,
+                          "src": "814:4:51",
+                          "typeDescriptions": {
+                            "typeIdentifier": "t_struct$_UserInfo_$1671_storage_ptr",
+                            "typeString": "struct RewardsPoolBase.UserInfo storage pointer"
+                          }
+                        },
+                        "id": 10149,
+                        "isConstant": false,
+                        "isLValue": true,
+                        "isPure": false,
+                        "lValueRequested": false,
+                        "memberName": "amountStaked",
+                        "nodeType": "MemberAccess",
+                        "referencedDeclaration": 1664,
+                        "src": "814:17:51",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_uint256",
+                          "typeString": "uint256"
+                        }
+                      },
+                      {
+                        "argumentTypes": null,
+                        "expression": {
+                          "argumentTypes": null,
+                          "id": 10150,
+                          "name": "rewardsTokens",
+                          "nodeType": "Identifier",
+                          "overloadedDeclarations": [],
+                          "referencedDeclaration": 1643,
+                          "src": "833:13:51",
+                          "typeDescriptions": {
+                            "typeIdentifier": "t_array$_t_address_$dyn_storage",
+                            "typeString": "address[] storage ref"
+                          }
+                        },
+                        "id": 10151,
+                        "isConstant": false,
+                        "isLValue": false,
+                        "isPure": false,
+                        "lValueRequested": false,
+                        "memberName": "length",
+                        "nodeType": "MemberAccess",
+                        "referencedDeclaration": null,
+                        "src": "833:20:51",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_uint256",
+                          "typeString": "uint256"
+                        }
+                      },
+                      {
+                        "argumentTypes": null,
+                        "expression": {
+                          "argumentTypes": null,
+                          "id": 10152,
+                          "name": "user",
+                          "nodeType": "Identifier",
+                          "overloadedDeclarations": [],
+                          "referencedDeclaration": 10126,
+                          "src": "855:4:51",
+                          "typeDescriptions": {
+                            "typeIdentifier": "t_struct$_UserInfo_$1671_storage_ptr",
+                            "typeString": "struct RewardsPoolBase.UserInfo storage pointer"
+                          }
+                        },
+                        "id": 10153,
+                        "isConstant": false,
+                        "isLValue": true,
+                        "isPure": false,
+                        "lValueRequested": false,
+                        "memberName": "tokensOwed",
+                        "nodeType": "MemberAccess",
+                        "referencedDeclaration": 1670,
+                        "src": "855:15:51",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_array$_t_uint256_$dyn_storage",
+                          "typeString": "uint256[] storage ref"
+                        }
+                      }
+                    ],
+                    "expression": {
+                      "argumentTypes": [
+                        {
+                          "typeIdentifier": "t_uint256",
+                          "typeString": "uint256"
+                        },
+                        {
+                          "typeIdentifier": "t_uint256",
+                          "typeString": "uint256"
+                        },
+                        {
+                          "typeIdentifier": "t_array$_t_uint256_$dyn_storage",
+                          "typeString": "uint256[] storage ref"
+                        }
+                      ],
+                      "id": 10147,
+                      "name": "initiateExit",
+                      "nodeType": "Identifier",
+                      "overloadedDeclarations": [],
+                      "referencedDeclaration": 3976,
+                      "src": "801:12:51",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_function_internal_nonpayable$_t_uint256_$_t_uint256_$_t_array$_t_uint256_$dyn_memory_ptr_$returns$__$",
+                        "typeString": "function (uint256,uint256,uint256[] memory)"
+                      }
+                    },
+                    "id": 10154,
+                    "isConstant": false,
+                    "isLValue": false,
+                    "isPure": false,
+                    "kind": "functionCall",
+                    "lValueRequested": false,
+                    "names": [],
+                    "nodeType": "FunctionCall",
+                    "src": "801:70:51",
+                    "tryCall": false,
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_tuple$__$",
+                      "typeString": "tuple()"
+                    }
+                  },
+                  "id": 10155,
+                  "nodeType": "ExpressionStatement",
+                  "src": "801:70:51"
+                },
+                {
+                  "expression": {
+                    "argumentTypes": null,
+                    "id": 10162,
+                    "isConstant": false,
+                    "isLValue": false,
+                    "isPure": false,
+                    "lValueRequested": false,
+                    "leftHandSide": {
+                      "argumentTypes": null,
+                      "id": 10156,
+                      "name": "totalStaked",
+                      "nodeType": "Identifier",
+                      "overloadedDeclarations": [],
+                      "referencedDeclaration": 1637,
+                      "src": "876:11:51",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_uint256",
+                        "typeString": "uint256"
+                      }
+                    },
+                    "nodeType": "Assignment",
+                    "operator": "=",
+                    "rightHandSide": {
+                      "argumentTypes": null,
+                      "arguments": [
+                        {
+                          "argumentTypes": null,
+                          "expression": {
+                            "argumentTypes": null,
+                            "id": 10159,
+                            "name": "user",
+                            "nodeType": "Identifier",
+                            "overloadedDeclarations": [],
+                            "referencedDeclaration": 10126,
+                            "src": "906:4:51",
+                            "typeDescriptions": {
+                              "typeIdentifier": "t_struct$_UserInfo_$1671_storage_ptr",
+                              "typeString": "struct RewardsPoolBase.UserInfo storage pointer"
+                            }
+                          },
+                          "id": 10160,
+                          "isConstant": false,
+                          "isLValue": true,
+                          "isPure": false,
+                          "lValueRequested": false,
+                          "memberName": "amountStaked",
+                          "nodeType": "MemberAccess",
+                          "referencedDeclaration": 1664,
+                          "src": "906:17:51",
+                          "typeDescriptions": {
+                            "typeIdentifier": "t_uint256",
+                            "typeString": "uint256"
+                          }
+                        }
+                      ],
+                      "expression": {
+                        "argumentTypes": [
+                          {
+                            "typeIdentifier": "t_uint256",
+                            "typeString": "uint256"
+                          }
+                        ],
+                        "expression": {
+                          "argumentTypes": null,
+                          "id": 10157,
+                          "name": "totalStaked",
+                          "nodeType": "Identifier",
+                          "overloadedDeclarations": [],
+                          "referencedDeclaration": 1637,
+                          "src": "890:11:51",
+                          "typeDescriptions": {
+                            "typeIdentifier": "t_uint256",
+                            "typeString": "uint256"
+                          }
+                        },
+                        "id": 10158,
+                        "isConstant": false,
+                        "isLValue": false,
+                        "isPure": false,
+                        "lValueRequested": false,
+                        "memberName": "sub",
+                        "nodeType": "MemberAccess",
+                        "referencedDeclaration": 11003,
+                        "src": "890:15:51",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_function_internal_pure$_t_uint256_$_t_uint256_$returns$_t_uint256_$bound_to$_t_uint256_$",
+                          "typeString": "function (uint256,uint256) pure returns (uint256)"
+                        }
+                      },
+                      "id": 10161,
+                      "isConstant": false,
+                      "isLValue": false,
+                      "isPure": false,
+                      "kind": "functionCall",
+                      "lValueRequested": false,
+                      "names": [],
+                      "nodeType": "FunctionCall",
+                      "src": "890:34:51",
+                      "tryCall": false,
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_uint256",
+                        "typeString": "uint256"
+                      }
+                    },
+                    "src": "876:48:51",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint256",
+                      "typeString": "uint256"
+                    }
+                  },
+                  "id": 10163,
+                  "nodeType": "ExpressionStatement",
+                  "src": "876:48:51"
+                },
+                {
+                  "expression": {
+                    "argumentTypes": null,
+                    "id": 10168,
+                    "isConstant": false,
+                    "isLValue": false,
+                    "isPure": false,
+                    "lValueRequested": false,
+                    "leftHandSide": {
+                      "argumentTypes": null,
+                      "expression": {
+                        "argumentTypes": null,
+                        "id": 10164,
+                        "name": "user",
+                        "nodeType": "Identifier",
+                        "overloadedDeclarations": [],
+                        "referencedDeclaration": 10126,
+                        "src": "928:4:51",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_struct$_UserInfo_$1671_storage_ptr",
+                          "typeString": "struct RewardsPoolBase.UserInfo storage pointer"
+                        }
+                      },
+                      "id": 10166,
+                      "isConstant": false,
+                      "isLValue": true,
+                      "isPure": false,
+                      "lValueRequested": true,
+                      "memberName": "amountStaked",
+                      "nodeType": "MemberAccess",
+                      "referencedDeclaration": 1664,
+                      "src": "928:17:51",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_uint256",
+                        "typeString": "uint256"
+                      }
+                    },
+                    "nodeType": "Assignment",
+                    "operator": "=",
+                    "rightHandSide": {
+                      "argumentTypes": null,
+                      "hexValue": "30",
+                      "id": 10167,
+                      "isConstant": false,
+                      "isLValue": false,
+                      "isPure": true,
+                      "kind": "number",
+                      "lValueRequested": false,
+                      "nodeType": "Literal",
+                      "src": "948:1:51",
+                      "subdenomination": null,
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_rational_0_by_1",
+                        "typeString": "int_const 0"
+                      },
+                      "value": "0"
+                    },
+                    "src": "928:21:51",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_uint256",
+                      "typeString": "uint256"
+                    }
+                  },
+                  "id": 10169,
+                  "nodeType": "ExpressionStatement",
+                  "src": "928:21:51"
+                },
+                {
+                  "body": {
+                    "id": 10197,
+                    "nodeType": "Block",
+                    "src": "1005:59:51",
+                    "statements": [
+                      {
+                        "expression": {
+                          "argumentTypes": null,
+                          "id": 10187,
+                          "isConstant": false,
+                          "isLValue": false,
+                          "isPure": false,
+                          "lValueRequested": false,
+                          "leftHandSide": {
+                            "argumentTypes": null,
+                            "baseExpression": {
+                              "argumentTypes": null,
+                              "expression": {
+                                "argumentTypes": null,
+                                "id": 10181,
+                                "name": "user",
+                                "nodeType": "Identifier",
+                                "overloadedDeclarations": [],
+                                "referencedDeclaration": 10126,
+                                "src": "1010:4:51",
+                                "typeDescriptions": {
+                                  "typeIdentifier": "t_struct$_UserInfo_$1671_storage_ptr",
+                                  "typeString": "struct RewardsPoolBase.UserInfo storage pointer"
+                                }
+                              },
+                              "id": 10184,
+                              "isConstant": false,
+                              "isLValue": true,
+                              "isPure": false,
+                              "lValueRequested": false,
+                              "memberName": "tokensOwed",
+                              "nodeType": "MemberAccess",
+                              "referencedDeclaration": 1670,
+                              "src": "1010:15:51",
+                              "typeDescriptions": {
+                                "typeIdentifier": "t_array$_t_uint256_$dyn_storage",
+                                "typeString": "uint256[] storage ref"
+                              }
+                            },
+                            "id": 10185,
+                            "indexExpression": {
+                              "argumentTypes": null,
+                              "id": 10183,
+                              "name": "i",
+                              "nodeType": "Identifier",
+                              "overloadedDeclarations": [],
+                              "referencedDeclaration": 10171,
+                              "src": "1026:1:51",
+                              "typeDescriptions": {
+                                "typeIdentifier": "t_uint256",
+                                "typeString": "uint256"
+                              }
+                            },
+                            "isConstant": false,
+                            "isLValue": true,
+                            "isPure": false,
+                            "lValueRequested": true,
+                            "nodeType": "IndexAccess",
+                            "src": "1010:18:51",
+                            "typeDescriptions": {
+                              "typeIdentifier": "t_uint256",
+                              "typeString": "uint256"
+                            }
+                          },
+                          "nodeType": "Assignment",
+                          "operator": "=",
+                          "rightHandSide": {
+                            "argumentTypes": null,
+                            "hexValue": "30",
+                            "id": 10186,
+                            "isConstant": false,
+                            "isLValue": false,
+                            "isPure": true,
+                            "kind": "number",
+                            "lValueRequested": false,
+                            "nodeType": "Literal",
+                            "src": "1031:1:51",
+                            "subdenomination": null,
+                            "typeDescriptions": {
+                              "typeIdentifier": "t_rational_0_by_1",
+                              "typeString": "int_const 0"
+                            },
+                            "value": "0"
+                          },
+                          "src": "1010:22:51",
+                          "typeDescriptions": {
+                            "typeIdentifier": "t_uint256",
+                            "typeString": "uint256"
+                          }
+                        },
+                        "id": 10188,
+                        "nodeType": "ExpressionStatement",
+                        "src": "1010:22:51"
+                      },
+                      {
+                        "expression": {
+                          "argumentTypes": null,
+                          "id": 10195,
+                          "isConstant": false,
+                          "isLValue": false,
+                          "isPure": false,
+                          "lValueRequested": false,
+                          "leftHandSide": {
+                            "argumentTypes": null,
+                            "baseExpression": {
+                              "argumentTypes": null,
+                              "expression": {
+                                "argumentTypes": null,
+                                "id": 10189,
+                                "name": "user",
+                                "nodeType": "Identifier",
+                                "overloadedDeclarations": [],
+                                "referencedDeclaration": 10126,
+                                "src": "1037:4:51",
+                                "typeDescriptions": {
+                                  "typeIdentifier": "t_struct$_UserInfo_$1671_storage_ptr",
+                                  "typeString": "struct RewardsPoolBase.UserInfo storage pointer"
+                                }
+                              },
+                              "id": 10192,
+                              "isConstant": false,
+                              "isLValue": true,
+                              "isPure": false,
+                              "lValueRequested": false,
+                              "memberName": "rewardDebt",
+                              "nodeType": "MemberAccess",
+                              "referencedDeclaration": 1667,
+                              "src": "1037:15:51",
+                              "typeDescriptions": {
+                                "typeIdentifier": "t_array$_t_uint256_$dyn_storage",
+                                "typeString": "uint256[] storage ref"
+                              }
+                            },
+                            "id": 10193,
+                            "indexExpression": {
+                              "argumentTypes": null,
+                              "id": 10191,
+                              "name": "i",
+                              "nodeType": "Identifier",
+                              "overloadedDeclarations": [],
+                              "referencedDeclaration": 10171,
+                              "src": "1053:1:51",
+                              "typeDescriptions": {
+                                "typeIdentifier": "t_uint256",
+                                "typeString": "uint256"
+                              }
+                            },
+                            "isConstant": false,
+                            "isLValue": true,
+                            "isPure": false,
+                            "lValueRequested": true,
+                            "nodeType": "IndexAccess",
+                            "src": "1037:18:51",
+                            "typeDescriptions": {
+                              "typeIdentifier": "t_uint256",
+                              "typeString": "uint256"
+                            }
+                          },
+                          "nodeType": "Assignment",
+                          "operator": "=",
+                          "rightHandSide": {
+                            "argumentTypes": null,
+                            "hexValue": "30",
+                            "id": 10194,
+                            "isConstant": false,
+                            "isLValue": false,
+                            "isPure": true,
+                            "kind": "number",
+                            "lValueRequested": false,
+                            "nodeType": "Literal",
+                            "src": "1058:1:51",
+                            "subdenomination": null,
+                            "typeDescriptions": {
+                              "typeIdentifier": "t_rational_0_by_1",
+                              "typeString": "int_const 0"
+                            },
+                            "value": "0"
+                          },
+                          "src": "1037:22:51",
+                          "typeDescriptions": {
+                            "typeIdentifier": "t_uint256",
+                            "typeString": "uint256"
+                          }
+                        },
+                        "id": 10196,
+                        "nodeType": "ExpressionStatement",
+                        "src": "1037:22:51"
+                      }
+                    ]
+                  },
+                  "condition": {
+                    "argumentTypes": null,
+                    "commonType": {
+                      "typeIdentifier": "t_uint256",
+                      "typeString": "uint256"
+                    },
+                    "id": 10177,
+                    "isConstant": false,
+                    "isLValue": false,
+                    "isPure": false,
+                    "lValueRequested": false,
+                    "leftExpression": {
+                      "argumentTypes": null,
+                      "id": 10174,
+                      "name": "i",
+                      "nodeType": "Identifier",
+                      "overloadedDeclarations": [],
+                      "referencedDeclaration": 10171,
+                      "src": "974:1:51",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_uint256",
+                        "typeString": "uint256"
+                      }
+                    },
+                    "nodeType": "BinaryOperation",
+                    "operator": "<",
+                    "rightExpression": {
+                      "argumentTypes": null,
+                      "expression": {
+                        "argumentTypes": null,
+                        "id": 10175,
+                        "name": "rewardsTokens",
+                        "nodeType": "Identifier",
+                        "overloadedDeclarations": [],
+                        "referencedDeclaration": 1643,
+                        "src": "978:13:51",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_array$_t_address_$dyn_storage",
+                          "typeString": "address[] storage ref"
+                        }
+                      },
+                      "id": 10176,
+                      "isConstant": false,
+                      "isLValue": false,
+                      "isPure": false,
+                      "lValueRequested": false,
+                      "memberName": "length",
+                      "nodeType": "MemberAccess",
+                      "referencedDeclaration": null,
+                      "src": "978:20:51",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_uint256",
+                        "typeString": "uint256"
+                      }
+                    },
+                    "src": "974:24:51",
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_bool",
+                      "typeString": "bool"
+                    }
+                  },
+                  "id": 10198,
+                  "initializationExpression": {
+                    "assignments": [
+                      10171
+                    ],
+                    "declarations": [
+                      {
+                        "constant": false,
+                        "id": 10171,
+                        "mutability": "mutable",
+                        "name": "i",
+                        "nodeType": "VariableDeclaration",
+                        "overrides": null,
+                        "scope": 10198,
+                        "src": "959:9:51",
+                        "stateVariable": false,
+                        "storageLocation": "default",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_uint256",
+                          "typeString": "uint256"
+                        },
+                        "typeName": {
+                          "id": 10170,
+                          "name": "uint256",
+                          "nodeType": "ElementaryTypeName",
+                          "src": "959:7:51",
+                          "typeDescriptions": {
+                            "typeIdentifier": "t_uint256",
+                            "typeString": "uint256"
+                          }
+                        },
+                        "value": null,
+                        "visibility": "internal"
+                      }
+                    ],
+                    "id": 10173,
+                    "initialValue": {
+                      "argumentTypes": null,
+                      "hexValue": "30",
+                      "id": 10172,
+                      "isConstant": false,
+                      "isLValue": false,
+                      "isPure": true,
+                      "kind": "number",
+                      "lValueRequested": false,
+                      "nodeType": "Literal",
+                      "src": "971:1:51",
+                      "subdenomination": null,
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_rational_0_by_1",
+                        "typeString": "int_const 0"
+                      },
+                      "value": "0"
+                    },
+                    "nodeType": "VariableDeclarationStatement",
+                    "src": "959:13:51"
+                  },
+                  "loopExpression": {
+                    "expression": {
+                      "argumentTypes": null,
+                      "id": 10179,
+                      "isConstant": false,
+                      "isLValue": false,
+                      "isPure": false,
+                      "lValueRequested": false,
+                      "nodeType": "UnaryOperation",
+                      "operator": "++",
+                      "prefix": false,
+                      "src": "1000:3:51",
+                      "subExpression": {
+                        "argumentTypes": null,
+                        "id": 10178,
+                        "name": "i",
+                        "nodeType": "Identifier",
+                        "overloadedDeclarations": [],
+                        "referencedDeclaration": 10171,
+                        "src": "1000:1:51",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_uint256",
+                          "typeString": "uint256"
+                        }
+                      },
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_uint256",
+                        "typeString": "uint256"
+                      }
+                    },
+                    "id": 10180,
+                    "nodeType": "ExpressionStatement",
+                    "src": "1000:3:51"
+                  },
+                  "nodeType": "ForStatement",
+                  "src": "954:110:51"
+                }
+              ]
+            },
+            "documentation": null,
+            "functionSelector": "e9fad8ee",
+            "id": 10200,
+            "implemented": true,
+            "kind": "function",
+            "modifiers": [
+              {
+                "arguments": null,
+                "id": 10121,
+                "modifierName": {
+                  "argumentTypes": null,
+                  "id": 10120,
+                  "name": "onlyUnlocked",
+                  "nodeType": "Identifier",
+                  "overloadedDeclarations": [],
+                  "referencedDeclaration": 3734,
+                  "src": "501:12:51",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_modifier$__$",
+                    "typeString": "modifier ()"
+                  }
+                },
+                "nodeType": "ModifierInvocation",
+                "src": "501:12:51"
+              },
+              {
+                "arguments": null,
+                "id": 10123,
+                "modifierName": {
+                  "argumentTypes": null,
+                  "id": 10122,
+                  "name": "nonReentrant",
+                  "nodeType": "Identifier",
+                  "overloadedDeclarations": [],
+                  "referencedDeclaration": 12909,
+                  "src": "514:12:51",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_modifier$__$",
+                    "typeString": "modifier ()"
+                  }
+                },
+                "nodeType": "ModifierInvocation",
+                "src": "514:12:51"
+              }
+            ],
+            "name": "exit",
+            "nodeType": "FunctionDefinition",
+            "overrides": {
+              "id": 10119,
+              "nodeType": "OverrideSpecifier",
+              "overrides": [],
+              "src": "492:8:51"
+            },
+            "parameters": {
+              "id": 10118,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "474:2:51"
+            },
+            "returnParameters": {
+              "id": 10124,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "527:0:51"
+            },
+            "scope": 10217,
+            "src": "461:606:51",
+            "stateMutability": "nonpayable",
+            "virtual": true,
+            "visibility": "public"
+          },
+          {
+            "body": {
+              "id": 10215,
+              "nodeType": "Block",
+              "src": "1135:58:51",
+              "statements": [
+                {
+                  "expression": {
+                    "argumentTypes": null,
+                    "arguments": [
+                      {
+                        "argumentTypes": null,
+                        "arguments": [
+                          {
+                            "argumentTypes": null,
+                            "id": 10210,
+                            "name": "stakingToken",
+                            "nodeType": "Identifier",
+                            "overloadedDeclarations": [],
+                            "referencedDeclaration": 1645,
+                            "src": "1160:12:51",
+                            "typeDescriptions": {
+                              "typeIdentifier": "t_contract$_IERC20Detailed_$8881",
+                              "typeString": "contract IERC20Detailed"
+                            }
+                          }
+                        ],
+                        "expression": {
+                          "argumentTypes": [
+                            {
+                              "typeIdentifier": "t_contract$_IERC20Detailed_$8881",
+                              "typeString": "contract IERC20Detailed"
+                            }
+                          ],
+                          "id": 10209,
+                          "isConstant": false,
+                          "isLValue": false,
+                          "isPure": true,
+                          "lValueRequested": false,
+                          "nodeType": "ElementaryTypeNameExpression",
+                          "src": "1152:7:51",
+                          "typeDescriptions": {
+                            "typeIdentifier": "t_type$_t_address_$",
+                            "typeString": "type(address)"
+                          },
+                          "typeName": {
+                            "id": 10208,
+                            "name": "address",
+                            "nodeType": "ElementaryTypeName",
+                            "src": "1152:7:51",
+                            "typeDescriptions": {
+                              "typeIdentifier": null,
+                              "typeString": null
+                            }
+                          }
+                        },
+                        "id": 10211,
+                        "isConstant": false,
+                        "isLValue": false,
+                        "isPure": false,
+                        "kind": "typeConversion",
+                        "lValueRequested": false,
+                        "names": [],
+                        "nodeType": "FunctionCall",
+                        "src": "1152:21:51",
+                        "tryCall": false,
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_address",
+                          "typeString": "address"
+                        }
+                      },
+                      {
+                        "argumentTypes": null,
+                        "id": 10212,
+                        "name": "rewardsTokens",
+                        "nodeType": "Identifier",
+                        "overloadedDeclarations": [],
+                        "referencedDeclaration": 1643,
+                        "src": "1175:13:51",
+                        "typeDescriptions": {
+                          "typeIdentifier": "t_array$_t_address_$dyn_storage",
+                          "typeString": "address[] storage ref"
+                        }
+                      }
+                    ],
+                    "expression": {
+                      "argumentTypes": [
+                        {
+                          "typeIdentifier": "t_address",
+                          "typeString": "address"
+                        },
+                        {
+                          "typeIdentifier": "t_array$_t_address_$dyn_storage",
+                          "typeString": "address[] storage ref"
+                        }
+                      ],
+                      "id": 10207,
+                      "name": "finalizeExit",
+                      "nodeType": "Identifier",
+                      "overloadedDeclarations": [],
+                      "referencedDeclaration": 4069,
+                      "src": "1139:12:51",
+                      "typeDescriptions": {
+                        "typeIdentifier": "t_function_internal_nonpayable$_t_address_$_t_array$_t_address_$dyn_memory_ptr_$returns$__$",
+                        "typeString": "function (address,address[] memory)"
+                      }
+                    },
+                    "id": 10213,
+                    "isConstant": false,
+                    "isLValue": false,
+                    "isPure": false,
+                    "kind": "functionCall",
+                    "lValueRequested": false,
+                    "names": [],
+                    "nodeType": "FunctionCall",
+                    "src": "1139:50:51",
+                    "tryCall": false,
+                    "typeDescriptions": {
+                      "typeIdentifier": "t_tuple$__$",
+                      "typeString": "tuple()"
+                    }
+                  },
+                  "id": 10214,
+                  "nodeType": "ExpressionStatement",
+                  "src": "1139:50:51"
+                }
+              ]
+            },
+            "documentation": null,
+            "functionSelector": "b01eb660",
+            "id": 10216,
+            "implemented": true,
+            "kind": "function",
+            "modifiers": [
+              {
+                "arguments": null,
+                "id": 10203,
+                "modifierName": {
+                  "argumentTypes": null,
+                  "id": 10202,
+                  "name": "onlyUnlocked",
+                  "nodeType": "Identifier",
+                  "overloadedDeclarations": [],
+                  "referencedDeclaration": 3734,
+                  "src": "1109:12:51",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_modifier$__$",
+                    "typeString": "modifier ()"
+                  }
+                },
+                "nodeType": "ModifierInvocation",
+                "src": "1109:12:51"
+              },
+              {
+                "arguments": null,
+                "id": 10205,
+                "modifierName": {
+                  "argumentTypes": null,
+                  "id": 10204,
+                  "name": "nonReentrant",
+                  "nodeType": "Identifier",
+                  "overloadedDeclarations": [],
+                  "referencedDeclaration": 12909,
+                  "src": "1122:12:51",
+                  "typeDescriptions": {
+                    "typeIdentifier": "t_modifier$__$",
+                    "typeString": "modifier ()"
+                  }
+                },
+                "nodeType": "ModifierInvocation",
+                "src": "1122:12:51"
+              }
+            ],
+            "name": "completeExit",
+            "nodeType": "FunctionDefinition",
+            "overrides": null,
+            "parameters": {
+              "id": 10201,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "1091:2:51"
+            },
+            "returnParameters": {
+              "id": 10206,
+              "nodeType": "ParameterList",
+              "parameters": [],
+              "src": "1135:0:51"
+            },
+            "scope": 10217,
+            "src": "1070:123:51",
+            "stateMutability": "nonpayable",
+            "virtual": true,
+            "visibility": "public"
+          }
+        ],
+        "scope": 10218,
+        "src": "306:890:51"
+      }
+    ],
+    "src": "33:1163:51"
+  },
+  "compiler": {
+    "name": "solc",
+    "version": "0.6.12+commit.27d51765.Emscripten.clang",
+    "optimizer": false,
+    "runs": 200
+  },
+  "networks": {},
+  "schemaVersion": "2.3.5",
+  "updatedAt": "2021-04-27T17:14:31.180Z"
+}
