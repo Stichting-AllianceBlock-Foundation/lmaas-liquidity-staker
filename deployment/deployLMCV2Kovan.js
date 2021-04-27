@@ -14,8 +14,6 @@ const BLOCKS_PER_DAY = 6500
 const BLOCKS_PER_HOUR = 270
 const BLOCKS_PER_MINUTE = 5
 
-const protocol = "balancer"
-
 // Addresses
 const rewardAddresses = {
   "kovan": {
@@ -57,7 +55,7 @@ const poolAddresses = {
     },
     "balancer": {
       "ETH-ALBT": "0x5e9E09D7b756A821144c85397607ca4B0a02D1CE",
-      "ALBT-USDT": "0xEF309B6B443A87f133fa2e0D2923BEC3837B77e0",
+      "ALBT-USDT": "0x80D582FC5608e76a764611CD9aDa8FF2518B05cA",
       "ETH-ALBT-USDT": "0xf25fecf66cde50d233c19d5200a8c44f417398a7",
     }
   },
@@ -70,18 +68,8 @@ const poolAddresses = {
 
 // Set this address for wrapping
 const LMCFactoryAddress = "0x380c2eE8B87CACaCeF9296021C1fBcB854b8d950"
-
 const PercentageCalculatorAddress = "0x67994e7a60c29c68d5F35804Bd658f2AAa491775"
 const infuraApiKey = "40c2813049e44ec79cb4d7e0d18de173"
-
-let throttleRoundBlocks = BLOCKS_PER_MINUTE * 10
-
-const stakeLimit = parseEther("1000")
-const contractStakeLimit = parseEther("100000000")
-
-const gasPrice = { gasPrice: 20000000000 }
-const amountReward = parseEther("100000000000")
-const initialTokensToUser = parseEther("100")
 
 const logTx = async (tx) => {
   console.log(`Hash: ${tx.hash}`)
@@ -105,14 +93,11 @@ const deploy = async (network, secret, etherscanApiKey) => {
     // rewardAddresses[network]["ALBT1"],
   ];
 
-  const poolTokenAddresses = [
-    poolAddresses[network][protocol]["ETH-ALBT"],
-    // poolAddresses[network][protocol]["ETH-ALBT1"],
-    // poolAddresses[network][protocol]["ALBT-USDT"],
-  ];
-
   // Set reward rate
   const rewardsPerBlock = rewardTokensAddresses.map(el => parseEther("1"))
+  const amountReward = parseEther("100000000000")
+
+  const gasPrice = { gasPrice: 20000000000 }
 
   // Deploy LMC Factory
   let LMCFactoryInstance;
@@ -124,6 +109,14 @@ const deploy = async (network, secret, etherscanApiKey) => {
     LMCFactoryInstance = await deployer.deploy(LMCFactory, {})
   }
 
+  // Deploy Percentage Calculator if not deployed
+  let percentageCalculator;
+
+  if (PercentageCalculatorAddress === "") {
+    // Deploy Calculator
+    percentageCalculator = await deployer.deploy(PercentageCalculator);
+  }
+
   // Mint reward tokens
   console.log(``)
   console.log(`Mint reward tokens for Factory LMC`)
@@ -132,55 +125,37 @@ const deploy = async (network, secret, etherscanApiKey) => {
     const rewardTokensInstance = new ethers.Contract(rewardTokensAddresses[i], TestERC20.abi, wallet)
     
     let mint = await rewardTokensInstance.mint(LMCFactoryInstance.contractAddress, amountReward)
-
     await logTx(mint);
   }
 
   // LMC settings
-  const currentBlock = await deployer.provider.getBlock('latest')
-  const startBlock = currentBlock.number + 10
-  const endBlock = startBlock + BLOCKS_PER_DAY * 365
+  const protocol            = "balancer"
+  const pair                = "ETH-ALBT-USDT"
 
-  let LMCAddresses = [];
-  let LMCInstances = [];
+  const poolAddress         = poolAddresses[network][protocol][pair]
+  const currentBlock        = await deployer.provider.getBlock('latest')
+  const startBlock          = currentBlock.number + 10
+  const endBlock            = startBlock + BLOCKS_PER_DAY * 365
+
+  const stakeLimit          = parseEther("1000")
+  const contractStakeLimit  = parseEther("100000000")
 
   // Deploy LMC
   console.log(``)
   console.log(`Deploy LMC:`)
-  for (let i = 0; i < poolTokenAddresses.length; i++) {
-    console.log(`Deploying LMC: ${poolTokenAddresses[i]}`)
-    let tx = await LMCFactoryInstance.deploy(poolTokenAddresses[i], startBlock, endBlock, rewardTokensAddresses, rewardsPerBlock, rewardTokensAddresses[0], stakeLimit, contractStakeLimit);
-
-    await logTx(tx);
-  }
+  let tx = await LMCFactoryInstance.deploy(poolAddress, startBlock, endBlock, rewardTokensAddresses, rewardsPerBlock, rewardTokensAddresses[0], stakeLimit, contractStakeLimit);
+  await logTx(tx);
 
   // Get Rewards Pool number
-  let rewardsPoolsLength = await LMCFactoryInstance.getRewardsPoolNumber();
-  
-  for (let i = 0; i < rewardsPoolsLength; i++) {
-    // Get LMC Address
-    let LMCAddress = await LMCFactoryInstance.rewardsPools(i);
-  
-    // Get LMC Instance
-    let LMCInstance = deployer.wrapDeployedContract(LMC, LMCAddress, wallet)
-    
-    LMCAddresses.push(LMCAddress)
-    LMCInstances.push(LMCInstance)
-  }
-
-  let percentageCalculator;
-
-  if (PercentageCalculatorAddress === "") {
-    // Deploy Calculator
-    percentageCalculator = await deployer.deploy(PercentageCalculator);
-  } 
+  const rewardsPoolsLength = await LMCFactoryInstance.getRewardsPoolNumber();
+  const LMCAddress = await LMCFactoryInstance.rewardsPools(rewardsPoolsLength - 1);
 
   // Scheme settings
   const libraries = {
     PercentageCalculator: PercentageCalculatorAddress === "" ? percentageCalculator.contractAddress : PercentageCalculatorAddress
   }
 
-  const lockSchemеsSettings = [
+  const lockSchemesSettings = [
     {
       title: "NO-LOCK",
       bonusPermile: 0,
@@ -209,33 +184,38 @@ const deploy = async (network, secret, etherscanApiKey) => {
 
   // Deploy Lock Schemes
   console.log(``)
-  console.log(`Deploy Lock Schemes:`)
-  for (let i = 0; i < rewardsPoolsLength; i++) {
-    const LMCAddress = await LMCFactoryInstance.rewardsPools(i);
-    const lockSchemеs = [];
-
-    console.log(`Deploying Lock Schemes for ${LMCAddress}:`)
-
-    for (let j = 0; j < lockSchemеsSettings.length; j++) {
-      
-      // Deploy Lock Scheme
-      let LSCInstance = await deployer.deploy(
-        LockScheme,
-        libraries,
-        lockSchemеsSettings[j].lockBlock,
-        lockSchemеsSettings[j].rampUpBlock,
-        lockSchemеsSettings[j].bonusPermile,
-        LMCAddress
-      );
-
-      lockSchemеs.push(LSCInstance.contractAddress);
-    }
+  console.log(`Deploy Lock Schemes for ${LMCAddress}::`)
   
-    // Set Lock Scheme
-    let tx = await LMCFactoryInstance.setLockSchemesToLMC(lockSchemеs, LMCAddress)
+  const lockSchemеs = [];
 
-    await logTx(tx);
+  for (let i = 0; i < lockSchemesSettings.length; i++) {
+    
+    // Deploy Lock Scheme
+    let LSCInstance = await deployer.deploy(
+      LockScheme,
+      libraries,
+      lockSchemesSettings[i].lockBlock,
+      lockSchemesSettings[i].rampUpBlock,
+      lockSchemesSettings[i].bonusPermile,
+      LMCAddress
+    );
+
+    lockSchemеs.push(LSCInstance.contractAddress);
   }
+
+  // Set Lock Scheme
+  tx = await LMCFactoryInstance.setLockSchemesToLMC(lockSchemеs, LMCAddress)
+  await logTx(tx)
+
+  console.log(`
+"${pair}": "${LMCAddress}",
+  `)
+
+  console.log(`"${pair}": {`);
+  lockSchemesSettings.forEach((item, i) => {
+    console.log(`    "${item.title}": "${lockSchemеs[i]}",`);
+  })
+  console.log(`},`)
 
   // Set Transfered and receiver
   // let tx = await LMCFactoryInstance.enableReceivers("0xEFc4CE3a9b60BDd73a70B1916402fEE698B6aa61", ["0xF5D7fe0BAffaA7978B4799Bf26C50285E709B8c1"]);
