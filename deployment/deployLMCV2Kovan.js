@@ -109,6 +109,11 @@ const deploy = async (network, secret, etherscanApiKey) => {
     LMCFactoryInstance = await deployer.deploy(LMCFactory, {})
   }
 
+  // Set Transfered and receiver
+  // let enable = await LMCFactoryInstance.enableReceivers("0xAF38aD58d5145ceb66c66D4F33466eAF2ECf1353", ["0x0b0519b4af1355dc72e2a7567c13883a88c715d0"])
+  // await logTx(enable)
+  // return
+
   // Deploy Percentage Calculator if not deployed
   let percentageCalculator;
 
