@@ -10,8 +10,8 @@ const LockScheme = require('../build/LockScheme.json')
 const PercentageCalculator = require('../build/PercentageCalculator.json')
 
 // CONTSANTS
-const BLOCKS_PER_DAY = 6500
-const BLOCKS_PER_HOUR = 270
+const BLOCKS_PER_DAY = 6646
+const BLOCKS_PER_HOUR = 277
 const BLOCKS_PER_MINUTE = 5
 
 // Addresses
@@ -94,8 +94,8 @@ const deploy = async (network, secret, etherscanApiKey) => {
   ];
 
   // Set reward rate
-  const rewardsPerBlock = rewardTokensAddresses.map(el => parseEther("1"))
-  const amountReward = parseEther("100000000000")
+  const rewardsPerBlock = rewardTokensAddresses.map(el => parseEther("15"))
+  const amountReward = parseEther("3000000")
 
   const gasPrice = { gasPrice: 20000000000 }
 
@@ -134,16 +134,16 @@ const deploy = async (network, secret, etherscanApiKey) => {
   }
 
   // LMC settings
-  const protocol            = "balancer"
-  const pair                = "ETH-ALBT-USDT"
+  const protocol            = "uniswap"
+  const pair                = "ETH-ALBT2"
 
   const poolAddress         = poolAddresses[network][protocol][pair]
   const currentBlock        = await deployer.provider.getBlock('latest')
   const startBlock          = currentBlock.number + 10
-  const endBlock            = startBlock + BLOCKS_PER_DAY * 365
+  const endBlock            = startBlock + BLOCKS_PER_DAY * 30
 
-  const stakeLimit          = parseEther("1000")
-  const contractStakeLimit  = parseEther("100000000")
+  const stakeLimit          = parseEther("100000")
+  const contractStakeLimit  = parseEther("100000000000")
 
   // Deploy LMC
   console.log(``)
@@ -164,26 +164,32 @@ const deploy = async (network, secret, etherscanApiKey) => {
     {
       title: "NO-LOCK",
       bonusPermile: 0,
-      lockBlock: BLOCKS_PER_DAY * 365,
-      rampUpBlock: BLOCKS_PER_DAY * 365 - 1
+      lockBlock: BLOCKS_PER_DAY * 30,
+      rampUpBlock: BLOCKS_PER_DAY * 30 - 1
     },
     {
       title: "0M",
       bonusPermile: 0,
-      lockBlock: BLOCKS_PER_DAY * 7,
+      lockBlock: BLOCKS_PER_MINUTE * 10,
       rampUpBlock: 1
     },
     {
       title: "3M",
-      bonusPermile: 7000,
-      lockBlock: BLOCKS_PER_DAY * 90,
-      rampUpBlock: BLOCKS_PER_DAY * 30
+      bonusPermile: 10000,
+      lockBlock: BLOCKS_PER_MINUTE * 30,
+      rampUpBlock: BLOCKS_PER_MINUTE * 10
     },
     {
       title: "6M",
-      bonusPermile: 18000,
-      lockBlock: BLOCKS_PER_DAY * 180,
-      rampUpBlock: BLOCKS_PER_DAY * 60
+      bonusPermile: 20000,
+      lockBlock: BLOCKS_PER_HOUR * 1,
+      rampUpBlock: BLOCKS_PER_MINUTE * 30
+    },
+    {
+      title: "12M",
+      bonusPermile: 50000,
+      lockBlock: BLOCKS_PER_HOUR * 2,
+      rampUpBlock: BLOCKS_PER_HOUR * 1
     }
   ];
 
