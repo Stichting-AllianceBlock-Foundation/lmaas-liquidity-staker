@@ -377,7 +377,7 @@ describe('LMC Factory', () => { // These tests must be skipped for coverage as c
                 assert.isTrue(isLockSchemeSet, "LockScheme Contract not set properly")
             })
 
-            it("Should set the same lock scheme twice", async() => {
+            it("Should not set the same lock scheme twice", async() => {
 
                 const percentageCalculator = await deployer.deploy(PercentageCalculator);
 				libraries = {

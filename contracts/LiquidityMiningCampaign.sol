@@ -194,7 +194,7 @@ contract LiquidityMiningCampaign is StakeTransferer, OnlyExitFeature  {
 	function setLockSchemes(address[] memory _lockSchemes) external onlyFactory {
 
 		for (uint256 i = 0; i < _lockSchemes.length; i++) {
-			if(lockSchemesExist[_lockSchemes[i]] != true) {
+			if(!lockSchemesExist[_lockSchemes[i]]) {
 				lockSchemes.push(_lockSchemes[i]);
 				lockSchemesExist[_lockSchemes[i]] = true;
 			}
