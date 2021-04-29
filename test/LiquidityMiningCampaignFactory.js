@@ -344,6 +344,101 @@ describe('LMC Factory', () => { // These tests must be skipped for coverage as c
                     await assert.revertWith(LMCFactoryInstance.from(bobAccount.signer.address).extendRewardPool(newEndBlock, rewardPerBlock, rewardsPoolAddress),"onlyOwner:: The caller is not the owner")
                 })
 			});
+
+            describe('Set LockSchemes', async function () {
+                beforeEach(async () => {
+                    for (i = 0; i < rewardTokensAddresses.length; i++) {
+                        await rewardTokensInstances[i].transfer(LMCFactoryInstance.contractAddress, amountToTransfer);
+                    }
+                    await LMCFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock, rewardTokensAddresses,rewardPerBlock, rewardTokensAddresses[0], stakeLimit, contractStakeLimit);
+                });
+            
+
+            it("Should set LockSchemes properly", async() => {
+
+                const percentageCalculator = await deployer.deploy(PercentageCalculator);
+				libraries = {
+					PercentageCalculator: percentageCalculator.contractAddress
+				}
+
+                const lmcAddress = await LMCFactoryInstance.rewardsPools(0);
+			
+                lmcInstance = await etherlime.ContractAt(LMC, lmcAddress);
+
+				let lockScheme = []
+				LockSchemeInstance = await deployer.deploy(LockScheme, libraries, lockBlock, rampUpBlock, bonusPercet, lmcInstance.contractAddress);
+				lockScheme.push(LockSchemeInstance.contractAddress);
+				
+				await LMCFactoryInstance.setLockSchemesToLMC(lockScheme,lmcInstance.contractAddress);
+                let isLockSchemeSet = await lmcInstance.lockSchemesExist(LockSchemeInstance.contractAddress)
+                let lockSchemeContractAddress = await lmcInstance.lockSchemes(0);
+                console.log()
+                assert.strictEqual(lockSchemeContractAddress.toLowerCase(), LockSchemeInstance.contractAddress.toLowerCase(), "The LockScheme addresses are not the same");
+                assert.isTrue(isLockSchemeSet, "LockScheme Contract not set properly")
+            })
+
+            it("Should set the same lock scheme twice", async() => {
+
+                const percentageCalculator = await deployer.deploy(PercentageCalculator);
+				libraries = {
+					PercentageCalculator: percentageCalculator.contractAddress
+				}
+
+                const lmcAddress = await LMCFactoryInstance.rewardsPools(0);
+			
+                lmcInstance = await etherlime.ContractAt(LMC, lmcAddress);
+
+				let lockScheme = []
+				LockSchemeInstance = await deployer.deploy(LockScheme, libraries, lockBlock, rampUpBlock, bonusPercet, lmcInstance.contractAddress);
+				lockScheme.push(LockSchemeInstance.contractAddress);
+				
+				await LMCFactoryInstance.setLockSchemesToLMC(lockScheme,lmcInstance.contractAddress);
+                await LMCFactoryInstance.setLockSchemesToLMC(lockScheme,lmcInstance.contractAddress);
+                let isLockSchemeSet = await lmcInstance.lockSchemesExist(LockSchemeInstance.contractAddress)
+                let lockSchemeContractAddress = await lmcInstance.lockSchemes(0);
+                
+                
+                assert.strictEqual(lockSchemeContractAddress.toLowerCase(), LockSchemeInstance.contractAddress.toLowerCase(), "The LockScheme addresses are not the same");
+                assert.isTrue(isLockSchemeSet, "LockScheme Contract not set properly")
+                await assert.revert(lmcInstance.lockSchemes(1))
+            })
+
+            it("Should be able to add more LockSchemes", async() => {
+
+                const percentageCalculator = await deployer.deploy(PercentageCalculator);
+				libraries = {
+					PercentageCalculator: percentageCalculator.contractAddress
+				}
+
+                const lmcAddress = await LMCFactoryInstance.rewardsPools(0);
+			
+                lmcInstance = await etherlime.ContractAt(LMC, lmcAddress);
+
+				let lockScheme = []
+                let lockSchemeSecond = []
+
+				LockSchemeInstance = await deployer.deploy(LockScheme, libraries, lockBlock, rampUpBlock, bonusPercet, lmcInstance.contractAddress);
+                LockSchemeInstanceSecond = await deployer.deploy(LockScheme, libraries, lockBlock, rampUpBlock, bonusPercet, lmcInstance.contractAddress);
+				lockScheme.push(LockSchemeInstance.contractAddress);
+                lockSchemeSecond.push(LockSchemeInstanceSecond.contractAddress);
+                
+				await LMCFactoryInstance.setLockSchemesToLMC(lockScheme,lmcInstance.contractAddress);
+                
+                let isFirstLockSchemeSet = await lmcInstance.lockSchemesExist(LockSchemeInstance.contractAddress)
+                let firstLockSchemeContractAddress = await lmcInstance.lockSchemes(0);
+
+                await LMCFactoryInstance.setLockSchemesToLMC(lockSchemeSecond,lmcInstance.contractAddress);
+                
+                let isSecondLockSchemeSet = await lmcInstance.lockSchemesExist(LockSchemeInstanceSecond.contractAddress)
+                let secondLockSchemeContractAddress = await lmcInstance.lockSchemes(1);
+                
+                
+                assert.strictEqual(firstLockSchemeContractAddress.toLowerCase(), LockSchemeInstance.contractAddress.toLowerCase(), "The First LockScheme addresses are not the same");
+                assert.isTrue(isFirstLockSchemeSet, "First LockScheme Contract not set properly")
+                assert.strictEqual(secondLockSchemeContractAddress.toLowerCase(), LockSchemeInstanceSecond.contractAddress.toLowerCase(), "The Second LockScheme addresses are not the same");
+                assert.isTrue(isSecondLockSchemeSet, " Second LockScheme Contract not set properly")
+            })
+        });
     });
 
 });
