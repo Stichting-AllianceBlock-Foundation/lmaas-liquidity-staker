@@ -23,7 +23,7 @@ const rewardAddresses = {
     "USDT": "0x06b4cedF8c7b6A490B1032F99373FFF5b7685408",
   },
   "rinkeby": {
-    "ALBT": "0xA8c09b9FAAe82D48613651a8f25dd3b836f13Cfc",
+    "ALBT": "0x1DFD95eb75A7486945D366a0bC0b937F0AAa526F",
     "ALBT1": "0x1461e433BD25a13c2453B285C1F6753FcF623331",
     "ALBT2": "0xf2A5748568351d4949D240B8a3EC20A38361Cb43",
     "USDT": "0x39F16Dd4980Ce05Ff538CaF92d808688A15b7058",
@@ -48,7 +48,7 @@ const poolAddresses = {
   },
   "rinkeby": {
     "uniswap": {
-      "ETH-ALBT": "0x5905f2005657C34348B75C9Ca549eDdf96925325",
+      "ETH-ALBT": "0x0Bd2f8af9f5E5BE43B0DA90FE00A817e538B9306",
       "ETH-ALBT1": "0x41F5C832F6F14a4BA973231fF4dF06Fd5Ae2c271",
       "ETH-ALBT2": "0xA24F79A7A0668CBCCf5833548054344c9372090d",
       "ALBT-USDT": "0x48A133a810E1aBB714414f89100d47689bD20D27",
@@ -67,7 +67,7 @@ const poolAddresses = {
 }
 
 // Set this address for wrapping
-const LMCFactoryAddress = "0x380c2eE8B87CACaCeF9296021C1fBcB854b8d950"
+const LMCFactoryAddress = ""
 const PercentageCalculatorAddress = "0x67994e7a60c29c68d5F35804Bd658f2AAa491775"
 const infuraApiKey = "40c2813049e44ec79cb4d7e0d18de173"
 
@@ -94,7 +94,7 @@ const deploy = async (network, secret, etherscanApiKey) => {
   ];
 
   // Set reward rate
-  const rewardsPerBlock = rewardTokensAddresses.map(el => parseEther("15"))
+  const rewardsPerBlock = rewardTokensAddresses.map(el => parseEther("1"))
   const amountReward = parseEther("3000000")
 
   const gasPrice = { gasPrice: 20000000000 }
@@ -135,7 +135,7 @@ const deploy = async (network, secret, etherscanApiKey) => {
 
   // LMC settings
   const protocol            = "uniswap"
-  const pair                = "ETH-ALBT2"
+  const pair                = "ETH-ALBT"
 
   const poolAddress         = poolAddresses[network][protocol][pair]
   const currentBlock        = await deployer.provider.getBlock('latest')
