@@ -2,6 +2,7 @@ const etherlime = require('etherlime-lib')
 const ethers = require('ethers')
 
 const NonCompoundingRewardsPoolFactory = require('../build/NonCompoundingRewardsPoolFactory.json')
+const PercentageCalculator = require("../build/PercentageCalculator.json")
 const Treasury = require('../build/Treasury.json')
 
 // CONTSANTS
@@ -22,6 +23,7 @@ const deploy = async (network, secret, etherscanApiKey) => {
   const { parseEther } = ethers.utils
 
   const deployer = new etherlime.JSONRPCPrivateKeyDeployer(secret, 'https://bsc-dataseed.binance.org/', {})
+   
 
   const currentBlock = await deployer.provider.getBlock('latest')
   const wallet = new ethers.Wallet(secret, deployer.provider)
@@ -37,6 +39,9 @@ const deploy = async (network, secret, etherscanApiKey) => {
 	let throttleRoundCapThreeMonths = await ethers.utils.parseEther(`700000`);
   let usersStakeLimit = await ethers.utils.parseEther(`300000`);
 
+  const percentageCalculator = await deployer.deploy(PercentageCalculator);
+  console.log(percentageCalculator)
+
 
 
   // const TreasuryInstance = await deployer.deploy(Treasury, {}, PancakeSwapRouter, bscALBTAddress)
@@ -46,13 +51,13 @@ const deploy = async (network, secret, etherscanApiKey) => {
   // console.log('\x1b[36m%s\x1b[0m', `--- Factory address: ${NonCompoundingRewardsPoolFactoryInstance.contractAddress} ---`)
 
 
-  let  NonCompoundingRewardsPoolFactoryInstance = new ethers.Contract("0x93d8Db5F7C57D22332eC13FA71B165770fc8A4AE", NonCompoundingRewardsPoolFactory.abi, wallet)
+  // let  NonCompoundingRewardsPoolFactoryInstance = new ethers.Contract("0x93d8Db5F7C57D22332eC13FA71B165770fc8A4AE", NonCompoundingRewardsPoolFactory.abi, wallet)
 
-  const poolDeployment3Months = await NonCompoundingRewardsPoolFactoryInstance.deploy(bscALBTAddress, startBlock, endBlock3Months, rewardTokensAddresses, [rewardPerBlockThreeMonths], usersStakeLimit, throttleRoundBlocks, throttleRoundCapThreeMonths, threeMonthsContractLimit)
-  await poolDeployment3Months.wait()
+  // const poolDeployment3Months = await NonCompoundingRewardsPoolFactoryInstance.deploy(bscALBTAddress, startBlock, endBlock3Months, rewardTokensAddresses, [rewardPerBlockThreeMonths], usersStakeLimit, throttleRoundBlocks, throttleRoundCapThreeMonths, threeMonthsContractLimit)
+  // await poolDeployment3Months.wait()
 
-  let nonCompoundingPool3Months = await NonCompoundingRewardsPoolFactoryInstance.rewardsPools(0)
-  console.log('\x1b[36m%s\x1b[0m', `--- First NonCompoundingPool address 0: ${nonCompoundingPool3Months} ---`)
+  // let nonCompoundingPool3Months = await NonCompoundingRewardsPoolFactoryInstance.rewardsPools(0)
+  // console.log('\x1b[36m%s\x1b[0m', `--- First NonCompoundingPool address 0: ${nonCompoundingPool3Months} ---`)
 
  
 
@@ -63,11 +68,11 @@ const deploy = async (network, secret, etherscanApiKey) => {
 // },
 //   `)
 
-  console.log(`
-stakerContracts: {
-    "bALBT-3M": "${nonCompoundingPool3Months}"
-},
-  `)
+//   console.log(`
+// stakerContracts: {
+//     "bALBT-3M": "${nonCompoundingPool3Months}"
+// },
+//   `)
 }
 
 module.exports = {

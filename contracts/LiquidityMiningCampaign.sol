@@ -20,6 +20,7 @@ contract LiquidityMiningCampaign is StakeTransferer, OnlyExitFeature  {
 	address public immutable rewardToken;
 	address[] public lockSchemes;
 	mapping(address => uint256) public userAccruedRewards;
+	mapping(address => bool) public lockSchemesExist;
 
 	event StakedAndLocked(address indexed _userAddress, uint256 _tokenAmount, address _lockScheme);
 	event ExitedAndUnlocked(address indexed _userAddress);
@@ -191,7 +192,12 @@ contract LiquidityMiningCampaign is StakeTransferer, OnlyExitFeature  {
 	@param _lockSchemes the address of the staker
 	 */
 	function setLockSchemes(address[] memory _lockSchemes) external onlyFactory {
-		lockSchemes = _lockSchemes;
-	}
 
+		for (uint256 i = 0; i < _lockSchemes.length; i++) {
+			if(!lockSchemesExist[_lockSchemes[i]]) {
+				lockSchemes.push(_lockSchemes[i]);
+				lockSchemesExist[_lockSchemes[i]] = true;
+			}
+		}
+	}
 }

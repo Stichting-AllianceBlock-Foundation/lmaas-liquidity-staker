@@ -5,7 +5,7 @@ const TestERC20 = require('../build/TestERC20.json');
 const NonCompoundingRewardsPool = require('../build/NonCompoundingRewardsPool.json');
 const Treasury = require('../build/Treasury.json');
 
-const KovanALBTAddress =  "0xD21913390c484d490D24F046Da5329F1d778b75b";
+const KovanALBTAddress =  "0xa8c09b9faae82d48613651a8f25dd3b836f13cfc";
 const KovanEthALbtStaking = "0x4697038B031F78A9cd3D1A7C42c501543E723C1F"
 const UniswapRouterKovan = "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D";
 const infuraApiKey = "df77c40c85ac442595b6be7d84ba2024";
