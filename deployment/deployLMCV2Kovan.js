@@ -10,7 +10,8 @@ const LockScheme = require("../build/LockScheme.json");
 const PercentageCalculator = require("../build/PercentageCalculator.json");
 
 // CONTSANTS
-const BLOCKS_PER_DAY = 6646;
+// const BLOCKS_PER_DAY = 6646;
+const BLOCKS_PER_DAY = 43200;
 const BLOCKS_PER_HOUR = 277;
 const BLOCKS_PER_MINUTE = 5;
 
@@ -32,8 +33,10 @@ const rewardAddresses = {
   bsc: {
     bALBT: "0x666e672B2Ada59979Fc4dB7AF9A4710E0E4D51E6",
   },
-  bsc: {
-    bALBT: "0x666e672B2Ada59979Fc4dB7AF9A4710E0E4D51E6",
+  polygon: {
+    TUSDT: "0xd944F35CD2552c4a9e51815f6F61De3B33aFbcE6",
+    TWETH: "0xc66fB941E3C089957247FB2b8e13cE25C8413F9e",
+    TADA: "0x239BBacd8b83DEe4d0d69347764DCC092E3C3E01",
   },
 };
 
@@ -67,15 +70,20 @@ const poolAddresses = {
       "BNB-bALBT": "0xd954551853F55deb4Ae31407c423e67B1621424A",
     },
   },
+  polygon: {
+    quickswap: {
+      "TUSDT-TWETH": "0xd22f4aff8e7184ff0b9c6bea7f2842caaebb3c38",
+    },
+  },
 };
 
 // Set this address for wrapping
 const LMCFactoryAddress = "";
-const PercentageCalculatorAddress =
-  "0x67994e7a60c29c68d5F35804Bd658f2AAa491775";
+// const PercentageCalculatorAddress = '0x67994e7a60c29c68d5F35804Bd658f2AAa491775';
+const PercentageCalculatorAddress = "0xc4fA9b789a0E4100e6b34ab331BA96bcCFC613ae";
 const infuraApiKey = "40c2813049e44ec79cb4d7e0d18de173";
 
-const logTx = async (tx) => {
+const logTx = async tx => {
   console.log(`Hash: ${tx.hash}`);
   const txResult = await tx.wait();
   if (txResult.status === 1) {
@@ -88,21 +96,26 @@ const logTx = async (tx) => {
 };
 
 const deploy = async (network, secret, etherscanApiKey) => {
-  const deployer = new etherlime.InfuraPrivateKeyDeployer(
+  // const deployer = new etherlime.InfuraPrivateKeyDeployer(
+  //   secret,
+  //   network,
+  //   infuraApiKey
+  // );
+
+  const deployer = new etherlime.JSONRPCPrivateKeyDeployer(
     secret,
-    network,
-    infuraApiKey
+    "https://speedy-nodes-nyc.moralis.io/25884d3cc1f62a257ca0f169/polygon/mainnet",
   );
   const wallet = new ethers.Wallet(secret, deployer.provider);
 
   // Set addresses by network
   const rewardTokensAddresses = [
-    rewardAddresses[network]["ALBT"],
+    rewardAddresses[network]["TWETH"],
     // rewardAddresses[network]["ALBT1"],
   ];
 
   // Set reward rate
-  const rewardsPerBlock = rewardTokensAddresses.map((el) => parseEther("1"));
+  const rewardsPerBlock = rewardTokensAddresses.map(el => parseEther("1"));
   const amountReward = parseEther("3000000");
 
   const gasPrice = { gasPrice: 20000000000 };
@@ -112,11 +125,7 @@ const deploy = async (network, secret, etherscanApiKey) => {
 
   // Check for deployed Factory
   if (LMCFactoryAddress !== "") {
-    LMCFactoryInstance = deployer.wrapDeployedContract(
-      LMCFactory,
-      LMCFactoryAddress,
-      wallet
-    );
+    LMCFactoryInstance = deployer.wrapDeployedContract(LMCFactory, LMCFactoryAddress, wallet);
   } else {
     LMCFactoryInstance = await deployer.deploy(LMCFactory, {});
   }
@@ -142,19 +151,16 @@ const deploy = async (network, secret, etherscanApiKey) => {
     const rewardTokensInstance = new ethers.Contract(
       rewardTokensAddresses[i],
       TestERC20.abi,
-      wallet
+      wallet,
     );
 
-    let mint = await rewardTokensInstance.mint(
-      LMCFactoryInstance.contractAddress,
-      amountReward
-    );
+    let mint = await rewardTokensInstance.mint(LMCFactoryInstance.contractAddress, amountReward);
     await logTx(mint);
   }
 
   // LMC settings
-  const protocol = "uniswap";
-  const pair = "ETH-ALBT";
+  const protocol = "quickswap";
+  const pair = "TUSDT-TWETH";
 
   const poolAddress = poolAddresses[network][protocol][pair];
   const currentBlock = await deployer.provider.getBlock("latest");
@@ -175,15 +181,13 @@ const deploy = async (network, secret, etherscanApiKey) => {
     rewardsPerBlock,
     rewardTokensAddresses[0],
     stakeLimit,
-    contractStakeLimit
+    contractStakeLimit,
   );
   await logTx(tx);
 
   // Get Rewards Pool number
   const rewardsPoolsLength = await LMCFactoryInstance.getRewardsPoolNumber();
-  const LMCAddress = await LMCFactoryInstance.rewardsPools(
-    rewardsPoolsLength - 1
-  );
+  const LMCAddress = await LMCFactoryInstance.rewardsPools(rewardsPoolsLength - 1);
 
   // Scheme settings
   const libraries = {
@@ -200,30 +204,30 @@ const deploy = async (network, secret, etherscanApiKey) => {
       lockBlock: BLOCKS_PER_DAY * 30,
       rampUpBlock: BLOCKS_PER_DAY * 30 - 1,
     },
-    {
-      title: "0M",
-      bonusPermile: 0,
-      lockBlock: BLOCKS_PER_MINUTE * 10,
-      rampUpBlock: 1,
-    },
-    {
-      title: "3M",
-      bonusPermile: 10000,
-      lockBlock: BLOCKS_PER_MINUTE * 30,
-      rampUpBlock: BLOCKS_PER_MINUTE * 10,
-    },
-    {
-      title: "6M",
-      bonusPermile: 20000,
-      lockBlock: BLOCKS_PER_HOUR * 1,
-      rampUpBlock: BLOCKS_PER_MINUTE * 30,
-    },
-    {
-      title: "12M",
-      bonusPermile: 50000,
-      lockBlock: BLOCKS_PER_HOUR * 2,
-      rampUpBlock: BLOCKS_PER_HOUR * 1,
-    },
+    // {
+    //   title: "0M",
+    //   bonusPermile: 0,
+    //   lockBlock: BLOCKS_PER_MINUTE * 10,
+    //   rampUpBlock: 1,
+    // },
+    // {
+    //   title: "3M",
+    //   bonusPermile: 10000,
+    //   lockBlock: BLOCKS_PER_MINUTE * 30,
+    //   rampUpBlock: BLOCKS_PER_MINUTE * 10,
+    // },
+    // {
+    //   title: "6M",
+    //   bonusPermile: 20000,
+    //   lockBlock: BLOCKS_PER_HOUR * 1,
+    //   rampUpBlock: BLOCKS_PER_MINUTE * 30,
+    // },
+    // {
+    //   title: "12M",
+    //   bonusPermile: 50000,
+    //   lockBlock: BLOCKS_PER_HOUR * 2,
+    //   rampUpBlock: BLOCKS_PER_HOUR * 1,
+    // },
   ];
 
   // Deploy Lock Schemes
@@ -240,7 +244,7 @@ const deploy = async (network, secret, etherscanApiKey) => {
       lockSchemesSettings[i].lockBlock,
       lockSchemesSettings[i].rampUpBlock,
       lockSchemesSettings[i].bonusPermile,
-      LMCAddress
+      LMCAddress,
     );
 
     lockSchemеs.push(LSCInstance.contractAddress);
