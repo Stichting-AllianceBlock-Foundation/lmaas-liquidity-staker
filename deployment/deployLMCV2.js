@@ -10,10 +10,11 @@ const LockScheme = require("../build/LockScheme.json");
 const PercentageCalculator = require("../build/PercentageCalculator.json");
 
 // CONTSANTS
-// const BLOCKS_PER_DAY = 6646;
-const BLOCKS_PER_DAY = 43200;
-const BLOCKS_PER_HOUR = 277;
-const BLOCKS_PER_MINUTE = 5;
+const BLOCKS_PER_DAY = {
+  rinkeby: 6646,
+  polygon: 43200,
+  avalanche: 4320,
+};
 
 // Addresses
 const rewardAddresses = {
@@ -37,6 +38,10 @@ const rewardAddresses = {
     TUSDT: "0xd944F35CD2552c4a9e51815f6F61De3B33aFbcE6",
     TWETH: "0xc66fB941E3C089957247FB2b8e13cE25C8413F9e",
     TADA: "0x239BBacd8b83DEe4d0d69347764DCC092E3C3E01",
+  },
+  avalanche: {
+    TUSDT: "0x4B313260c2Fb2E69212C182FF8BF311a18232f1d",
+    TWETH: "0x8fb4C0f738af28797EE06C86836Ad8b237677251",
   },
 };
 
@@ -75,12 +80,21 @@ const poolAddresses = {
       "TUSDT-TWETH": "0xd22f4aff8e7184ff0b9c6bea7f2842caaebb3c38",
     },
   },
+  avalanche: {
+    pangolin: {
+      "TUSDT-TWETH": "0x2195a6c995ab53bdc684d327ad802feed4bd213b",
+    },
+  },
+};
+
+const percentageCalculatorAddress = {
+  rinkeby: "0x67994e7a60c29c68d5F35804Bd658f2AAa491775",
+  polygon: "0xc4fA9b789a0E4100e6b34ab331BA96bcCFC613ae",
+  avalanche: "0x5A6a7d9fb176ca2B911E7862319f857B2F8CF03b",
 };
 
 // Set this address for wrapping
 const LMCFactoryAddress = "";
-// const PercentageCalculatorAddress = '0x67994e7a60c29c68d5F35804Bd658f2AAa491775';
-const PercentageCalculatorAddress = "0xc4fA9b789a0E4100e6b34ab331BA96bcCFC613ae";
 const infuraApiKey = "40c2813049e44ec79cb4d7e0d18de173";
 
 const logTx = async tx => {
@@ -104,7 +118,8 @@ const deploy = async (network, secret, etherscanApiKey) => {
 
   const deployer = new etherlime.JSONRPCPrivateKeyDeployer(
     secret,
-    "https://speedy-nodes-nyc.moralis.io/25884d3cc1f62a257ca0f169/polygon/mainnet",
+    // "https://speedy-nodes-nyc.moralis.io/25884d3cc1f62a257ca0f169/polygon/mainnet",
+    "https://api.avax-test.network/ext/bc/C/rpc",
   );
   const wallet = new ethers.Wallet(secret, deployer.provider);
 
@@ -138,7 +153,7 @@ const deploy = async (network, secret, etherscanApiKey) => {
   // Deploy Percentage Calculator if not deployed
   let percentageCalculator;
 
-  if (PercentageCalculatorAddress === "") {
+  if (percentageCalculatorAddress[network] === "") {
     // Deploy Calculator
     percentageCalculator = await deployer.deploy(PercentageCalculator);
   }
@@ -159,13 +174,13 @@ const deploy = async (network, secret, etherscanApiKey) => {
   }
 
   // LMC settings
-  const protocol = "quickswap";
-  const pair = "TUSDT-TWETH";
+  const protocol = "pangolin";
+  const pair = "USDT-WETH";
 
   const poolAddress = poolAddresses[network][protocol][pair];
   const currentBlock = await deployer.provider.getBlock("latest");
   const startBlock = currentBlock.number + 10;
-  const endBlock = startBlock + BLOCKS_PER_DAY * 30;
+  const endBlock = startBlock + BLOCKS_PER_DAY[network] * 30;
 
   const stakeLimit = parseEther("100000");
   const contractStakeLimit = parseEther("100000000000");
@@ -192,17 +207,17 @@ const deploy = async (network, secret, etherscanApiKey) => {
   // Scheme settings
   const libraries = {
     PercentageCalculator:
-      PercentageCalculatorAddress === ""
+      percentageCalculatorAddress[network] === ""
         ? percentageCalculator.contractAddress
-        : PercentageCalculatorAddress,
+        : percentageCalculatorAddress[network],
   };
 
   const lockSchemesSettings = [
     {
       title: "NO-LOCK",
       bonusPermile: 0,
-      lockBlock: BLOCKS_PER_DAY * 30,
-      rampUpBlock: BLOCKS_PER_DAY * 30 - 1,
+      lockBlock: BLOCKS_PER_DAY[network] * 30,
+      rampUpBlock: BLOCKS_PER_DAY[network] * 30 - 1,
     },
     // {
     //   title: "0M",
