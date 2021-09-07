@@ -49,11 +49,11 @@ describe('CompoundingRewardsPoolFactory', () => { // These tests must be skipped
 
         externalRewardsTokenInstance = await deployer.deploy(TestERC20, {}, ethers.utils.parseEther("300000"));
         externalRewardsTokenAddress = externalRewardsTokenInstance.contractAddress;
-        CalculatorInstance = await deployer.deploy(CalculatorInstance);
+        CalculatorInstance = await deployer.deploy(Calculator);
 
 		calculatorLibraryAddress = CalculatorInstance.contractAddress
 		const libraries = {
-			Calculator:calculatorIntance.contractAddress
+			Calculator:calculatorLibraryAddress
 		  };
     
         await setupRewardsPoolParameters(deployer)
@@ -74,7 +74,7 @@ describe('CompoundingRewardsPoolFactory', () => { // These tests must be skipped
 
         it('Should deploy base rewards pool successfully', async () => {
             await stakingTokenInstance.mint(CompoundingRewardsPoolFactoryInstance.contractAddress, amount);
-            await CompoundingRewardsPoolFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock, bOne, standardStakingAmount, 20, standardStakingAmount, contractStakeLimit);
+            await CompoundingRewardsPoolFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock, bOne, standardStakingAmount, 20, standardStakingAmount, contractStakeLimit,bOne);
 
             const firstStakerContract = await CompoundingRewardsPoolFactoryInstance.rewardsPools(0);
 			const StakerContract = await etherlime.ContractAt(CompoundingRewardsPoolStaker, firstStakerContract);
@@ -89,30 +89,30 @@ describe('CompoundingRewardsPoolFactory', () => { // These tests must be skipped
         });
 
         it('Should fail on deploying not from owner', async () => {
-            await assert.revert(CompoundingRewardsPoolFactoryInstance.from(bobAccount).deploy(stakingTokenAddress, startBlock, endBlock,bOne, stakeLimit, 5, stakeLimit, contractStakeLimit));
+            await assert.revert(CompoundingRewardsPoolFactoryInstance.from(bobAccount).deploy(stakingTokenAddress, startBlock, endBlock,bOne, stakeLimit, 5, stakeLimit, contractStakeLimit,bOne));
         });
 
         it('Should fail on deploying with zero address as staking token', async () => {
-            await assert.revertWith(CompoundingRewardsPoolFactoryInstance.deploy(ethers.constants.AddressZero, startBlock, endBlock,bOne, stakeLimit, 5, stakeLimit, contractStakeLimit), "CompoundingRewardsPoolFactory::deploy: Staking token address can't be zero address");
+            await assert.revertWith(CompoundingRewardsPoolFactoryInstance.deploy(ethers.constants.AddressZero, startBlock, endBlock,bOne, stakeLimit, 5, stakeLimit, contractStakeLimit,bOne), "CRPF::deploy: Staking token address can't be zero address");
         });
      
         it('Should fail if the reward amount is not greater than zero', async () => {
-            const errorString = "CompoundingRewardsPoolFactory::deploy: Reward per block must be more than 0"
-            await assert.revertWith(CompoundingRewardsPoolFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock, 0, standardStakingAmount, 20, standardStakingAmount, contractStakeLimit), errorString);
+            const errorString = "CRPF::deploy: Reward per block must be more than 0"
+            await assert.revertWith(CompoundingRewardsPoolFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock, 0, standardStakingAmount, 20, standardStakingAmount, contractStakeLimit,bOne), errorString);
         });
 
         it('Should fail on zero stake limit', async () => {
-            await assert.revertWith(CompoundingRewardsPoolFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock, bOne, 0, 20, standardStakingAmount, contractStakeLimit), "CompoundingRewardsPoolFactory::deploy: Stake limit must be more than 0");
+            await assert.revertWith(CompoundingRewardsPoolFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock, bOne, 0, 20, standardStakingAmount, contractStakeLimit,bOne), "CRPF::deploy: Stake limit must be more than 0");
         });
 
         it('Should fail on zero throttle rounds or cap', async () => {
-            await assert.revertWith(CompoundingRewardsPoolFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock, bOne, standardStakingAmount, 0, standardStakingAmount, contractStakeLimit), "CompoundingRewardsPoolFactory::deploy: Throttle round blocks must be more than 0");
-            await assert.revertWith(CompoundingRewardsPoolFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock, bOne, standardStakingAmount, 20, 0, contractStakeLimit), "CompoundingRewardsPoolFactory::deploy: Throttle round cap must be more than 0");
+            await assert.revertWith(CompoundingRewardsPoolFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock, bOne, standardStakingAmount, 0, standardStakingAmount, contractStakeLimit,bOne), "CRPF::deploy: Throttle round blocks must be more than 0");
+            await assert.revertWith(CompoundingRewardsPoolFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock, bOne, standardStakingAmount, 20, 0, contractStakeLimit,bOne), "CRPF::deploy: Throttle round cap must be more than 0");
         });
 
         it('Should fail if not enough reward is sent', async () => {
             await stakingTokenInstance.mint(CompoundingRewardsPoolFactoryInstance.contractAddress, 1);
-            await assert.revertWith(CompoundingRewardsPoolFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock, bOne, standardStakingAmount, 20, standardStakingAmount, contractStakeLimit), "SafeERC20: low-level call failed");
+            await assert.revertWith(CompoundingRewardsPoolFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock, bOne, standardStakingAmount, 20, standardStakingAmount, contractStakeLimit,bOne), "SafeERC20: low-level call failed");
         });
 
         describe('Whitelisting', async function () {
@@ -121,8 +121,8 @@ describe('CompoundingRewardsPoolFactory', () => { // These tests must be skipped
             let receiver;
             beforeEach(async () => {
                 await stakingTokenInstance.mint(CompoundingRewardsPoolFactoryInstance.contractAddress, amount);
-                await CompoundingRewardsPoolFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock, bOne, standardStakingAmount, 20, standardStakingAmount, contractStakeLimit);
-                await CompoundingRewardsPoolFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock+10, bOne, standardStakingAmount, 20, standardStakingAmount, contractStakeLimit);
+                await CompoundingRewardsPoolFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock, bOne, standardStakingAmount, 20, standardStakingAmount, contractStakeLimit,bOne);
+                await CompoundingRewardsPoolFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock+10, bOne, standardStakingAmount, 20, standardStakingAmount, contractStakeLimit,bOne);
                 const transfererAddress = await CompoundingRewardsPoolFactoryInstance.rewardsPools(0);
                 const receiverAddress = await CompoundingRewardsPoolFactoryInstance.rewardsPools(1);
                 transferer = await etherlime.ContractAt(CompoundingRewardsPoolStaker, transfererAddress);
@@ -155,8 +155,8 @@ describe('CompoundingRewardsPoolFactory', () => { // These tests must be skipped
             });
 
             it('Should fail whitelisting if called with wrong params', async () => {
-                await assert.revertWith(CompoundingRewardsPoolFactoryInstance.enableReceivers(ethers.constants.AddressZero, [receiver.contractAddress]), "enableReceivers::Transferer cannot be 0");
-                await assert.revertWith(CompoundingRewardsPoolFactoryInstance.enableReceivers(transferer.contractAddress, [ethers.constants.AddressZero]), "enableReceivers::Receiver cannot be 0");
+                await assert.revertWith(CompoundingRewardsPoolFactoryInstance.enableReceivers(ethers.constants.AddressZero, [receiver.contractAddress]), "ER::Transferer cannot be 0");
+                await assert.revertWith(CompoundingRewardsPoolFactoryInstance.enableReceivers(transferer.contractAddress, [ethers.constants.AddressZero]), "ER::Receiver cannot be 0");
             });
 
             it('Should fail whitelisting if not called by the owner', async () => {
