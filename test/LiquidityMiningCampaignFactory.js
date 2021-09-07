@@ -8,6 +8,7 @@ const { mineBlock } = require('./utils')
 const NonCompoundingRewardsPool = require('../build/NonCompoundingRewardsPool.json');
 const LockScheme = require('../build/LockScheme.json');
 const PercentageCalculator = require('../build/PercentageCalculator.json')
+const Calculator = require('../build/Calculator.json');
 
 describe('LMC Factory', () => { // These tests must be skipped for coverage as coverage does not support optimizations
     let aliceAccount = accounts[3];
@@ -66,7 +67,11 @@ describe('LMC Factory', () => { // These tests must be skipped for coverage as c
 	
     
         await setupRewardsPoolParameters(deployer)
-        LMCFactoryInstance = await deployer.deploy(LMCFactory, {});
+        const instance = await deployer.deploy(Calculator);
+        libraries = {
+            Calculator:instance.contractAddress
+        }
+        LMCFactoryInstance = await deployer.deploy(LMCFactory, libraries);
     });
 
     it('should deploy valid rewards pool factory contract', async () => {
@@ -124,9 +129,14 @@ describe('LMC Factory', () => { // These tests must be skipped for coverage as c
 				await rewardTokensInstances[0].mint(LMCFactoryInstance.contractAddress, amount)
                 await LMCFactoryInstance.deploy(stakingTokenInstance.contractAddress, startBlock, endBlock, rewardTokensAddresses, rewardPerBlock, rewardTokensAddresses[0], stakeLimit, contractStakeLimit)
 				
+                const CalculatorInstance = await deployer.deploy(Calculator);
+
+                const calculatorLibraryAddress = CalculatorInstance.contractAddress
+               
 				const percentageCalculator = await deployer.deploy(PercentageCalculator);
 				libraries = {
-					PercentageCalculator: percentageCalculator.contractAddress
+					PercentageCalculator: percentageCalculator.contractAddress,
+                    Calculator:calculatorLibraryAddress
 				}
 
                 const lmcAddress = await LMCFactoryInstance.rewardsPools(0);
@@ -356,9 +366,14 @@ describe('LMC Factory', () => { // These tests must be skipped for coverage as c
 
             it("Should set LockSchemes properly", async() => {
 
-                const percentageCalculator = await deployer.deploy(PercentageCalculator);
+                const CalculatorInstance = await deployer.deploy(Calculator);
+
+                const calculatorLibraryAddress = CalculatorInstance.contractAddress
+               
+				const percentageCalculator = await deployer.deploy(PercentageCalculator);
 				libraries = {
-					PercentageCalculator: percentageCalculator.contractAddress
+					PercentageCalculator: percentageCalculator.contractAddress,
+                    Calculator:calculatorLibraryAddress
 				}
 
                 const lmcAddress = await LMCFactoryInstance.rewardsPools(0);
@@ -379,9 +394,13 @@ describe('LMC Factory', () => { // These tests must be skipped for coverage as c
 
             it("Should not set the same lock scheme twice", async() => {
 
-                const percentageCalculator = await deployer.deploy(PercentageCalculator);
+                const CalculatorInstance = await deployer.deploy(Calculator);
+                const calculatorLibraryAddress = CalculatorInstance.contractAddress
+               
+				const percentageCalculator = await deployer.deploy(PercentageCalculator);
 				libraries = {
-					PercentageCalculator: percentageCalculator.contractAddress
+					PercentageCalculator: percentageCalculator.contractAddress,
+                    Calculator:calculatorLibraryAddress
 				}
 
                 const lmcAddress = await LMCFactoryInstance.rewardsPools(0);
@@ -405,9 +424,13 @@ describe('LMC Factory', () => { // These tests must be skipped for coverage as c
 
             it("Should be able to add more LockSchemes", async() => {
 
-                const percentageCalculator = await deployer.deploy(PercentageCalculator);
+                const CalculatorInstance = await deployer.deploy(Calculator);
+                const calculatorLibraryAddress = CalculatorInstance.contractAddress
+               
+				const percentageCalculator = await deployer.deploy(PercentageCalculator);
 				libraries = {
-					PercentageCalculator: percentageCalculator.contractAddress
+					PercentageCalculator: percentageCalculator.contractAddress,
+                    Calculator:calculatorLibraryAddress
 				}
 
                 const lmcAddress = await LMCFactoryInstance.rewardsPools(0);

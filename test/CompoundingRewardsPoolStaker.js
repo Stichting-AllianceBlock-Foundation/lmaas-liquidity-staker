@@ -3,6 +3,7 @@ const etherlime = require('etherlime-lib');
 const StakeTransfererAutoStake = require('../build/CompoundingRewardsPoolStaker.json');
 const CompoundingRewardsPool = require('../build/CompoundingRewardsPool.json');
 const StakeReceiverAutoStake = require('../build/CompoundingRewardsPoolStaker.json');
+const Calculator = require('../build/Calculator.json');
 const TestERC20 = require('../build/TestERC20.json');
 const { mineBlock } = require('./utils')
 
@@ -16,6 +17,8 @@ describe('CompoundingRewardsPoolStaker', () => {
     let StakeTransfererAutoStakeInstance;
 	let StakeReceiverAutoStakeInstance;
     let stakingTokenAddress;
+	let CalculatorInstance;
+	let calculatorLibraryAddress;
 
     let rewardTokensInstances;
     let rewardTokensAddresses;
@@ -46,8 +49,13 @@ describe('CompoundingRewardsPoolStaker', () => {
 		
 		
 		stakingTokenInstance = await deployer.deploy(TestERC20, {}, amount);
+		CalculatorInstance = await deployer.deploy(Calculator);
 
         stakingTokenAddress = stakingTokenInstance.contractAddress;
+		calculatorLibraryAddress = CalculatorInstance.contractAddress
+		const libraries = {
+			Calculator:calculatorLibraryAddress
+		  };
 
 		externalRewardsTokenInstance = await deployer.deploy(TestERC20, {}, ethers.utils.parseEther("300000"));
         externalRewardsTokenAddress = externalRewardsTokenInstance.contractAddress;
@@ -59,7 +67,7 @@ describe('CompoundingRewardsPoolStaker', () => {
 
 		CompoundingRewardsPoolInstance = await deployer.deploy(
 			CompoundingRewardsPool,
-			{},
+			libraries,
 			stakingTokenAddress,
 			startBlock,
 			endBlock,
@@ -67,9 +75,9 @@ describe('CompoundingRewardsPoolStaker', () => {
 			[bOne],
 			ethers.constants.MaxUint256,
 			StakeTransfererAutoStakeInstance.contractAddress, 
-			treasury.signer.address, 
 			externalRewardsTokenAddress,
-			contractStakeLimit
+			contractStakeLimit,
+			bOne
 		);
 
 		await StakeTransfererAutoStakeInstance.setPool(CompoundingRewardsPoolInstance.contractAddress);
@@ -79,7 +87,7 @@ describe('CompoundingRewardsPoolStaker', () => {
 
 		CompoundingRewardsPoolInstance = await deployer.deploy(
 			CompoundingRewardsPool,
-			{},
+			libraries,
 			stakingTokenAddress,
 			startBlock,
 			endBlock+1,
@@ -87,10 +95,11 @@ describe('CompoundingRewardsPoolStaker', () => {
 			[bOne],
 			ethers.constants.MaxUint256,
 			StakeReceiverAutoStakeInstance.contractAddress,
-			treasury.signer.address, 
 			externalRewardsTokenAddress,
-			contractStakeLimit
+			contractStakeLimit,
+			bOne
 		);
+
 
 		await StakeReceiverAutoStakeInstance.setPool(CompoundingRewardsPoolInstance.contractAddress);
 		await stakingTokenInstance.mint(CompoundingRewardsPoolInstance.contractAddress,amount);
@@ -159,6 +168,25 @@ describe('CompoundingRewardsPoolStaker', () => {
 		await assert.revertWith(StakeTransfererAutoStakeInstance.exitAndTransfer(StakeReceiverAutoStakeInstance.contractAddress), "onlyUnderStakeLimit::Stake limit reached");
 		
 	})
+
+	it("Should set the proper initial rewards sended", async() => {
+		let amountTransferred = await CompoundingRewardsPoolInstance.amountTransferred();
+		assert(amountTransferred.eq(bOne), "The amount send as rewards is not correct")
+	})
+
+	it("Should set the proper total rewards", async() => {
+		let totalRewardsContract = await CompoundingRewardsPoolInstance.totalRewards();
+		let totalRewards = bOne.mul(31);
+		assert(totalRewardsContract.eq(totalRewards), "The total reward is not correct");
+	})
+
+	it("Should add more rewards and increment the rewards added", async() => {
+		let totalRewardsContract = await CompoundingRewardsPoolInstance.addMoreRewards(stakingTokenAddress,bOne);
+		let amountTransferred = await CompoundingRewardsPoolInstance.amountTransferred();
+		let totalRewardsSend = bOne.mul(2);
+		assert(amountTransferred.eq(totalRewardsSend), "The amount send as rewards is not correct")
+	})
+
 
 
 });

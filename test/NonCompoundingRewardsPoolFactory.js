@@ -4,6 +4,7 @@ const NonCompoundingRewardsPoolFactory = require('../build/NonCompoundingRewards
 const TestERC20 = require('../build/TestERC20.json');
 const NonCompoundingRewardsPool = require('../build/NonCompoundingRewardsPool.json');
 const { mineBlock } = require('./utils')
+const Calculator = require('../build/Calculator.json');
 
 describe('NonCompoundingRewardsPoolFactory', () => {
     let aliceAccount = accounts[3];
@@ -55,7 +56,12 @@ describe('NonCompoundingRewardsPoolFactory', () => {
         externalRewardsTokenAddress = externalRewardsTokenInstance.contractAddress;
     
         await setupRewardsPoolParameters(deployer)
-        NonCompoundingRewardsPoolFactoryInstance = await deployer.deploy(NonCompoundingRewardsPoolFactory, {}, treasury.signer.address, externalRewardsTokenAddress);
+        const calculatoInstance = await deployer.deploy(Calculator);
+
+        let libraries = {
+            Calculator: calculatoInstance.contractAddress
+        }
+        NonCompoundingRewardsPoolFactoryInstance = await deployer.deploy(NonCompoundingRewardsPoolFactory, libraries, treasury.signer.address, externalRewardsTokenAddress);
     });
 
     it('should deploy valid rewards pool factory contract', async () => {

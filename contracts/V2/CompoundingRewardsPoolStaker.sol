@@ -14,7 +14,8 @@ contract CompoundingRewardsPoolStaker is LimitedAutoStake, StakeTransfererAutoSt
 		LimitedAutoStake.stake(amount);
 	}
 
-	function delegateStake(address staker, uint256 amount) onlyUnderStakeLimit(staker, amount) virtual override(StakeReceiverAutoStake) public {
+	function delegateStake(address staker, uint256 amount)  virtual override(StakeReceiverAutoStake) public {
+		onlyUnderStakeLimit(staker, amount);
 		StakeReceiverAutoStake.delegateStake(staker, amount);
 	}
 }

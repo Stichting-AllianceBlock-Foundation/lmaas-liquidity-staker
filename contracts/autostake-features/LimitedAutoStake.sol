@@ -15,13 +15,13 @@ contract LimitedAutoStake is AutoStake {
 		stakeLimit = _stakeLimit;
 	}
 
-	modifier onlyUnderStakeLimit(address staker, uint256 newStake) {
+	function onlyUnderStakeLimit(address staker, uint256 newStake) internal {
 		uint256 currentStake = balanceOf(staker);
 		require(currentStake.add(newStake) <= stakeLimit, "onlyUnderStakeLimit::Stake limit reached");
-		_;
 	}
 
-	function stake(uint256 amount) public virtual override(AutoStake) onlyUnderStakeLimit(msg.sender, amount) {
+	function stake(uint256 amount) public virtual override(AutoStake)  {
+		onlyUnderStakeLimit(msg.sender, amount);
 		AutoStake.stake(amount);
 	}
 

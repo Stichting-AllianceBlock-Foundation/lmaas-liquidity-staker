@@ -41,12 +41,12 @@ contract AutoStake is ReentrancyGuard, StakeLock, ThrottledExit, Ownable {
 		rewardPool = IRewardsPoolBase(pool);
 	}
 
-	modifier onlyFactory() {
+
+	function onlyFactory(address sender) public {
 		require(
 			msg.sender == factory,
 			"Caller is not the Factory contract"
 		);
-		_;
 	}
 
 	function refreshAutoStake() external {
@@ -79,7 +79,8 @@ contract AutoStake is ReentrancyGuard, StakeLock, ThrottledExit, Ownable {
 		restakeIntoRewardPool();
 	}
 
-	function exit() public virtual onlyUnlocked nonReentrant {
+	function exit() public virtual nonReentrant {
+		onlyUnlocked();
 		exitRewardPool();
 		updateValuePerShare();
 
@@ -100,7 +101,8 @@ contract AutoStake is ReentrancyGuard, StakeLock, ThrottledExit, Ownable {
 		updateValuePerShare();
 	}
 
-	function completeExit() virtual public onlyUnlocked nonReentrant {
+	function completeExit() virtual public  nonReentrant {
+		onlyUnlocked();
 		ExitInfo storage info = exitInfo[msg.sender];
 		exitStake = exitStake.sub(info.exitStake);
 

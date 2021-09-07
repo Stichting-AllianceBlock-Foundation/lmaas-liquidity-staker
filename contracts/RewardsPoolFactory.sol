@@ -8,6 +8,7 @@ import "./interfaces/IERC20Detailed.sol";
 import "./SafeERC20Detailed.sol";
 import "./RewardsPoolBase.sol";
 import "./AbstractPoolsFactory.sol";
+import "./V2/libraries/Calculator.sol";
 
 contract RewardsPoolFactory is AbstractPoolsFactory {
 	using SafeMath for uint256;
@@ -36,7 +37,8 @@ contract RewardsPoolFactory is AbstractPoolsFactory {
 		uint256[] calldata _rewardPerBlock,
 		uint256 _stakeLimit,
 		uint256 _contractStakeLimit
-	) external onlyOwner {
+	) external  {
+		onlyOwner(msg.sender);
 		require(
 			_stakingToken != address(0),
 			"RewardsPoolFactory::deploy: Staking token address can't be zero address"
@@ -79,7 +81,7 @@ contract RewardsPoolFactory is AbstractPoolsFactory {
 			);
 
 			uint256 rewardsAmount =
-				calculateRewardsAmount(
+				Calculator.calculateRewardsAmount(
 					_startBlock,
 					_endBlock,
 					_rewardPerBlock[i]
@@ -103,8 +105,8 @@ contract RewardsPoolFactory is AbstractPoolsFactory {
 		uint256 _endBlock,
 		uint256[] memory _rewardsPerBlock,
 		address _rewardsPoolAddress
-	) external onlyOwner {
-
+	) external {
+		onlyOwner(msg.sender);
 		RewardsPoolBase pool = RewardsPoolBase(_rewardsPoolAddress);
 		uint256 currentEndBlock = pool.endBlock();
 		uint256[] memory currentRemainingRewards = new uint256[](_rewardsPerBlock.length);
@@ -112,8 +114,8 @@ contract RewardsPoolFactory is AbstractPoolsFactory {
 
 		for (uint256 i = 0; i < _rewardsPerBlock.length; i++) {
 
-			currentRemainingRewards[i] = calculateRewardsAmount(block.number, currentEndBlock, pool.rewardPerBlock(i));
-			newRemainingRewards[i] = calculateRewardsAmount(block.number, _endBlock, _rewardsPerBlock[i]);
+			currentRemainingRewards[i] = Calculator.calculateRewardsAmount(block.number, currentEndBlock, pool.rewardPerBlock(i));
+			newRemainingRewards[i] = Calculator.calculateRewardsAmount(block.number, _endBlock, _rewardsPerBlock[i]);
 
 			address rewardsToken = RewardsPoolBase(_rewardsPoolAddress).rewardsTokens(i);
 

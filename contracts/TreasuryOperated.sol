@@ -17,17 +17,17 @@ abstract contract TreasuryOperated {
 	event ExternalRewardsAdded(address indexed from ,address token, uint256 reward);
 	event ExternalRewardsClaimed(address receiver);
 
-	modifier onlyTreasury() {
-		require(msg.sender == treasury, "onlyTreasury::Not called by the treasury");
-		_;
+	function onlyTreasury(address sender) public {
+		require(msg.sender == treasury, "OT::Not called by the treasury");
 	}
 
 	constructor(address _treasury) public {
-		require(_treasury != address(0x0), "setTreasury::Treasury cannot be 0");
+		require(_treasury != address(0x0), "ST::Treasury cannot be 0");
 		treasury = _treasury;
 	}
 
-	function withdrawStake(uint256 amount) virtual public onlyTreasury {
+	function withdrawStake(uint256 amount) virtual public  {
+		onlyTreasury(msg.sender);
 		emit StakeWithdrawn(amount);
 	}
 

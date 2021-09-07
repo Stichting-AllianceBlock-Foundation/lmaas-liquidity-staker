@@ -121,7 +121,7 @@ describe('RewardsPoolBase', () => {
             rewardPerBlock,
 			stakeLimit,
 			contractStakeLimit
-		), "Constructor::Invalid staking token address")
+		), "C::Invalid staking token address")
 	})
 
 	it("Should fail to deploy RewardsPoolBase with empty rewards token addresses array", async() => {
@@ -136,7 +136,7 @@ describe('RewardsPoolBase', () => {
             rewardPerBlock,
 			stakeLimit,
 			contractStakeLimit
-		), "Constructor::Rewards per block and rewards tokens must be with the same length.")
+		), "C::Rewards per block and rewards tokens must be with the same length.")
 	})
 
 	it("Should fail to deploy RewardsPoolBase with empty rewards per block array", async() => {
@@ -151,7 +151,7 @@ describe('RewardsPoolBase', () => {
             [],
 			stakeLimit,
 			contractStakeLimit
-		), "Constructor::Rewards per block and rewards tokens must be with the same length.")
+		), "C::Rewards per block and rewards tokens must be with the same length.")
 	})
 	
 	it("Should fail to deploy RewardsPoolBase if the start block is not in the future", async() => {
@@ -166,7 +166,7 @@ describe('RewardsPoolBase', () => {
             rewardPerBlock,
 			stakeLimit,
 			contractStakeLimit
-		), "Constructor::The starting block must be in the future.")
+		), "C::The starting block must be in the future.")
 	})
 
 	it("Should fail to deploy RewardsPoolBase if the end block is not in the future", async() => {
@@ -181,7 +181,7 @@ describe('RewardsPoolBase', () => {
             rewardPerBlock,
 			stakeLimit,
 			contractStakeLimit
-		), "Constructor::The end block must be in the future.")
+		), "C::The end block must be in the future.")
 	})
 
 	it("Should fail to deploy RewardsPoolBase with 0 staking limit", async() => {
@@ -196,7 +196,7 @@ describe('RewardsPoolBase', () => {
             rewardPerBlock,
 			0,
 			contractStakeLimit
-		), "Constructor::Stake limit needs to be more than 0")
+		), "C::Stake limit needs to be more than 0")
 	})
 	it("Should fail to deploy RewardsPoolBase with 0 contract staking limit", async() => {
 
@@ -210,14 +210,14 @@ describe('RewardsPoolBase', () => {
             rewardPerBlock,
 			stakeLimit,
 			0
-		), "Constructor:: Contract Stake limit needs to be more than 0")
+		), "C:: Contract Stake limit needs to be more than 0")
 	})
 
 	describe("Staking", function() {
 
 		it("Should not stake before staking start", async() => {
 			await stakingTokenInstance.approve(RewardsPoolBaseInstance.contractAddress, standardStakingAmount);
-			await assert.revertWith(RewardsPoolBaseInstance.stake(standardStakingAmount), "Stake::Staking has not yet started");
+			await assert.revertWith(RewardsPoolBaseInstance.stake(standardStakingAmount), "S::Staking has not yet started");
 		})
 
 		describe("Inside bounds", function() {
@@ -281,15 +281,15 @@ describe('RewardsPoolBase', () => {
 			})
 
 			it("Should fail if amount to stake is not greater than zero", async() => {
-				await assert.revertWith(RewardsPoolBaseInstance.stake(0), "Stake::Cannot stake 0");
+				await assert.revertWith(RewardsPoolBaseInstance.stake(0), "S::Cannot stake 0");
 			})
 
 			it("Should fail if amount to stake is more than limit", async() => {
-				await assert.revertWith(RewardsPoolBaseInstance.stake(stakeLimit.mul(2)), "onlyUnderStakeLimit::Stake limit reached");
+				await assert.revertWith(RewardsPoolBaseInstance.stake(stakeLimit.mul(2)), "oUSL::Stake limit reached");
 			})
 
 			it("Should fail if amount to stake is more than the contract limit", async() => {
-				await assert.revertWith(RewardsPoolBaseInstance.stake(contractStakeLimit.mul(2)), "onlyUnderStakeLimit::Contract Stake limit reached");
+				await assert.revertWith(RewardsPoolBaseInstance.stake(contractStakeLimit.mul(2)), "oUSL::Contract Stake limit reached");
 			})
 
 		})
@@ -386,7 +386,7 @@ describe('RewardsPoolBase', () => {
 		})
 
 		it("Should fail withdrawing if the amount to withraw is not greater than zero", async() => {
-			assert.revertWith(RewardsPoolBaseInstance.withdraw(0), "Withdraw::Cannot withdraw 0");
+			assert.revertWith(RewardsPoolBaseInstance.withdraw(0), "W::Cannot withdraw 0");
 		})
 
 		it("Should fail withdrawing if the amount to withraw is not greater than zero", async() => {
@@ -438,7 +438,7 @@ describe('RewardsPoolBase', () => {
 		it("Should fail extending the rewards pool if the end block is not in the future", async() => {
 			let currentRemainingRewards = []
 			let newRemainingReward = []
-			await assert.revertWith( RewardsPoolBaseInstance.extend(0,rewardPerBlock,currentRemainingRewards,newRemainingReward), "Extend::End block must be in the future")
+			await assert.revertWith( RewardsPoolBaseInstance.extend(0,rewardPerBlock,currentRemainingRewards,newRemainingReward), "E::End block must be in the future")
 		})
 
 		it("Should fail extentind the rewards pool if the end block is not greater than the previous", async() => {
@@ -446,7 +446,7 @@ describe('RewardsPoolBase', () => {
 			let newEndBlock = currentEndBlock.sub(1)
 			let currentRemainingRewards = []
 			let newRemainingReward = []
-			await assert.revertWith( RewardsPoolBaseInstance.extend(newEndBlock,rewardPerBlock,currentRemainingRewards,newRemainingReward), "Extend::End block must be after the current end block")
+			await assert.revertWith( RewardsPoolBaseInstance.extend(newEndBlock,rewardPerBlock,currentRemainingRewards,newRemainingReward), "E::End block must be after the current end block")
 		})
 
 		it("Should fail extentind the rewards pool if the rewards per block arrays is with different length", async() => {
@@ -464,14 +464,14 @@ describe('RewardsPoolBase', () => {
 				let parsedReward = await ethers.utils.parseEther(`${i+2}`);
 				newRewardsPerBlock.push(parsedReward);
 			}
-			await assert.revertWith( RewardsPoolBaseInstance.extend(newEndBlock,newRewardsPerBlock,currentRemainingRewards,newRemainingReward), "Extend::Rewards amounts length is less than expected")
+			await assert.revertWith( RewardsPoolBaseInstance.extend(newEndBlock,newRewardsPerBlock,currentRemainingRewards,newRemainingReward), "E::Rewards amounts length is less than expected")
 		})
 
 		it("Should fail extending the rewards pool the caller is not the factory", async() => {
 			let newEndBlock = endBlock + 10
 			let currentRemainingRewards = []
 			let newRemainingReward = []
-			await assert.revertWith( RewardsPoolBaseInstance.from(bobAccount.signer.address).extend(newEndBlock,rewardPerBlock,currentRemainingRewards,newRemainingReward), "Caller is not RewardsPoolFactory contract")
+			await assert.revertWith( RewardsPoolBaseInstance.from(bobAccount.signer.address).extend(newEndBlock,rewardPerBlock,currentRemainingRewards,newRemainingReward), "Caller is not Factory contract")
 		})
 	})
 
@@ -531,12 +531,12 @@ describe('RewardsPoolBase', () => {
 
 		it("Shoult fail to return the lenght of token owed with zero address ", async() => {
 			
-			await assert.revertWith(RewardsPoolBaseInstance.getUserTokensOwedLength(ethers.constants.AddressZero), "GetUserTokensOwedLength::Invalid user address")
+			await assert.revertWith(RewardsPoolBaseInstance.getUserTokensOwedLength(ethers.constants.AddressZero), "GUTOL::Invalid user address")
 		})
 
 		it("Shoult fail to return the lenght of token owed with zero address ", async() => {
 			
-			await assert.revertWith(RewardsPoolBaseInstance.getUserRewardDebtLength(ethers.constants.AddressZero), "GetUserRewardDebtLength::Invalid user address")
+			await assert.revertWith(RewardsPoolBaseInstance.getUserRewardDebtLength(ethers.constants.AddressZero), "GURDL::Invalid user address")
 		})
 		it("Should revert if the token to withdraw is part of the rewards", async () => {
 			

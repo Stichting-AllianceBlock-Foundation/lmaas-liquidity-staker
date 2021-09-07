@@ -14,7 +14,8 @@ abstract contract ThrottledExitFeature is StakeLockingFeature, ThrottledExit {
 	using SafeMath for uint256;
 	using SafeERC20Detailed for IERC20Detailed;
 
-	function exit() virtual public override onlyUnlocked nonReentrant {
+	function exit() virtual public override nonReentrant {
+		onlyUnlocked();
 		UserInfo storage user = userInfo[msg.sender];
 
 		updateRewardMultipliers(); // Update the accumulated multipliers for everyone
@@ -36,7 +37,8 @@ abstract contract ThrottledExitFeature is StakeLockingFeature, ThrottledExit {
 		}
 	}
 
-	function completeExit() virtual public onlyUnlocked nonReentrant {
+	function completeExit() virtual public nonReentrant {
+		onlyUnlocked();
 		finalizeExit(address(stakingToken), rewardsTokens);
 	}
 

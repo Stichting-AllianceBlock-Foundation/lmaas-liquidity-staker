@@ -3,6 +3,7 @@ const etherlime = require('etherlime-lib');
 const CompoundingRewardsPoolStaker = require('../build/CompoundingRewardsPoolStaker.json');
 const CompoundingRewardsPool = require('../build/CompoundingRewardsPool.json');
 const CompoundingRewardsPoolFactory = require('../build/CompoundingRewardsPoolFactory.json');
+const Calculator = require('../build/Calculator.json');
 const TestERC20 = require('../build/TestERC20.json');
 const RewardsPoolBase = require('../build/RewardsPoolBase.json');
 const { mineBlock } = require('./utils')
@@ -11,9 +12,10 @@ describe('CompoundingRewardsPoolFactory', () => { // These tests must be skipped
     let aliceAccount = accounts[3];
     let bobAccount = accounts[4];
     let carolAccount = accounts[5];
-    let treasury = accounts[8];
     let deployer;
     let CompoundingRewardsPoolFactoryInstance;
+    let CalculatorInstance;
+	let calculatorLibraryAddress;
     let stakingTokenInstance;
     let stakingTokenAddress;
     let rewardPerBlock;
@@ -47,9 +49,15 @@ describe('CompoundingRewardsPoolFactory', () => { // These tests must be skipped
 
         externalRewardsTokenInstance = await deployer.deploy(TestERC20, {}, ethers.utils.parseEther("300000"));
         externalRewardsTokenAddress = externalRewardsTokenInstance.contractAddress;
+        CalculatorInstance = await deployer.deploy(CalculatorInstance);
+
+		calculatorLibraryAddress = CalculatorInstance.contractAddress
+		const libraries = {
+			Calculator:calculatorIntance.contractAddress
+		  };
     
         await setupRewardsPoolParameters(deployer)
-        CompoundingRewardsPoolFactoryInstance = await deployer.deploy(CompoundingRewardsPoolFactory, {}, treasury.signer.address, externalRewardsTokenAddress);
+        CompoundingRewardsPoolFactoryInstance = await deployer.deploy(CompoundingRewardsPoolFactory, libraries, externalRewardsTokenAddress);
     });
 
     it('should deploy valid rewards pool factory contract', async () => {

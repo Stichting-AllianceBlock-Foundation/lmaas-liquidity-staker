@@ -4,6 +4,7 @@ const ethers = require('ethers')
 const CompoundingRewardsPoolFactory = require('../build/CompoundingRewardsPoolFactory.json')
 const TestERC20 = require('../build/TestERC20.json')
 const Treasury = require('../build/Treasury.json')
+const Calculator = require('../build/Calculator.json');
 
 // CONTSANTS
 const BLOCKS_PER_DAY_BSC = 28800
@@ -29,6 +30,7 @@ const deploy = async (network, secret, etherscanApiKey) => {
   const wallet = new ethers.Wallet(secret, deployer.provider)
 
   let albtInstance = new ethers.Contract(RinkebyTestALBTAddress, TestERC20.abi, wallet)
+ 
 
   let parsedReward = parseEther(`10`)
   rewardsPerBock = parsedReward
@@ -55,13 +57,19 @@ const deploy = async (network, secret, etherscanApiKey) => {
   const allRewards = amountToTransfer.mul(5)
   const gasPrice = { gasPrice: 20000000000 }
 
-  const TreasuryInstance = await deployer.deploy(Treasury, {}, UniSwapRouter, RinkebyTestALBTAddress, gasPrice)
-  console.log('\x1b[36m%s\x1b[0m', `--- Treasury address: ${TreasuryInstance.contractAddress} ---`)
+  // const TreasuryInstance = await deployer.deploy(Treasury, {}, UniSwapRouter, RinkebyTestALBTAddress, gasPrice)
+  // console.log('\x1b[36m%s\x1b[0m', `--- Treasury address: ${TreasuryInstance.contractAddress} ---`)
+
+  const calculatorIntance = await deployer.deploy(Calculator);
+  console.log('\x1b[36m%s\x1b[0m', `--- Calculator address: ${calculatorIntance.contractAddress} ---`)
+
+  const libraries = {
+    Calculator:calculatorIntance.contractAddress
+  };
 
   const CompoundingRewardsPoolFactoryInstance = await deployer.deploy(
     CompoundingRewardsPoolFactory,
-    {},
-    TreasuryInstance.contractAddress,
+    libraries,
     RinkebyTestALBTAddress
   )
   console.log('\x1b[36m%s\x1b[0m', `--- Factory address: ${CompoundingRewardsPoolFactoryInstance.contractAddress} ---`)

@@ -24,19 +24,19 @@ abstract contract AbstractPoolsFactory {
 		owner = msg.sender;
 	}
 
-	modifier onlyOwner() {
-		require(msg.sender == owner, "onlyOwner:: The caller is not the owner");
-		_;
+	function onlyOwner(address messageSender) public { 
+		require(messageSender == owner, "onlyOwner:: The caller is not the owner");
 	}
 
-	function transferOwnership(address newOwner) public onlyOwner {
-		require(newOwner != address(0x0), "Cannot set owner to 0 address");
+	function transferOwnership(address newOwner) public {
+		onlyOwner(msg.sender);
+		require(newOwner != address(0x0), "Cannot set owner to 0x0");
 		pendingOwner = newOwner;
 		emit OwnershipTransferProposed(msg.sender, owner);
 	}
 
 	function acceptOwnership() public {
-		require(msg.sender == pendingOwner, "Sender is different from proposed owner");
+		require(msg.sender == pendingOwner, "Sender != proposed owner");
 
 		owner = pendingOwner;
 		emit OwnershipTransferred(owner);
@@ -48,23 +48,6 @@ abstract contract AbstractPoolsFactory {
 		return rewardsPools.length;
 	}
 
-	/** @dev Helper function to calculate how much tokens should be transffered to a rewards pool.
-	 */
-	function calculateRewardsAmount(
-		uint256 _startBlock,
-		uint256 _endBlock,
-		uint256 _rewardPerBlock
-	) public pure returns (uint256) {
-		require(
-			_rewardPerBlock > 0,
-			"calculateRewardsAmount:: Rewards per block must be greater than zero"
-		);
-
-		uint256 rewardsPeriod = _endBlock.sub(_startBlock);
-
-		return _rewardPerBlock.mul(rewardsPeriod);
-	}
-
 	/** @dev Triggers the withdrawal of LP rewards from the rewards pool contract to the given recipient address
 	 * @param rewardsPoolAddress The address of the token being staked
 	 * @param recipient The address to whom the rewards will be trasferred
@@ -74,10 +57,11 @@ abstract contract AbstractPoolsFactory {
 		address rewardsPoolAddress,
 		address recipient,
 		address lpTokenContract
-	) external onlyOwner {
+	) external  {
+		onlyOwner(msg.sender);
 		require(
 			rewardsPoolAddress != address(0),
-			"startStaking:: not deployed"
+			"WLPR:: not deployed"
 		);
 		IRewardsPoolBase pool = IRewardsPoolBase(rewardsPoolAddress);
 		pool.withdrawLPRewards(recipient, lpTokenContract);
@@ -86,8 +70,8 @@ abstract contract AbstractPoolsFactory {
 	/** @dev Function to withdraw any rewards leftover, mainly from extend with lower rate.
 	 * @param _rewardsToken The address of the rewards to be withdrawn.
 	 */
-	function withdrawRewardsLeftovers(address _rewardsToken) external onlyOwner {
-
+	function withdrawRewardsLeftovers(address _rewardsToken) external  {
+		onlyOwner(msg.sender);
 		uint256 contractBalance = IERC20Detailed(_rewardsToken).balanceOf(address(this));
 		IERC20Detailed(_rewardsToken).safeTransfer(msg.sender,contractBalance );
 
