@@ -14,7 +14,7 @@ library Calculator {
 	) public pure returns (uint256) {
 		require(
 			_rewardPerBlock > 0,
-			"CRA:: Rewards must be > zero"
+			"CL:Err01"
 		);
 
 		uint256 rewardsPeriod = _endBlock.sub(_startBlock);

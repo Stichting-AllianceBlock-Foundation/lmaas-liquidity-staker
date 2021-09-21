@@ -44,8 +44,8 @@ describe('NonCompoundingRewardsPoolFactory', () => {
         }
 
 		const currentBlock = await deployer.provider.getBlock('latest');
-		startBlock = currentBlock.number + 10;
-		endBlock = startBlock + 20;
+		startBlock = currentBlock.number + 11;
+		endBlock = startBlock + 21;
 
 	}
 
@@ -176,10 +176,10 @@ describe('NonCompoundingRewardsPoolFactory', () => {
                 for (i = 0; i < rewardTokensAddresses.length; i++) {
                     await rewardTokensInstances[i].transfer(NonCompoundingRewardsPoolFactoryInstance.contractAddress, amountToTransfer);
                 }
-                await NonCompoundingRewardsPoolFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock, rewardTokensAddresses, rewardPerBlock, stakeLimit, 10, stakeLimit, contractStakeLimit);
-                await NonCompoundingRewardsPoolFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock+10, rewardTokensAddresses, rewardPerBlock, stakeLimit, 10, stakeLimit, contractStakeLimit);
-                await NonCompoundingRewardsPoolFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock+100, rewardTokensAddresses, rewardPerBlock, stakeLimit, 10, stakeLimit, contractStakeLimit);
-                await NonCompoundingRewardsPoolFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock+100, rewardTokensAddresses, rewardPerBlock, stakeLimit, 10, stakeLimit, contractStakeLimit);
+                await NonCompoundingRewardsPoolFactoryInstance.deploy(stakingTokenAddress, startBlock + 1, endBlock, rewardTokensAddresses, rewardPerBlock, stakeLimit, 10, stakeLimit, contractStakeLimit);
+                await NonCompoundingRewardsPoolFactoryInstance.deploy(stakingTokenAddress, startBlock + 1, endBlock+10, rewardTokensAddresses, rewardPerBlock, stakeLimit, 10, stakeLimit, contractStakeLimit);
+                await NonCompoundingRewardsPoolFactoryInstance.deploy(stakingTokenAddress, startBlock + 1, endBlock+100, rewardTokensAddresses, rewardPerBlock, stakeLimit, 10, stakeLimit, contractStakeLimit);
+                await NonCompoundingRewardsPoolFactoryInstance.deploy(stakingTokenAddress, startBlock + 1 , endBlock+100, rewardTokensAddresses, rewardPerBlock, stakeLimit, 10, stakeLimit, contractStakeLimit);
 
                 const transfererAddress = await NonCompoundingRewardsPoolFactoryInstance.rewardsPools(0);
                 const receiverAddress = await NonCompoundingRewardsPoolFactoryInstance.rewardsPools(1);
@@ -230,12 +230,12 @@ describe('NonCompoundingRewardsPoolFactory', () => {
             });
 
             it('Should fail whitelisting if called with wrong params', async () => {
-                await assert.revertWith(NonCompoundingRewardsPoolFactoryInstance.enableReceivers(ethers.constants.AddressZero, [receiver.contractAddress]), "enableReceivers::Transferer cannot be 0");
-                await assert.revertWith(NonCompoundingRewardsPoolFactoryInstance.enableReceivers(transferer.contractAddress, [ethers.constants.AddressZero]), "enableReceivers::Receiver cannot be 0");
+                await assert.revertWith(NonCompoundingRewardsPoolFactoryInstance.enableReceivers(ethers.constants.AddressZero, [receiver.contractAddress]), "STEF:Err01");
+                await assert.revertWith(NonCompoundingRewardsPoolFactoryInstance.enableReceivers(transferer.contractAddress, [ethers.constants.AddressZero]), "STEF:Err02");
             });
 
             it('Should fail whitelisting if not called by the owner', async () => {
-                await assert.revertWith(NonCompoundingRewardsPoolFactoryInstance.from(bobAccount.signer).enableReceivers(transferer.contractAddress, [receiver.contractAddress]), "onlyOwner:: The caller is not the owner");
+                await assert.revertWith(NonCompoundingRewardsPoolFactoryInstance.from(bobAccount.signer).enableReceivers(transferer.contractAddress, [receiver.contractAddress]), "APF:Err01");
             });
 
             it("Should fail to migrate if the campaign has not ended", async () => {

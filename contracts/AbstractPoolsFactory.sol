@@ -25,18 +25,18 @@ abstract contract AbstractPoolsFactory {
 	}
 
 	function onlyOwner(address messageSender) public { 
-		require(messageSender == owner, "onlyOwner:: The caller is not the owner");
+		require(messageSender == owner, "APF:Err01");
 	}
 
 	function transferOwnership(address newOwner) public {
 		onlyOwner(msg.sender);
-		require(newOwner != address(0x0), "Cannot set owner to 0x0");
+		require(newOwner != address(0x0), "APF:Err02");
 		pendingOwner = newOwner;
 		emit OwnershipTransferProposed(msg.sender, owner);
 	}
 
 	function acceptOwnership() public {
-		require(msg.sender == pendingOwner, "Sender != proposed owner");
+		require(msg.sender == pendingOwner, "APR:Err03");
 
 		owner = pendingOwner;
 		emit OwnershipTransferred(owner);
@@ -61,7 +61,7 @@ abstract contract AbstractPoolsFactory {
 		onlyOwner(msg.sender);
 		require(
 			rewardsPoolAddress != address(0),
-			"WLPR:: not deployed"
+			"APF:Err04"
 		);
 		IRewardsPoolBase pool = IRewardsPoolBase(rewardsPoolAddress);
 		pool.withdrawLPRewards(recipient, lpTokenContract);

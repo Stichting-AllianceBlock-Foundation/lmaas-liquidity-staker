@@ -12,12 +12,13 @@ contract CompoundingRewardsPoolFactory is AbstractPoolsFactory, StakeTransferEna
 	using SafeERC20Detailed for IERC20Detailed;
 
 	address public immutable externalRewardToken;
+	uint256 public constant MAX_INT = 115792089237316195423570985008687907853269984665640564039457584007913129639935;
 
 	constructor(address _externalRewardToken) public {
 	
         require(
             _externalRewardToken != address(0),
-            "CRPF:: External reward address can't be zero address"
+            "CRPF:: Err01"
         );
 		externalRewardToken = _externalRewardToken;
 	}
@@ -37,27 +38,27 @@ contract CompoundingRewardsPoolFactory is AbstractPoolsFactory, StakeTransferEna
 		onlyOwner(msg.sender);
 		require(
 			_stakingToken != address(0),
-			"CRPF::deploy: Staking token address can't be zero address"
+			"CRPF::Err02"
 		);
 
 		require(
 			_rewardPerBlock != 0,
-			"CRPF::deploy: Reward per block must be more than 0"
+			"CRPF::Err03"
 		);
 
 		require(
 			_stakeLimit != 0,
-			"CRPF::deploy: Stake limit must be more than 0"
+			"CRPF::Err04"
 		);
 
 		require(
 			_throttleRoundBlocks != 0,
-			"CRPF::deploy: Throttle round blocks must be more than 0"
+			"CRPF::Err05"
 		);
 
 		require(
 			_throttleRoundCap != 0,
-			"CRPF::deploy: Throttle round cap must be more than 0"
+			"CRPF::Err06"
 		);
 
 		CompoundingRewardsPoolStaker autoStaker = new CompoundingRewardsPoolStaker(
@@ -65,7 +66,8 @@ contract CompoundingRewardsPoolFactory is AbstractPoolsFactory, StakeTransferEna
 			_throttleRoundBlocks,
 			_throttleRoundCap,
 			_endBlock,
-			_stakeLimit
+			_stakeLimit,
+			_contractStakeLimit
 		);
 
 		address[] memory rewardTokens = new address[](1);
@@ -84,7 +86,7 @@ contract CompoundingRewardsPoolFactory is AbstractPoolsFactory, StakeTransferEna
 				uint256(-1),
 				address(autoStaker),
 				externalRewardToken,
-				_contractStakeLimit,
+				MAX_INT,
 				_initialAmountToTransfer
 			);
 

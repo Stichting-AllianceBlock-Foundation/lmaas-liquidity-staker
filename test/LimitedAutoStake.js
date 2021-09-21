@@ -46,7 +46,7 @@ describe('LimitedAutoStake', () => {
 
 			await setupRewardsPoolParameters(deployer)
 
-			AutoStakingInstance = await deployer.deploy(LimitedAutoStake, {}, stakingTokenAddress, throttleRoundBlocks, bOne, endBlock, stakeLimit);
+			AutoStakingInstance = await deployer.deploy(LimitedAutoStake, {}, stakingTokenAddress, throttleRoundBlocks, bOne, endBlock, stakeLimit,contractStakeLimit);
 
 			OneStakerRewardsPoolInstance = await deployer.deploy(
 				OneStakerRewardsPool,
@@ -79,7 +79,7 @@ describe('LimitedAutoStake', () => {
 
 			await setupRewardsPoolParameters(deployer)
 
-			await assert.revertWith(deployer.deploy(LimitedAutoStake, {}, stakingTokenAddress, throttleRoundBlocks, bOne, endBlock, 0), "LimitedAutoStake:constructor::stake limit should not be 0")
+			await assert.revertWith(deployer.deploy(LimitedAutoStake, {}, stakingTokenAddress, throttleRoundBlocks, bOne, endBlock, 0 , contractStakeLimit), "LAS:Err01")
 		})
 	})
 
@@ -92,7 +92,7 @@ describe('LimitedAutoStake', () => {
 
 			await setupRewardsPoolParameters(deployer)
 
-			AutoStakingInstance = await deployer.deploy(LimitedAutoStake, {}, stakingTokenAddress, throttleRoundBlocks, bOne, endBlock, stakeLimit);
+			AutoStakingInstance = await deployer.deploy(LimitedAutoStake, {}, stakingTokenAddress, throttleRoundBlocks, bOne, endBlock, stakeLimit, contractStakeLimit);
 
 			OneStakerRewardsPoolInstance = await deployer.deploy(
 				OneStakerRewardsPool,
@@ -144,7 +144,7 @@ describe('LimitedAutoStake', () => {
 		})
 
 		it("Should fail if amount to stake is more than limit", async() => {
-			await assert.revertWith(AutoStakingInstance.from(staker.signer).stake(stakeLimit.mul(2)), "onlyUnderStakeLimit::Stake limit reached");
+			await assert.revertWith(AutoStakingInstance.from(staker.signer).stake(stakeLimit.mul(2)), "LAS:Errr02");
 		})
 
 		describe("Exiting", async function() {

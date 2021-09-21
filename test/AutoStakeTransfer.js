@@ -50,7 +50,7 @@ describe('AutoStakeTransfer', () => {
 
         await setupRewardsPoolParameters(deployer)
 
-		StakeTransfererAutoStakeInstance = await deployer.deploy(StakeTransfererAutoStake, {}, stakingTokenAddress, throttleRoundBlocks, bOne, endBlock);
+		StakeTransfererAutoStakeInstance = await deployer.deploy(StakeTransfererAutoStake, {}, stakingTokenAddress, throttleRoundBlocks, bOne, endBlock,contractStakeLimit);
 
 		OneStakerRewardsPoolInstance = await deployer.deploy(
 			OneStakerRewardsPool,
@@ -68,7 +68,7 @@ describe('AutoStakeTransfer', () => {
 		await StakeTransfererAutoStakeInstance.setPool(OneStakerRewardsPoolInstance.contractAddress);
 		await stakingTokenInstance.mint(OneStakerRewardsPoolInstance.contractAddress,amount);
 
-		StakeReceiverAutoStakeInstance = await deployer.deploy(StakeReceiverAutoStake, {}, stakingTokenAddress, throttleRoundBlocks, bOne, endBlock+1);
+		StakeReceiverAutoStakeInstance = await deployer.deploy(StakeReceiverAutoStake, {}, stakingTokenAddress, throttleRoundBlocks, bOne, endBlock+1,contractStakeLimit);
 
 		OneStakerRewardsPoolInstance = await deployer.deploy(
 			OneStakerRewardsPool,
@@ -128,7 +128,7 @@ describe('AutoStakeTransfer', () => {
 	it("Should not set contract whitelisted by not deployer", async() => {
 		await mineBlock(deployer.provider);
 
-		await assert.revertWith(StakeTransfererAutoStakeInstance.from(bobAccount.signer.address).setReceiverWhitelisted(bobAccount.signer.address, true), "Caller is not the Factory contract");
+		await assert.revertWith(StakeTransfererAutoStakeInstance.from(bobAccount.signer.address).setReceiverWhitelisted(bobAccount.signer.address, true), "AS:Err02");
 	})
 
 });

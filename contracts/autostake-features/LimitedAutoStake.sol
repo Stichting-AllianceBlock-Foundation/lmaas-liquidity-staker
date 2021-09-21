@@ -10,14 +10,14 @@ contract LimitedAutoStake is AutoStake {
 
 	uint256 public immutable stakeLimit;
 
-	constructor(address token, uint256 _throttleRoundBlocks, uint256 _throttleRoundCap, uint256 stakeEnd, uint256 _stakeLimit) public AutoStake(token, _throttleRoundBlocks, _throttleRoundCap, stakeEnd) {
-		require(_stakeLimit != 0 , "LimitedAutoStake:constructor::stake limit should not be 0");
+	constructor(address token, uint256 _throttleRoundBlocks, uint256 _throttleRoundCap, uint256 stakeEnd, uint256 _stakeLimit, uint256 _contractStakeLimit) public AutoStake(token, _throttleRoundBlocks, _throttleRoundCap, stakeEnd, _contractStakeLimit) {
+		require(_stakeLimit != 0 , "LAS:Err01");
 		stakeLimit = _stakeLimit;
 	}
 
 	function onlyUnderStakeLimit(address staker, uint256 newStake) internal {
-		uint256 currentStake = balanceOf(staker);
-		require(currentStake.add(newStake) <= stakeLimit, "onlyUnderStakeLimit::Stake limit reached");
+		uint256 currentStake = AutoStake.userStakedAmount[staker];
+		require(currentStake.add(newStake) <= stakeLimit, "LAS:Errr02");
 	}
 
 	function stake(uint256 amount) public virtual override(AutoStake)  {

@@ -127,8 +127,7 @@ describe('LMC Factory', () => { // These tests must be skipped for coverage as c
 
             beforeEach(async () => {
 				await rewardTokensInstances[0].mint(LMCFactoryInstance.contractAddress, amount)
-                await LMCFactoryInstance.deploy(stakingTokenInstance.contractAddress, startBlock, endBlock, rewardTokensAddresses, rewardPerBlock, rewardTokensAddresses[0], stakeLimit, contractStakeLimit)
-				
+                await LMCFactoryInstance.deploy(stakingTokenInstance.contractAddress, startBlock + 1, endBlock, rewardTokensAddresses, rewardPerBlock, rewardTokensAddresses[0], stakeLimit, contractStakeLimit)
                 const CalculatorInstance = await deployer.deploy(Calculator);
 
                 const calculatorLibraryAddress = CalculatorInstance.contractAddress
@@ -161,8 +160,8 @@ describe('LMC Factory', () => { // These tests must be skipped for coverage as c
 					NonCompoundingRewardsPool,
 					{},
 					rewardTokensAddresses[0],
-					startBlock+5,
-					endBlock+10,
+					startBlock+7,
+					endBlock+12,
 					rewardTokensAddresses,
 					rewardPerBlock,
 					stakeLimit,
@@ -202,12 +201,12 @@ describe('LMC Factory', () => { // These tests must be skipped for coverage as c
             });
 
             it('Should fail whitelisting if called with wrong params', async () => {
-                await assert.revertWith(LMCFactoryInstance.enableReceivers(ethers.constants.AddressZero, [treasury.signer.address]), "enableReceivers::Transferer cannot be 0");
-                await assert.revertWith(LMCFactoryInstance.enableReceivers(lmcInstance.contractAddress, [ethers.constants.AddressZero]), "enableReceivers::Receiver cannot be 0");
+                await assert.revertWith(LMCFactoryInstance.enableReceivers(ethers.constants.AddressZero, [treasury.signer.address]), "STEF:Err01");
+                await assert.revertWith(LMCFactoryInstance.enableReceivers(lmcInstance.contractAddress, [ethers.constants.AddressZero]), "STEF:Err02");
             });
 
             it('Should fail whitelisting if not called by the owner', async () => {
-                await assert.revertWith(LMCFactoryInstance.from(bobAccount.signer).enableReceivers(lmcInstance.contractAddress, [NonCompoundingRewardsPoolInstance.contractAddress]), "onlyOwner:: The caller is not the owner");
+                await assert.revertWith(LMCFactoryInstance.from(bobAccount.signer).enableReceivers(lmcInstance.contractAddress, [NonCompoundingRewardsPoolInstance.contractAddress]), "APF:Err01");
             });
         });
 
@@ -351,7 +350,7 @@ describe('LMC Factory', () => { // These tests must be skipped for coverage as c
                 it("Should fail trying to extend from not owner", async() => {
                     let rewardsPoolAddress = await LMCFactoryInstance.rewardsPools(0)
                     let newEndBlock = endBlock + 10
-                    await assert.revertWith(LMCFactoryInstance.from(bobAccount.signer.address).extendRewardPool(newEndBlock, rewardPerBlock, rewardsPoolAddress),"onlyOwner:: The caller is not the owner")
+                    await assert.revertWith(LMCFactoryInstance.from(bobAccount.signer.address).extendRewardPool(newEndBlock, rewardPerBlock, rewardsPoolAddress),"APF:Err01")
                 })
 			});
 
