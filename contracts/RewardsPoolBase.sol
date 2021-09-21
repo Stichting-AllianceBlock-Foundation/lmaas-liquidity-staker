@@ -78,7 +78,7 @@ contract RewardsPoolBase is ReentrancyGuard {
 		}
 	}
 
-	function onlyInsideBlockBounds() internal {
+	function onlyInsideBlockBounds() internal view {
 		uint256 currentBlock = _getBlock();
 		require(
 			currentBlock > startBlock,
@@ -87,14 +87,14 @@ contract RewardsPoolBase is ReentrancyGuard {
 		require(currentBlock <= endBlock, "Stake::Staking has finished");
 	}
 
-	function onlyFactory(address sender) public  {
+	function onlyFactory(address sender) public view {
 		require(
 			msg.sender == rewardsPoolFactory,
 			"Caller is not Factory contract"
 		);
 	}
 
-	function onlyUnderStakeLimit(address staker, uint256 newStake) internal {
+	function onlyUnderStakeLimit(address staker, uint256 newStake) internal view {
 		UserInfo storage user = userInfo[staker];
 		require(user.amountStaked.add(newStake) <= stakeLimit, "oUSL::Stake limit reached");
 		require(totalStaked.add(newStake) <= contractStakeLimit, "oUSL::Contract Stake limit reached");
