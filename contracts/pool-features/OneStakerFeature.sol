@@ -14,7 +14,7 @@ abstract contract OneStakerFeature is RewardsPoolBase {
 	}
 
 
-	function onlyStaker(address sender) public {
+	function onlyStaker(address sender) public view {
 		require(msg.sender == staker, "onlyStaker::incorrect staker");
 	}
 
