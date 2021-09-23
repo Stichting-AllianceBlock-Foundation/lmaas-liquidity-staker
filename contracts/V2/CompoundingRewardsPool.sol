@@ -47,11 +47,12 @@ contract CompoundingRewardsPool is RewardsPoolBase, OneStakerFeature {
     }
 
     function addMoreRewards(address rewardsToken, uint256 _tokenAmount) public {
-        IERC20Detailed(rewardsToken).safeTransferFrom(msg.sender, address(this), _tokenAmount);
+        amountTransferred = amountTransferred.add(_tokenAmount);
         /** 
-          @dev We only add to amountTransferred when we do the safeTransferFrom.
+          @dev We don't need to make the check for require of allowance, because
+          safeTransferFrom already do that. 
         **/
-        amountTransferred.add(_tokenAmount);
+        IERC20Detailed(rewardsToken).safeTransferFrom(msg.sender, address(this), _tokenAmount);
         emit AdditioanalRewardsAdded(msg.sender, _tokenAmount);
     }
 }
