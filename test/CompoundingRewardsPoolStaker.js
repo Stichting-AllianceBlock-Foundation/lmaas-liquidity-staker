@@ -181,7 +181,8 @@ describe('CompoundingRewardsPoolStaker', () => {
 	})
 
 	it("Should add more rewards and increment the rewards added", async() => {
-		let totalRewardsContract = await CompoundingRewardsPoolInstance.addMoreRewards(stakingTokenAddress,bOne);
+		await stakingTokenInstance.approve(CompoundingRewardsPoolInstance.contractAddress, standardStakingAmount);
+		await CompoundingRewardsPoolInstance.addMoreRewards(stakingTokenAddress,bOne);
 		let amountTransferred = await CompoundingRewardsPoolInstance.amountTransferred();
 		let totalRewardsSend = bOne.mul(2);
 		assert(amountTransferred.eq(totalRewardsSend), "The amount send as rewards is not correct")
