@@ -34,7 +34,7 @@ describe('CompoundingRewardsPoolStaker', () => {
 	const amount = ethers.utils.parseEther("5184000");
 	const bOne = ethers.utils.parseEther("1");
 	const standardStakingAmount = ethers.utils.parseEther('5') // 5 tokens
-	const contractStakeLimit = ethers.utils.parseEther('15') // 10 tokens
+	const contractStakeLimit = ethers.utils.parseEther('15') // 15 tokens
 
 
 	const setupRewardsPoolParameters = async (deployer) => {
@@ -63,7 +63,7 @@ describe('CompoundingRewardsPoolStaker', () => {
 
         await setupRewardsPoolParameters(deployer)
 
-		StakeTransfererAutoStakeInstance = await deployer.deploy(StakeTransfererAutoStake, {}, stakingTokenAddress, throttleRoundBlocks, bOne, endBlock, standardStakingAmount.mul(2));
+		StakeTransfererAutoStakeInstance = await deployer.deploy(StakeTransfererAutoStake, {}, stakingTokenAddress, throttleRoundBlocks, bOne, endBlock, standardStakingAmount.mul(2),contractStakeLimit);
 
 		CompoundingRewardsPoolInstance = await deployer.deploy(
 			CompoundingRewardsPool,
@@ -83,7 +83,7 @@ describe('CompoundingRewardsPoolStaker', () => {
 		await StakeTransfererAutoStakeInstance.setPool(CompoundingRewardsPoolInstance.contractAddress);
 		await stakingTokenInstance.mint(CompoundingRewardsPoolInstance.contractAddress,amount);
 
-		StakeReceiverAutoStakeInstance = await deployer.deploy(StakeReceiverAutoStake, {}, stakingTokenAddress, throttleRoundBlocks, bOne, endBlock+1, standardStakingAmount);
+		StakeReceiverAutoStakeInstance = await deployer.deploy(StakeReceiverAutoStake, {}, stakingTokenAddress, throttleRoundBlocks, bOne, endBlock+1, standardStakingAmount, contractStakeLimit);
 
 		CompoundingRewardsPoolInstance = await deployer.deploy(
 			CompoundingRewardsPool,
@@ -165,7 +165,7 @@ describe('CompoundingRewardsPoolStaker', () => {
 			await mineBlock(deployer.provider);
 		}
 
-		await assert.revertWith(StakeTransfererAutoStakeInstance.exitAndTransfer(StakeReceiverAutoStakeInstance.contractAddress), "onlyUnderStakeLimit::Stake limit reached");
+		await assert.revertWith(StakeTransfererAutoStakeInstance.exitAndTransfer(StakeReceiverAutoStakeInstance.contractAddress), "LAS:Errr02");
 		
 	})
 
@@ -181,7 +181,8 @@ describe('CompoundingRewardsPoolStaker', () => {
 	})
 
 	it("Should add more rewards and increment the rewards added", async() => {
-		let totalRewardsContract = await CompoundingRewardsPoolInstance.addMoreRewards(stakingTokenAddress,bOne);
+		await stakingTokenInstance.approve(CompoundingRewardsPoolInstance.contractAddress, standardStakingAmount);
+		await CompoundingRewardsPoolInstance.addMoreRewards(stakingTokenAddress,bOne);
 		let amountTransferred = await CompoundingRewardsPoolInstance.amountTransferred();
 		let totalRewardsSend = bOne.mul(2);
 		assert(amountTransferred.eq(totalRewardsSend), "The amount send as rewards is not correct")
