@@ -15,7 +15,7 @@ contract LimitedAutoStake is AutoStake {
 		stakeLimit = _stakeLimit;
 	}
 
-	function onlyUnderStakeLimit(address staker, uint256 newStake) internal {
+	function onlyUnderStakeLimit(address staker, uint256 newStake) internal view {
 		uint256 currentStake = AutoStake.userStakedAmount[staker];
 		require(currentStake.add(newStake) <= stakeLimit, "LAS:Errr02");
 	}
