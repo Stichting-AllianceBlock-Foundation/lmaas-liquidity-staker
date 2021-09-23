@@ -42,7 +42,7 @@ contract AutoStake is ReentrancyGuard, StakeLock, ThrottledExit, Ownable {
 	}
 
 
-	function onlyFactory(address sender) public {
+	function onlyFactory(address sender) public view {
 		require(
 			msg.sender == factory,
 			"Caller is not the Factory contract"

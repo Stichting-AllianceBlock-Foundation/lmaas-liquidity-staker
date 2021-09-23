@@ -17,7 +17,7 @@ abstract contract TreasuryOperated {
 	event ExternalRewardsAdded(address indexed from ,address token, uint256 reward);
 	event ExternalRewardsClaimed(address receiver);
 
-	function onlyTreasury(address sender) public {
+	function onlyTreasury(address sender) public view {
 		require(msg.sender == treasury, "OT::Not called by the treasury");
 	}
 

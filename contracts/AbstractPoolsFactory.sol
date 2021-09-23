@@ -24,7 +24,7 @@ abstract contract AbstractPoolsFactory {
 		owner = msg.sender;
 	}
 
-	function onlyOwner(address messageSender) public { 
+	function onlyOwner(address messageSender) public view {
 		require(messageSender == owner, "onlyOwner:: The caller is not the owner");
 	}
 
