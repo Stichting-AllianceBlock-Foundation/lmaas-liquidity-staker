@@ -34,7 +34,8 @@ contract LiquidityMiningCampaign is StakeTransferer, OnlyExitFeature  {
 		uint256[] memory _rewardPerBlock,
 		address _albtAddress,
 		uint256 _stakeLimit,
-		uint256 _contractStakeLimit) public RewardsPoolBase(_stakingToken, _startBlock, _endBlock, _rewardsTokens, _rewardPerBlock,_stakeLimit,_contractStakeLimit) 
+		uint256 _contractStakeLimit,
+		uint256 _virtualBlockTime) public RewardsPoolBase(_stakingToken, _startBlock, _endBlock, _rewardsTokens, _rewardPerBlock,_stakeLimit,_contractStakeLimit,_virtualBlockTime) 
 	{
 		require(_albtAddress == _rewardsTokens[0], "constructor:: The first reward address is different from the ALBT");
 		rewardToken = _rewardsTokens[0];

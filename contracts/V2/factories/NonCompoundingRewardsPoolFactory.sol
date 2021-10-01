@@ -12,22 +12,6 @@ contract NonCompoundingRewardsPoolFactory is AbstractPoolsFactory, StakeTransfer
 	using SafeMath for uint256;
 	using SafeERC20Detailed for IERC20Detailed;
 
-	address public immutable treasury;
-	address public immutable externalRewardToken;
-
-	constructor(address _treasury, address _externalRewardToken) public {
-		require(
-			_treasury != address(0),
-			"NonCompoundingRewardsPoolFactory:: Treasury address can't be zero address"
-		);
-
-		require(
-			_externalRewardToken != address(0),
-			"NonCompoundingRewardsPoolFactory:: External reward address can't be zero address"
-		);
-		treasury = _treasury;
-		externalRewardToken = _externalRewardToken;
-	}
 
 	event RewardsPoolDeployed(
 		address indexed rewardsPoolAddress,
@@ -53,7 +37,8 @@ contract NonCompoundingRewardsPoolFactory is AbstractPoolsFactory, StakeTransfer
 		uint256 _stakeLimit,
 		uint256 _throttleRoundBlocks,
 		uint256 _throttleRoundCap,
-		uint256 _contractStakeLimit
+		uint256 _contractStakeLimit,
+		uint256 _virtualBlockTime
 	) external onlyOwner {
 		require(
 			_stakingToken != address(0),
@@ -94,9 +79,8 @@ contract NonCompoundingRewardsPoolFactory is AbstractPoolsFactory, StakeTransfer
 					_stakeLimit, 
 					_throttleRoundBlocks,
 					_throttleRoundCap,
-					treasury,
-					externalRewardToken,
-					_contractStakeLimit
+					_contractStakeLimit,
+					_virtualBlockTime
 				)
 			);
 

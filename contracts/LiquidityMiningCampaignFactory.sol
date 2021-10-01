@@ -40,7 +40,8 @@ contract LiquidityMiningCampaignFactory is AbstractPoolsFactory, StakeTransferEn
 		uint256[] calldata _rewardPerBlock,
 		address _albtAddress,
 		uint256 _stakeLimit,
-		uint256 _contractStakeLimit
+		uint256 _contractStakeLimit,
+		uint256 _virtualBlockTime
 	) external onlyOwner {
 		require(
 			_stakingToken != address(0),
@@ -70,7 +71,8 @@ contract LiquidityMiningCampaignFactory is AbstractPoolsFactory, StakeTransferEn
 					_rewardPerBlock,
 					_albtAddress,
 					_stakeLimit,
-					_contractStakeLimit
+					_contractStakeLimit,
+					_virtualBlockTime
 				)
 			);
 

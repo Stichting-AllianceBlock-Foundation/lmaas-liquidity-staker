@@ -35,7 +35,8 @@ contract RewardsPoolFactory is AbstractPoolsFactory {
 		address[] calldata _rewardsTokens,
 		uint256[] calldata _rewardPerBlock,
 		uint256 _stakeLimit,
-		uint256 _contractStakeLimit
+		uint256 _contractStakeLimit,
+		uint256 _virtualBlockTime
 	) external onlyOwner {
 		require(
 			_stakingToken != address(0),
@@ -64,7 +65,8 @@ contract RewardsPoolFactory is AbstractPoolsFactory {
 					_rewardsTokens,
 					_rewardPerBlock,
 					_stakeLimit,
-					_contractStakeLimit
+					_contractStakeLimit,
+					_virtualBlockTime
 				)
 			);
 

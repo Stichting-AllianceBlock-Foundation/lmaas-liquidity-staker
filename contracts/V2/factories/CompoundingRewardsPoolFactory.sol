@@ -10,22 +10,6 @@ import "./StakeTransferEnabledFactory.sol";
 contract CompoundingRewardsPoolFactory is AbstractPoolsFactory, StakeTransferEnabledFactory {
 	using SafeERC20Detailed for IERC20Detailed;
 
-	address public immutable treasury;
-	address public immutable externalRewardToken;
-
-	constructor(address _treasury, address _externalRewardToken) public {
-		require(
-            _treasury != address(0),
-            "CompoundingRewardsPoolFactory:: Treasury address can't be zero address"
-        );
-
-        require(
-            _externalRewardToken != address(0),
-            "CompoundingRewardsPoolFactory:: External reward address can't be zero address"
-        );
-		treasury = _treasury;
-		externalRewardToken = _externalRewardToken;
-	}
 
 	/* ========== Permissioned FUNCTIONS ========== */
 
@@ -37,7 +21,7 @@ contract CompoundingRewardsPoolFactory is AbstractPoolsFactory, StakeTransferEna
 		uint256 _stakeLimit, 
 		uint256 _throttleRoundBlocks, 
 		uint256 _throttleRoundCap,
-		uint256 _contractStakeLimit
+		uint256 _virtualBlockTime
 	) external onlyOwner {
 		require(
 			_stakingToken != address(0),
@@ -77,18 +61,15 @@ contract CompoundingRewardsPoolFactory is AbstractPoolsFactory, StakeTransferEna
 
 		uint256[] memory rewardsPerBlock = new uint256[](1);
 		rewardsPerBlock[0] = _rewardPerBlock;
-
+		
 		CompoundingRewardsPool rewardsPool = new CompoundingRewardsPool(
 				IERC20Detailed(_stakingToken),
+				rewardTokens,
+				address(autoStaker),
 				_startBlock,
 				_endBlock,
-				rewardTokens,
 				rewardsPerBlock,
-				uint256(-1),
-				address(autoStaker),
-				treasury,
-				externalRewardToken,
-				_contractStakeLimit
+				_virtualBlockTime
 			);
 
 		autoStaker.setPool(address(rewardsPool));
