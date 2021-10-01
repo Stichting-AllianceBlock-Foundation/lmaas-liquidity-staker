@@ -78,7 +78,7 @@ contract RewardsPoolBase is ReentrancyGuard {
 		rewardsPoolFactory = msg.sender;
 		stakeLimit = _stakeLimit;
 		contractStakeLimit = _contractStakeLimit;
-		virtualBlockTime = _virtualBlockTime;
+		virtualBlockTime = _virtualBlockTime * 1 seconds;
 		startBlock = _calculateBlocks(startTimestamp);
 		endBlock = _calculateBlocks(endTimestamp);
 		for (uint256 i = 0; i < rewardsTokens.length; i++) {
@@ -389,7 +389,7 @@ contract RewardsPoolBase is ReentrancyGuard {
 	// 	return block.number;
 	// }
 
-	function _getBlock() internal view virtual returns (uint256) {
+	function _getBlock() public view virtual returns (uint256) {
 		return (block.timestamp.div(virtualBlockTime));
 	}
 
