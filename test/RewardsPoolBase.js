@@ -2,9 +2,8 @@ const ethers = require('ethers');
 const etherlime = require('etherlime-lib');
 const RewardsPoolBase = require('../build/RewardsPoolBase.json');
 const TestERC20 = require('../build/TestERC20.json');
-const { mineBlock } = require('./utils')
 
-describe.only('RewardsPoolBase', () => {
+describe('RewardsPoolBase', () => {
     let aliceAccount = accounts[3];
     let bobAccount = accounts[4];
     let carolAccount = accounts[5];
@@ -263,28 +262,28 @@ describe.only('RewardsPoolBase', () => {
 			})
 
 			it("Should accumulate reward and update multipliers", async() => {
+				await utils.timeTravel(deployer.provider, 10);
 				await RewardsPoolBaseInstance.stake(standardStakingAmount);
+				await utils.timeTravel(deployer.provider, 10);
 				await RewardsPoolBaseInstance.from(bobAccount.signer).stake(standardStakingAmount);
-
+				await utils.timeTravel(deployer.provider, 10);
 				const totalStake = standardStakingAmount.add(standardStakingAmount);
 				let expectedMultiplier = (bOne.mul(2)).div(totalStake.div(bOne))
-
+				
 				let accumulatedMultiplier = await RewardsPoolBaseInstance.accumulatedRewardMultiplier(0)
-				assert(accumulatedMultiplier.eq(expectedMultiplier), "The accumulated multiplier was incorrect");
-
-				await utils.timeTravel(deployer.provider, 20);
-
+				assert(accumulatedMultiplier.eq(expectedMultiplier), "The accumulated multiplier was incorrect 1");
+				await utils.timeTravel(deployer.provider, 10);
 				const accumulatedRewardAlice = await RewardsPoolBaseInstance.getUserAccumulatedReward(aliceAccount.signer.address, 0);
 				assert(accumulatedRewardAlice.eq(bOne.add(bOne)), "The reward accrued was not 2 token");
 
 				const accumulatedRewardBob = await RewardsPoolBaseInstance.getUserAccumulatedReward(bobAccount.signer.address, 0);
 				assert(accumulatedRewardBob.eq(bOne), "The reward accrued was not 1 token");
-
+				await utils.timeTravel(deployer.provider, 10);
 				await RewardsPoolBaseInstance.updateRewardMultipliers();
 
 				expectedMultiplier = (bOne.mul(5)).div(totalStake.div(bOne))
 				accumulatedMultiplier = await RewardsPoolBaseInstance.accumulatedRewardMultiplier(0)
-				assert(accumulatedMultiplier.eq(expectedMultiplier), "The accumulated multiplier was incorrect");
+				assert(accumulatedMultiplier.eq(expectedMultiplier), "The accumulated multiplier was incorrect 2 ");
 
 			})
 
@@ -397,22 +396,23 @@ describe.only('RewardsPoolBase', () => {
 
 
 		const calculateRewardsAmount = async (startTimestamp, endTimestamp, rewardsPerBlock) => {
-			let rewardsPeriod = endTimestamp - startTimestamp;
+			let currentBLock = startTimestamp/virtualBlockTime
+			let rewardsPeriod = endTimestamp - currentBLock;
+			// let blocks = rewardsPeriod/ virtualBlockTime
 			let amount = rewardsPerBlock*(rewardsPeriod)
 			let rewardsAmount = await ethers.utils.parseEther(amount.toString())
-			
 			return rewardsAmount
 		 }
 
 		it("Should extend the periods and update the reward per block", async() => {
 			await utils.timeTravel(deployer.provider, 10);
 
-			let currentEndBlock = await RewardsPoolBaseInstance.endTimestamp()
+			let currentEndBlock = await RewardsPoolBaseInstance.endBlock()
 			let currentRewardPerBlock = await RewardsPoolBaseInstance.rewardPerBlock(0);
 			let newRewardsPerBlock = []
 
-			const bigTwenty = ethers.utils.bigNumberify(20);
-			const newEndBlock = currentEndBlock.add(bigTwenty);
+			const oneMinuteBig = ethers.utils.bigNumberify(20);
+			const newEndBlock = currentEndBlock.add(oneMinuteBig);
 			let currentRemainingRewards = []
 			let newRemainingReward = []
 			const currentBlock = await deployer.provider.getBlock('latest');
@@ -424,15 +424,13 @@ describe.only('RewardsPoolBase', () => {
 				let currentRewardsPerBlock = await RewardsPoolBaseInstance.rewardPerBlock(i)
 				
 
-				currentRemainingRewards.push(await calculateRewardsAmount(currentBlock.number, currentEndBlock.toString(), currentRewardsPerBlock.toString()));
-            	newRemainingReward.push(await calculateRewardsAmount(currentBlock.number, newEndBlock.toString(), newRewardsPerBlock[i].toString()));
+				currentRemainingRewards.push(await calculateRewardsAmount(currentBlock.timestamp, currentEndBlock.toString(), currentRewardsPerBlock.toString()));
+            	newRemainingReward.push(await calculateRewardsAmount(currentBlock.timestamp, newEndBlock.toString(), newRewardsPerBlock[i].toString()));
 			}
 			await RewardsPoolBaseInstance.extend(newEndBlock,newRewardsPerBlock,currentRemainingRewards,newRemainingReward);
-			let endTimestamp = await RewardsPoolBaseInstance.endTimestamp()
+			let endTimestamp = await RewardsPoolBaseInstance.endBlock()
 			let rewardPerBlock = await RewardsPoolBaseInstance.rewardPerBlock(0);
-
-
-			assert(endTimestamp.eq(currentEndBlock.add(bigTwenty)), "Extending the end block was not successfull")
+			assert(endTimestamp.eq(currentEndBlock.add(oneMinuteBig)), "Extending the end block was not successfull")
 			assert(rewardPerBlock.eq(currentRewardPerBlock.add(bOne)), "Extending the reward per block was not successfull")
 		})
 
@@ -443,7 +441,7 @@ describe.only('RewardsPoolBase', () => {
 		})
 
 		it("Should fail extentind the rewards pool if the end block is not greater than the previous", async() => {
-			let currentEndBlock = await RewardsPoolBaseInstance.endTimestamp()
+			let currentEndBlock = await RewardsPoolBaseInstance.endBlock()
 			let newEndBlock = currentEndBlock.sub(1)
 			let currentRemainingRewards = []
 			let newRemainingReward = []
@@ -495,7 +493,8 @@ describe.only('RewardsPoolBase', () => {
 
 		it("Should return true if staking has started", async () => {
 
-			await utils.timeTravel(deployer.provider, 10);
+			
+			await utils.timeTravel(deployer.provider, 70);
 			let hasStakingStarted = await RewardsPoolBaseInstance.hasStakingStarted()
 			assert.isTrue(hasStakingStarted, "Staking is not started")
 		});
@@ -506,14 +505,9 @@ describe.only('RewardsPoolBase', () => {
 			assert.isFalse(hasStakingStarted, "Staking has started")
 		});
 
-		it("Shoult return the tokens owed  and reward debt length for a valid user ", async() => {
+		it("Should return the tokens owed  and reward debt length for a valid user ", async() => {
 
-			const currentBlock = await deployer.provider.getBlock('latest');
-				const blocksDelta = (startTimestamp-currentBlock.number);
-
-				for (let i=0; i<blocksDelta; i++) {
-					await mineBlock(deployer.provider);
-				}
+			await utils.timeTravel(deployer.provider, 70);
 				
 			await stakingTokenInstance.approve(RewardsPoolBaseInstance.contractAddress, standardStakingAmount);
 			await RewardsPoolBaseInstance.stake(standardStakingAmount);
