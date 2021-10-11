@@ -26,16 +26,17 @@ contract LiquidityMiningCampaignFactory is AbstractPoolsFactory, StakeTransferEn
 
 	/** @dev Deploy a reward pool base contract for the staking token, with the given parameters.
 	 * @param _stakingToken The address of the token being staked
-	 * @param _startBlock The start block of the rewards pool
-	 * @param _endBlock The end block of the rewards pool
+	 * @param _startTimestamp The start timestamp of the rewards pool
+	 * @param _endTimestamp The end timestamp of the rewards pool
 	 * @param _rewardsTokens The addresses of the tokens the rewards will be paid in
 	 * @param _rewardPerBlock Rewards per block
 	 * @param _stakeLimit The stake limit per user
+	 * @param _virtualBlockTime The virtual block time in seconds. For example 10 seconds
 	 */
 	function deploy(
 		address _stakingToken,
-		uint256 _startBlock,
-		uint256 _endBlock,
+		uint256 _startTimestamp,
+		uint256 _endTimestamp,
 		address[] calldata _rewardsTokens,
 		uint256[] calldata _rewardPerBlock,
 		address _albtAddress,
@@ -65,8 +66,8 @@ contract LiquidityMiningCampaignFactory is AbstractPoolsFactory, StakeTransferEn
 			address(
 				new LiquidityMiningCampaign(
 					IERC20Detailed(_stakingToken),
-					_startBlock,
-					_endBlock,
+					_startTimestamp,
+					_endTimestamp,
 					_rewardsTokens,
 					_rewardPerBlock,
 					_albtAddress,
@@ -89,8 +90,8 @@ contract LiquidityMiningCampaignFactory is AbstractPoolsFactory, StakeTransferEn
 
 			uint256 rewardsAmount =
 				calculateRewardsAmount(
-					_startBlock,
-					_endBlock,
+					_startTimestamp,
+					_endTimestamp,
 					_rewardPerBlock[i]
 				);
 			IERC20Detailed(_rewardsTokens[i]).safeTransfer(

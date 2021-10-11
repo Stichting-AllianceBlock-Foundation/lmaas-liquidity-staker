@@ -48,7 +48,7 @@ describe.only('AutoStake', () => {
 
 			await setupRewardsPoolParameters(deployer)
 
-			AutoStakingInstance = await deployer.deploy(AutoStake, {}, stakingTokenAddress, throttleRoundBlocks, bOne, endBlock);
+			AutoStakingInstance = await deployer.deploy(AutoStake, {}, stakingTokenAddress, throttleRoundBlocks, bOne, endTimestamp);
 
 			OneStakerRewardsPoolInstance = await deployer.deploy(
 				OneStakerRewardsPool,
@@ -76,7 +76,7 @@ describe.only('AutoStake', () => {
 
 		it("Should fail setting the pool from not owner", async() => {
 
-			let AutoStakingInstanceNew = await deployer.deploy(AutoStake, {}, stakingTokenAddress, throttleRoundBlocks, bOne, endBlock);
+			let AutoStakingInstanceNew = await deployer.deploy(AutoStake, {}, stakingTokenAddress, throttleRoundBlocks, bOne, endTimestamp);
 			let OneStakerRewardsPoolInstanceNew = await deployer.deploy(
 				OneStakerRewardsPool,
 				{},
@@ -103,7 +103,7 @@ describe.only('AutoStake', () => {
 			stakingTokenAddress = stakingTokenInstance.contractAddress;
 
 			await setupRewardsPoolParameters(deployer)
-			AutoStakingInstance = await deployer.deploy(AutoStake, {}, stakingTokenAddress, throttleRoundBlocks, bOne, endBlock);
+			AutoStakingInstance = await deployer.deploy(AutoStake, {}, stakingTokenAddress, throttleRoundBlocks, bOne, endTimestamp);
 
 			OneStakerRewardsPoolInstance = await deployer.deploy(
 				OneStakerRewardsPool,
@@ -209,7 +209,7 @@ describe.only('AutoStake', () => {
 
 
 				it("Should request exit successfully", async() => {
-					await utils.timeTravel(deployer.provider, 130);
+					await utils.timeTravel(deployer.provider, 1900);
 					await AutoStakingInstance.exit();
 					const userBalanceAfter = await AutoStakingInstance.balanceOf(staker.signer.address);
 					const userExitInfo = await AutoStakingInstance.exitInfo(staker.signer.address)
@@ -220,7 +220,7 @@ describe.only('AutoStake', () => {
 				})
 
 				it("Should not get twice reward on exit twice", async() => {
-					await utils.timeTravel(deployer.provider, 130);
+					await utils.timeTravel(deployer.provider, 190);
 
 					await AutoStakingInstance.exit();
 					await AutoStakingInstance.exit();
@@ -240,17 +240,17 @@ describe.only('AutoStake', () => {
 				});
 
 				it("Should not complete early", async() => {
-					await utils.timeTravel(deployer.provider, 100);
+					await utils.timeTravel(deployer.provider, 190);
 					await AutoStakingInstance.exit();
 					
 					await assert.revertWith(AutoStakingInstance.completeExit(), "finalizeExit::Trying to exit too early");
 				})
 
 				it("Should complete succesfully", async() => {
-					await utils.timeTravel(deployer.provider, 130);
+					await utils.timeTravel(deployer.provider, 190);
 					await AutoStakingInstance.exit();
 
-					await utils.timeTravel(deployer.provider, 20);
+					await utils.timeTravel(deployer.provider, 30);
 
 					const userBalanceBefore = await stakingTokenInstance.balanceOf(staker.signer.address);
 					const contractBalance = await stakingTokenInstance.balanceOf(AutoStakingInstance.contractAddress);

@@ -15,8 +15,8 @@ contract CompoundingRewardsPoolFactory is AbstractPoolsFactory, StakeTransferEna
 
 	function deploy(
 		address _stakingToken,
-		uint256 _startBlock,
-		uint256 _endBlock,
+		uint256 _startTimestamp,
+		uint256 _endTimestamp,
 		uint256 _rewardPerBlock,
 		uint256 _stakeLimit, 
 		uint256 _throttleRoundBlocks, 
@@ -52,7 +52,7 @@ contract CompoundingRewardsPoolFactory is AbstractPoolsFactory, StakeTransferEna
 			_stakingToken,
 			_throttleRoundBlocks,
 			_throttleRoundCap,
-			_endBlock,
+			_endTimestamp,
 			_stakeLimit
 		);
 
@@ -66,15 +66,15 @@ contract CompoundingRewardsPoolFactory is AbstractPoolsFactory, StakeTransferEna
 				IERC20Detailed(_stakingToken),
 				rewardTokens,
 				address(autoStaker),
-				_startBlock,
-				_endBlock,
+				_startTimestamp,
+				_endTimestamp,
 				rewardsPerBlock,
 				_virtualBlockTime
 			);
 
 		autoStaker.setPool(address(rewardsPool));
 
-		uint256 rewardsAmount = calculateRewardsAmount(_startBlock, _endBlock, _rewardPerBlock);
+		uint256 rewardsAmount = calculateRewardsAmount(_startTimestamp, _endTimestamp, _rewardPerBlock);
 		IERC20Detailed(_stakingToken).safeTransfer(address(rewardsPool), rewardsAmount);
 
 		rewardsPools.push(address(autoStaker));
