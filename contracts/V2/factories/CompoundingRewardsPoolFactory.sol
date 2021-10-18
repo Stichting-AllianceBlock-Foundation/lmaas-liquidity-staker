@@ -53,7 +53,8 @@ contract CompoundingRewardsPoolFactory is AbstractPoolsFactory, StakeTransferEna
 			_throttleRoundBlocks,
 			_throttleRoundCap,
 			_endTimestamp,
-			_stakeLimit
+			_stakeLimit,
+			_virtualBlockTime
 		);
 
 		address[] memory rewardTokens = new address[](1);

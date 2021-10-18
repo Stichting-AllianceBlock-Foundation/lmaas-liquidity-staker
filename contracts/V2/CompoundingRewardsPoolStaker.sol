@@ -7,7 +7,7 @@ import "./../autostake-features/StakeReceiverAutoStake.sol";
 import "./../autostake-features/LimitedAutoStake.sol";
 
 contract CompoundingRewardsPoolStaker is LimitedAutoStake, StakeTransfererAutoStake, StakeReceiverAutoStake {
-	constructor(address token, uint256 _throttleRoundBlocks, uint256 _throttleRoundCap, uint256 stakeEnd, uint256 _stakeLimit) public LimitedAutoStake(token, _throttleRoundBlocks, _throttleRoundCap, stakeEnd, _stakeLimit) {
+	constructor(address token, uint256 _throttleRoundBlocks, uint256 _throttleRoundCap, uint256 stakeEnd, uint256 _stakeLimit, uint256 _virtualBlockTime) public LimitedAutoStake(token, _throttleRoundBlocks, _throttleRoundCap, stakeEnd, _stakeLimit, _virtualBlockTime) {
 	}
 
 	function stake(uint256 amount) public virtual override(AutoStake, LimitedAutoStake) {

@@ -15,6 +15,8 @@ abstract contract ThrottledExit {
 	uint256 public nextAvailableRoundExitVolume;
 	uint256 public throttleRoundBlocks;
 	uint256 public throttleRoundCap;
+	uint256 public virtualBlockTime2;
+	uint256 public campaignEndBlock;
 
 	struct ExitInfo {
 		uint256 exitBlock;
@@ -28,13 +30,15 @@ abstract contract ThrottledExit {
 	event ExitCompleted(address user, uint256 stake);
 
 
-	function setThrottleParams(uint256 _throttleRoundBlocks, uint256 _throttleRoundCap, uint256 throttleStart) internal {
+	function setThrottleParams(uint256 _throttleRoundBlocks, uint256 _throttleRoundCap, uint256 throttleStart, uint256 _virtualBlockTime) internal {
 		require(_throttleRoundBlocks > 0, "setThrottle::throttle round blocks must be more than 0");
 		require(_throttleRoundCap > 0, "setThrottle::throttle round cap must be more than 0");
 		require(throttleRoundBlocks == 0 && throttleRoundCap == 0, "setThrottle::throttle parameters were already set");
 		throttleRoundBlocks = _throttleRoundBlocks;
 		throttleRoundCap = _throttleRoundCap;
-		nextAvailableExitBlock = throttleStart.add(throttleRoundBlocks);
+		virtualBlockTime2 = _virtualBlockTime;
+		campaignEndBlock = _calculateBlock(throttleStart);
+		nextAvailableExitBlock = campaignEndBlock.add(throttleRoundBlocks);
 	}
 
 	function initiateExit(uint256 amountStaked, uint256 _rewardsTokensLength, uint256[] memory _tokensOwed) virtual internal {
@@ -53,7 +57,7 @@ abstract contract ThrottledExit {
 
 	function finalizeExit(address _stakingToken, address[] memory _rewardsTokens) virtual internal {
 		ExitInfo storage info = exitInfo[msg.sender];
-		require(block.number > info.exitBlock, "finalizeExit::Trying to exit too early");
+		require(_getCurrentBlock() > info.exitBlock, "finalizeExit::Trying to exit too early");
 
 		uint256 infoExitStake = info.exitStake;
 		info.exitStake = 0;
@@ -72,9 +76,10 @@ abstract contract ThrottledExit {
 	}
 
 	function getAvailableExitTime(uint256 exitAmount) internal returns(uint256 exitBlock) {
-		if(block.number > nextAvailableExitBlock) { // We've passed the next available block and need to readjust
-			uint256 blocksFromCurrentRound = (block.number-nextAvailableExitBlock) % throttleRoundBlocks; // Find how many blocks have passed since last block should have started
-			nextAvailableExitBlock = block.number.sub(blocksFromCurrentRound).add(throttleRoundBlocks); // Find where the lst block should have started and add one round to find the next one
+		uint256 currentBlock = _getCurrentBlock();
+		if(currentBlock > nextAvailableExitBlock) { // We've passed the next available block and need to readjust
+			uint256 blocksFromCurrentRound = (currentBlock-nextAvailableExitBlock) % throttleRoundBlocks; // Find how many blocks have passed since last block should have started
+			nextAvailableExitBlock = currentBlock.sub(blocksFromCurrentRound).add(throttleRoundBlocks); // Find where the lst block should have started and add one round to find the next one
 			nextAvailableRoundExitVolume = exitAmount; // Reset volume
 			return nextAvailableExitBlock;
 		} else { // We are still before the next available block
@@ -107,6 +112,15 @@ abstract contract ThrottledExit {
 			info.rewards.push(0);
 		}
 	}
+
+	function _getCurrentBlock() public view returns (uint256) {
+		return (block.timestamp.div(virtualBlockTime2));
+	}
+
+	function _calculateBlock(uint256 _timeInSeconds) internal view returns(uint256) {
+		return _timeInSeconds.div(virtualBlockTime2);
+	}
+
 
 	
 
