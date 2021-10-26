@@ -576,6 +576,72 @@ describe("LMC Factory", () => {
         );
       });
 
+      it("Should extend the rewards pool successfully on a expired pool with the same rate", async () => {
+        await utils.timeTravel(deployer.provider, 60 * 200);
+        let rewardsPoolLength = await LMCFactoryInstance.getRewardsPoolNumber();
+        let lmcAddress = await LMCFactoryInstance.rewardsPools(
+          rewardsPoolLength - 1
+        );
+        const LmcContract = await etherlime.ContractAt(LMC, lmcAddress);
+        const rewardTokenInstance = rewardTokensInstances[0];
+        let rewardsBalanceInitial = await rewardTokenInstance.balanceOf(
+          LmcContract.contractAddress
+        );
+
+        let initialEndTime = await LmcContract.endTimestamp();
+        let newEndTimestamp = initialEndTime.add(60 * 220);
+        let extentionInBlocks = Math.trunc(
+          newEndTimestamp.sub(initialEndTime).div(virtualBlocksTime)
+        );
+
+        for (i = 0; i < rewardTokensCount; i++) {
+          let amount = rewardPerBlock[i].mul(extentionInBlocks);
+          await rewardTokensInstances[i].transfer(
+            LMCFactoryInstance.contractAddress,
+            amount
+          );
+        }
+        currentBlock = await deployer.provider.getBlock("latest");
+        await LMCFactoryInstance.extendRewardPool(
+          newEndTimestamp,
+          rewardPerBlock,
+          lmcAddress
+        );
+
+        let rewardsBalanceFinal = await rewardTokenInstance.balanceOf(
+          LmcContract.contractAddress
+        );
+        let finalEndTime = await LmcContract.endTimestamp();
+        let finalRewardPerBlock = await LmcContract.rewardPerBlock(0);
+        let amountToTransfer = rewardPerBlock[0].mul(extentionInBlocks);
+
+        console.log(
+          "[Endtime]:",
+          String(finalEndTime),
+          String(newEndTimestamp)
+        );
+        console.log(
+          "[FinalRewards]:",
+          String(rewardsBalanceFinal),
+          String(rewardsBalanceInitial.add(amountToTransfer))
+        );
+        console.log(
+          "[Amounts]:",
+          String(finalRewardPerBlock),
+          String(rewardPerBlock[0])
+        );
+
+        assert(finalEndTime.eq(newEndTimestamp), "The endtime is different");
+        assert(
+          finalRewardPerBlock.eq(rewardPerBlock[0]),
+          "The rewards amount is not correct"
+        );
+        assert(
+          rewardsBalanceFinal.eq(rewardsBalanceInitial.add(amountToTransfer)),
+          "The transfered amount is not correct"
+        );
+      });
+
       it("Should fail trying to extend from not owner", async () => {
         let rewardsPoolAddress = await LMCFactoryInstance.rewardsPools(0);
         let newEndBlock = endBlock + 10;
