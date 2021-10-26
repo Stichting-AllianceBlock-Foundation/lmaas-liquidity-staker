@@ -578,6 +578,7 @@ describe("LMC Factory", () => {
 
       it("Should extend the rewards pool successfully on a expired pool with the same rate", async () => {
         await utils.timeTravel(deployer.provider, 60 * 200);
+        const currentBlock = await deployer.provider.getBlockNumber();
         let rewardsPoolLength = await LMCFactoryInstance.getRewardsPoolNumber();
         let lmcAddress = await LMCFactoryInstance.rewardsPools(
           rewardsPoolLength - 1
@@ -588,8 +589,9 @@ describe("LMC Factory", () => {
           LmcContract.contractAddress
         );
 
+        let currentTimestamp = (await deployer.provider.getBlock(currentBlock))
+          .timestamp;
         let initialEndTime = await LmcContract.endTimestamp();
-        console.log("[InitialTimeStamp]: ", String(initialEndTime));
         let newEndTimestamp = initialEndTime.add(60 * 220);
         let extentionInBlocks = Math.trunc(
           newEndTimestamp.sub(initialEndTime).div(virtualBlocksTime)
@@ -602,12 +604,20 @@ describe("LMC Factory", () => {
             amount
           );
         }
-        currentBlock = await deployer.provider.getBlock("latest");
+
         console.log(
           "[InitialTimeStamp]: ",
           String(initialEndTime),
-          String(currentBlock)
+          String(currentTimestamp)
         );
+
+        console.log(
+          String(
+            (Number(currentTimestamp) - Number(initialEndTime)) *
+              rewardPerBlock[0]
+          )
+        );
+
         await LMCFactoryInstance.extendRewardPool(
           newEndTimestamp,
           rewardPerBlock,
