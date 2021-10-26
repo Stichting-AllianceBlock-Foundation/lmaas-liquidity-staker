@@ -6,4 +6,4 @@ const increaseTime = async (provider, time) => {
   await provider.send("evm_increasetime", [time]);
 };
 
-module.exports = { mineBlock };
+module.exports = { mineBlock, increaseTime };

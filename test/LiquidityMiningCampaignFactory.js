@@ -4,7 +4,7 @@ const LMCFactory = require("../build/LiquidityMiningCampaignFactory.json");
 const LMC = require("../build/LiquidityMiningCampaign.json");
 const TestERC20 = require("../build/TestERC20.json");
 const RewardsPoolBase = require("../build/RewardsPoolBase.json");
-const { mineBlock } = require("./utils");
+const { increaseTime } = require("./utils");
 const NonCompoundingRewardsPool = require("../build/NonCompoundingRewardsPool.json");
 const LockScheme = require("../build/LockScheme.json");
 const PercentageCalculator = require("../build/PercentageCalculator.json");
@@ -400,6 +400,7 @@ describe("LMC Factory", () => {
         let amount = await ethers.utils.bigNumberify(rewardsAmount.toString());
         return amount;
       };
+
       it("Should extend the rewards pool successfully with the same rate", async () => {
         let rewardsPoolLength = await LMCFactoryInstance.getRewardsPoolNumber();
         let lmcAddress = await LMCFactoryInstance.rewardsPools(
