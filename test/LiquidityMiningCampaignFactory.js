@@ -589,6 +589,7 @@ describe("LMC Factory", () => {
         );
 
         let initialEndTime = await LmcContract.endTimestamp();
+        console.log("[InitialTimeStamp]: ", String(initialEndTime));
         let newEndTimestamp = initialEndTime.add(60 * 220);
         let extentionInBlocks = Math.trunc(
           newEndTimestamp.sub(initialEndTime).div(virtualBlocksTime)
@@ -602,6 +603,11 @@ describe("LMC Factory", () => {
           );
         }
         currentBlock = await deployer.provider.getBlock("latest");
+        console.log(
+          "[InitialTimeStamp]: ",
+          String(initialEndTime),
+          String(currentBlock)
+        );
         await LMCFactoryInstance.extendRewardPool(
           newEndTimestamp,
           rewardPerBlock,
