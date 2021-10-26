@@ -75,7 +75,7 @@ contract CompoundingRewardsPoolFactory is AbstractPoolsFactory, StakeTransferEna
 
 		autoStaker.setPool(address(rewardsPool));
 
-		uint256 rewardsAmount = calculateRewardsAmount(_startTimestamp, _endTimestamp, _rewardPerBlock);
+		uint256 rewardsAmount = calculateRewardsAmount(_startTimestamp, _endTimestamp, _rewardPerBlock,_virtualBlockTime);
 		IERC20Detailed(_stakingToken).safeTransfer(address(rewardsPool), rewardsAmount);
 
 		rewardsPools.push(address(autoStaker));

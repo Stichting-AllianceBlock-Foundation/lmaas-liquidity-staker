@@ -11,8 +11,8 @@ import "./../pool-features/StakeReceiverFeature.sol";
 contract NonCompoundingRewardsPool is RewardsPoolBase, OnlyExitFeature, ThrottledExitFeature, StakeTransfererFeature, StakeReceiverFeature {
 	constructor(
 		IERC20Detailed _stakingToken,
-		uint256 _startBlock,
-		uint256 _endBlock,
+		uint256 _startTimestamp,
+		uint256 _endTimestamp,
 		address[] memory _rewardsTokens,
 		uint256[] memory _rewardPerBlock,
 		uint256 _stakeLimit,
@@ -20,8 +20,8 @@ contract NonCompoundingRewardsPool is RewardsPoolBase, OnlyExitFeature, Throttle
 		uint256 _throttleRoundCap,
 		uint256 _contractStakeLimit,
 		uint256 _virtualBlockTime
-	) public RewardsPoolBase(_stakingToken, _startBlock, _endBlock, _rewardsTokens, _rewardPerBlock, _stakeLimit, _contractStakeLimit,_virtualBlockTime) StakeLock(_endBlock) {
-		setThrottleParams(_throttleRoundBlocks, _throttleRoundCap, _endBlock, _virtualBlockTime);
+	) public RewardsPoolBase(_stakingToken, _startTimestamp, _endTimestamp, _rewardsTokens, _rewardPerBlock, _stakeLimit, _contractStakeLimit,_virtualBlockTime) StakeLock(_endTimestamp) {
+		setThrottleParams(_throttleRoundBlocks, _throttleRoundCap, _endTimestamp, _virtualBlockTime);
 	}
 
 	function withdraw(uint256 _tokenAmount) public override(OnlyExitFeature, RewardsPoolBase) {

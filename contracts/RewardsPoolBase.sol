@@ -493,20 +493,20 @@ contract RewardsPoolBase is ReentrancyGuard {
 
 	/**
 		@dev Extends the rewards period and updates the rates
-		@param _endBlock  new end block for the rewards
+		@param _endTimestamp  new end block for the rewards
 		@param _rewardsPerBlock array with new rewards per block for each token 
 	 */
-	function extend(uint256 _endBlock, uint256[] memory _rewardsPerBlock, uint256[] memory _currentRemainingRewards, uint256[] memory _newRemainingRewards)
+	function extend(uint256 _endTimestamp, uint256[] memory _rewardsPerBlock, uint256[] memory _currentRemainingRewards, uint256[] memory _newRemainingRewards)
 		external
 		virtual
 		onlyFactory
 	{
 		require(
-			_endBlock > _getBlock(),
+			_endTimestamp > _getCurrentTime(),
 			"Extend::End block must be in the future"
 		);
 		require(
-			_endBlock >= endBlock,
+			_endTimestamp >= endTimestamp,
 			"Extend::End block must be after the current end block"
 		);
 		require(
@@ -530,9 +530,9 @@ contract RewardsPoolBase is ReentrancyGuard {
 			rewardPerBlock[i] = _rewardsPerBlock[i];
 		}
 
-		endBlock = _endBlock;
+		endTimestamp = _endTimestamp;
 
-		emit Extended(_endBlock, _rewardsPerBlock);
+		emit Extended(_endTimestamp, _rewardsPerBlock);
 	}
 
 	/** @dev Withdrawing rewards acumulated from different pools for providing liquidity
@@ -568,18 +568,18 @@ contract RewardsPoolBase is ReentrancyGuard {
 	/** @dev Helper function to calculate how much tokens should be transffered to a rewards pool.
 	 */
 	function calculateRewardsAmount(
-		uint256 _startBlock,
-		uint256 _endBlock,
+		uint256 _startTimestamp,
+		uint256 _endTimestamp,
 		uint256 _rewardPerBlock
-	) internal pure returns (uint256) {
+	) internal view returns (uint256) {
 		require(
 			_rewardPerBlock > 0,
 			"RewardsPoolBase::calculateRewardsAmount: Rewards per block must be greater than zero"
 		);
+		uint256 rewardsPeriodSeconds = _endTimestamp.sub(_startTimestamp);
+		uint256 rewardsPeriodBlocks = rewardsPeriodSeconds.div(virtualBlockTime);
 
-		uint256 rewardsPeriod = _endBlock.sub(_startBlock);
-
-		return _rewardPerBlock.mul(rewardsPeriod);
+		return _rewardPerBlock.mul(rewardsPeriodBlocks);
 	}
 
 	/** @dev Helper function to get the reward tokens count.

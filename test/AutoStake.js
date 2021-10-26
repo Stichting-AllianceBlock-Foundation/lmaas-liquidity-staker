@@ -243,8 +243,6 @@ describe('AutoStake', () => {
 					const userBalanceAfter = await AutoStakingInstance.balanceOf(staker.signer.address);
 					const userExitInfo = await AutoStakingInstance.exitInfo(staker.signer.address);
 
-					console.log(userExitInfo.exitStake.toString())
-
 					assert(userExitInfo.exitStake.eq(standardStakingAmount.add(bOne.mul(11))), "User exit amount is not updated properly");
 					assert(userBalanceAfter.eq(0), "User balance is not updated properly");
 				})

@@ -26,6 +26,11 @@ describe('NonCompoundingRewardsPoolFactory', () => {
     const amountToTransfer = ethers.utils.parseEther("10000");
     const contractStakeLimit = ethers.utils.parseEther('10') // 10 tokens
 
+    let startTimestmap;
+	let endTimestamp;
+	const virtualBlocksTime = 10 // 10s == 10000ms
+	const oneMinute = 60
+
 	const setupRewardsPoolParameters = async (deployer) => {
 		rewardTokensInstances = [];
         rewardTokensAddresses = [];
@@ -42,9 +47,11 @@ describe('NonCompoundingRewardsPoolFactory', () => {
             rewardPerBlock.push(parsedReward);
         }
 
-		const currentBlock = await deployer.provider.getBlock('latest');
-		startBlock = currentBlock.number + 10;
-		endBlock = startBlock + 20;
+        const currentBlock = await deployer.provider.getBlock('latest');
+		startTimestmap = currentBlock.timestamp + oneMinute ;
+		endTimestamp = startTimestmap + oneMinute*2;
+		startBlock = Math.trunc(startTimestmap/virtualBlocksTime)
+		endBlock = Math.trunc(endTimestamp/virtualBlocksTime)
 
 	}
 
@@ -55,7 +62,7 @@ describe('NonCompoundingRewardsPoolFactory', () => {
         externalRewardsTokenAddress = externalRewardsTokenInstance.contractAddress;
     
         await setupRewardsPoolParameters(deployer)
-        NonCompoundingRewardsPoolFactoryInstance = await deployer.deploy(NonCompoundingRewardsPoolFactory, {}, treasury.signer.address, externalRewardsTokenAddress);
+        NonCompoundingRewardsPoolFactoryInstance = await deployer.deploy(NonCompoundingRewardsPoolFactory, {});
     });
 
     it('should deploy valid rewards pool factory contract', async () => {
@@ -81,7 +88,7 @@ describe('NonCompoundingRewardsPoolFactory', () => {
             for (i = 0; i < rewardTokensAddresses.length; i++) {
                 await rewardTokensInstances[i].transfer(NonCompoundingRewardsPoolFactoryInstance.contractAddress, amountToTransfer);
             }
-            await NonCompoundingRewardsPoolFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock, rewardTokensAddresses, rewardPerBlock, stakeLimit, 10, stakeLimit, contractStakeLimit);
+            await NonCompoundingRewardsPoolFactoryInstance.deploy(stakingTokenAddress, startTimestmap, endTimestamp, rewardTokensAddresses, rewardPerBlock, stakeLimit, 10, stakeLimit, contractStakeLimit, virtualBlocksTime);
 
             const firstRewardsPool = await NonCompoundingRewardsPoolFactoryInstance.rewardsPools(0);
 			const RewardsPoolContract = await etherlime.ContractAt(NonCompoundingRewardsPool, firstRewardsPool);
@@ -97,7 +104,7 @@ describe('NonCompoundingRewardsPoolFactory', () => {
             for (i = 0; i < rewardTokensAddresses.length; i++) {
                 await rewardTokensInstances[i].transfer(NonCompoundingRewardsPoolFactoryInstance.contractAddress, amountToTransfer);
             }
-            await NonCompoundingRewardsPoolFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock, rewardTokensAddresses,rewardPerBlock, stakeLimit, 10, stakeLimit, contractStakeLimit);
+            await NonCompoundingRewardsPoolFactoryInstance.deploy(stakingTokenAddress, startTimestmap, endTimestamp, rewardTokensAddresses,rewardPerBlock, stakeLimit, 10, stakeLimit, contractStakeLimit, virtualBlocksTime);
 			let rewardsPoolLength = await NonCompoundingRewardsPoolFactoryInstance.getRewardsPoolNumber()
 			let rewardsPoolAddress = await NonCompoundingRewardsPoolFactoryInstance.rewardsPools((rewardsPoolLength - 1) )
 
@@ -126,38 +133,38 @@ describe('NonCompoundingRewardsPoolFactory', () => {
         });
 
         it('Should fail on deploying not from owner', async () => {
-            await assert.revert(NonCompoundingRewardsPoolFactoryInstance.from(bobAccount).deploy(stakingTokenAddress, startBlock, endBlock, rewardTokensAddresses,rewardPerBlock, stakeLimit, 10, stakeLimit, contractStakeLimit));
+            await assert.revert(NonCompoundingRewardsPoolFactoryInstance.from(bobAccount).deploy(stakingTokenAddress, startTimestmap, endTimestamp, rewardTokensAddresses,rewardPerBlock, stakeLimit, 10, stakeLimit, contractStakeLimit, virtualBlocksTime));
         });
 
         it('Should fail on deploying with zero address as staking token', async () => {
-            await assert.revertWith(NonCompoundingRewardsPoolFactoryInstance.deploy(ethers.constants.AddressZero, startBlock, endBlock, rewardTokensAddresses,rewardPerBlock, stakeLimit, 10, stakeLimit, contractStakeLimit), "NonCompoundingRewardsPoolFactory::deploy: Staking token address can't be zero address");
+            await assert.revertWith(NonCompoundingRewardsPoolFactoryInstance.deploy(ethers.constants.AddressZero, startTimestmap, endTimestamp, rewardTokensAddresses,rewardPerBlock, stakeLimit, 10, stakeLimit, contractStakeLimit, virtualBlocksTime), "NonCompoundingRewardsPoolFactory::deploy: Staking token address can't be zero address");
         });
      
 
         it('Should fail on deploying with empty token and reward arrays', async () => {
             const errorString = "NonCompoundingRewardsPoolFactory::deploy: RewardsTokens array could not be empty"
             const errorStringMatchingSizes = "NonCompoundingRewardsPoolFactory::deploy: RewardsTokens and RewardPerBlock should have a matching sizes"
-            await assert.revertWith(NonCompoundingRewardsPoolFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock, [],rewardPerBlock, stakeLimit, 10, stakeLimit, contractStakeLimit), errorString);
-            await assert.revertWith(NonCompoundingRewardsPoolFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock, rewardTokensAddresses,[], stakeLimit, 10, stakeLimit, contractStakeLimit), errorStringMatchingSizes);
+            await assert.revertWith(NonCompoundingRewardsPoolFactoryInstance.deploy(stakingTokenAddress, startTimestmap, endTimestamp, [],rewardPerBlock, stakeLimit, 10, stakeLimit, contractStakeLimit, virtualBlocksTime), errorString);
+            await assert.revertWith(NonCompoundingRewardsPoolFactoryInstance.deploy(stakingTokenAddress, startTimestmap, endTimestamp, rewardTokensAddresses,[], stakeLimit, 10, stakeLimit, contractStakeLimit, virtualBlocksTime), errorStringMatchingSizes);
         });
 
         it('Should fail if the reward amount is not greater than zero', async () => {
             const errorString = "NonCompoundingRewardsPoolFactory::deploy: Reward token address could not be invalid"
-            await assert.revertWith(NonCompoundingRewardsPoolFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock, [ethers.constants.AddressZero],rewardPerBlock, stakeLimit, 10, stakeLimit, contractStakeLimit), errorString);
+            await assert.revertWith(NonCompoundingRewardsPoolFactoryInstance.deploy(stakingTokenAddress, startTimestmap, endTimestamp, [ethers.constants.AddressZero],rewardPerBlock, stakeLimit, 10, stakeLimit, contractStakeLimit, virtualBlocksTime), errorString);
         });
 
         it('Should fail if the reward token amount is invalid address', async () => {
             const errorString = "NonCompoundingRewardsPoolFactory::deploy: Reward per block must be greater than zero"
-            await assert.revertWith(NonCompoundingRewardsPoolFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock, rewardTokensAddresses,[0], stakeLimit, 10, stakeLimit, contractStakeLimit), errorString);
+            await assert.revertWith(NonCompoundingRewardsPoolFactoryInstance.deploy(stakingTokenAddress, startTimestmap, endTimestamp, rewardTokensAddresses,[0], stakeLimit, 10, stakeLimit, contractStakeLimit, virtualBlocksTime), errorString);
         });
 
         it('Should fail on deploying with no stake limit', async () => {
-            await assert.revertWith(NonCompoundingRewardsPoolFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock, rewardTokensAddresses,rewardPerBlock, 0, 10, stakeLimit, contractStakeLimit), "NonCompoundingRewardsPoolFactory::deploy: Stake limit must be more than 0");
+            await assert.revertWith(NonCompoundingRewardsPoolFactoryInstance.deploy(stakingTokenAddress, startTimestmap, endTimestamp, rewardTokensAddresses,rewardPerBlock, 0, 10, stakeLimit, contractStakeLimit, virtualBlocksTime), "NonCompoundingRewardsPoolFactory::deploy: Stake limit must be more than 0");
         });
 
         it('Should fail on deploying with wrong throttle params', async () => {
-            await assert.revertWith(NonCompoundingRewardsPoolFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock, rewardTokensAddresses,rewardPerBlock, stakeLimit, 0, stakeLimit, contractStakeLimit), "NonCompoundingRewardsPoolFactory::deploy: Throttle round blocks must be more than 0");
-            await assert.revertWith(NonCompoundingRewardsPoolFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock, rewardTokensAddresses,rewardPerBlock, stakeLimit, 10, 0, contractStakeLimit), "NonCompoundingRewardsPoolFactory::deploy: Throttle round cap must be more than 0");
+            await assert.revertWith(NonCompoundingRewardsPoolFactoryInstance.deploy(stakingTokenAddress, startTimestmap, endTimestamp, rewardTokensAddresses,rewardPerBlock, stakeLimit, 0, stakeLimit, contractStakeLimit, virtualBlocksTime), "NonCompoundingRewardsPoolFactory::deploy: Throttle round blocks must be more than 0");
+            await assert.revertWith(NonCompoundingRewardsPoolFactoryInstance.deploy(stakingTokenAddress, startTimestmap, endTimestamp, rewardTokensAddresses,rewardPerBlock, stakeLimit, 10, 0, contractStakeLimit, virtualBlocksTime), "NonCompoundingRewardsPoolFactory::deploy: Throttle round cap must be more than 0");
         });
 
         describe('Whitelisting', async function () {
@@ -170,10 +177,10 @@ describe('NonCompoundingRewardsPoolFactory', () => {
                 for (i = 0; i < rewardTokensAddresses.length; i++) {
                     await rewardTokensInstances[i].transfer(NonCompoundingRewardsPoolFactoryInstance.contractAddress, amountToTransfer);
                 }
-                await NonCompoundingRewardsPoolFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock, rewardTokensAddresses, rewardPerBlock, stakeLimit, 10, stakeLimit, contractStakeLimit);
-                await NonCompoundingRewardsPoolFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock+10, rewardTokensAddresses, rewardPerBlock, stakeLimit, 10, stakeLimit, contractStakeLimit);
-                await NonCompoundingRewardsPoolFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock+100, rewardTokensAddresses, rewardPerBlock, stakeLimit, 10, stakeLimit, contractStakeLimit);
-                await NonCompoundingRewardsPoolFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock+100, rewardTokensAddresses, rewardPerBlock, stakeLimit, 10, stakeLimit, contractStakeLimit);
+                await NonCompoundingRewardsPoolFactoryInstance.deploy(stakingTokenAddress, startTimestmap, endTimestamp, rewardTokensAddresses, rewardPerBlock, stakeLimit, 10, stakeLimit, contractStakeLimit, virtualBlocksTime);
+                await NonCompoundingRewardsPoolFactoryInstance.deploy(stakingTokenAddress, startTimestmap, endTimestamp+oneMinute, rewardTokensAddresses, rewardPerBlock, stakeLimit, 10, stakeLimit, contractStakeLimit, virtualBlocksTime);
+                await NonCompoundingRewardsPoolFactoryInstance.deploy(stakingTokenAddress, startTimestmap, endTimestamp+oneMinute, rewardTokensAddresses, rewardPerBlock, stakeLimit, 10, stakeLimit, contractStakeLimit, virtualBlocksTime);
+                await NonCompoundingRewardsPoolFactoryInstance.deploy(stakingTokenAddress, startTimestmap, endTimestamp+oneMinute, rewardTokensAddresses, rewardPerBlock, stakeLimit, 10, stakeLimit, contractStakeLimit, virtualBlocksTime);
 
                 const transfererAddress = await NonCompoundingRewardsPoolFactoryInstance.rewardsPools(0);
                 const receiverAddress = await NonCompoundingRewardsPoolFactoryInstance.rewardsPools(1);
@@ -187,32 +194,28 @@ describe('NonCompoundingRewardsPoolFactory', () => {
 
                 let currentBlock = await deployer.provider.getBlock('latest');
                 const blocksStartDelta = (startBlock-currentBlock.number);
-                for (let i=0; i<blocksStartDelta; i++) {
-                    await mineBlock(deployer.provider);
-                }
-
+                
                 const standardStakingAmount = ethers.utils.parseEther('5')
                 await stakingTokenInstance.mint(aliceAccount.signer.address, amountToTransfer);
                 await stakingTokenInstance.approve(transferer.contractAddress, ethers.constants.MaxUint256);
-
+                await utils.timeTravel(deployer.provider, 70);
                 await transferer.from(aliceAccount.signer.address).stake(standardStakingAmount);
 
                 currentBlock = await deployer.provider.getBlock('latest')
                 const blocksDelta = (endBlock-currentBlock.number);
 
-                for (let i=0; i<blocksDelta; i++) {
-                    await mineBlock(deployer.provider);
-                }
+                await utils.timeTravel(deployer.provider, 70);
             });
 
             it('Should fail transfer if receiver not whitelisted', async () => {
+                await utils.timeTravel(deployer.provider, 70)
                 await assert.revertWith(transferer.exitAndTransfer(receiver.contractAddress), "exitAndTransfer::receiver is not whitelisted");
             });
 
             it('Should successfully exit and transfer if receiver whitelisted', async () => {
                 const transfererStakesBefore = await transferer.totalStaked();
                 const receiverStakesBefore = await receiver.totalStaked();
-
+                await utils.timeTravel(deployer.provider, 70)
                 await NonCompoundingRewardsPoolFactoryInstance.enableReceivers(transferer.contractAddress, [receiver.contractAddress]);
                 await transferer.from(aliceAccount.signer.address).exitAndTransfer(receiver.contractAddress);
 

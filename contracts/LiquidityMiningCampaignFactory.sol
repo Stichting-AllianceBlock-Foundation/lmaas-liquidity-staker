@@ -92,7 +92,8 @@ contract LiquidityMiningCampaignFactory is AbstractPoolsFactory, StakeTransferEn
 				calculateRewardsAmount(
 					_startTimestamp,
 					_endTimestamp,
-					_rewardPerBlock[i]
+					_rewardPerBlock[i],
+					_virtualBlockTime
 				);
 			IERC20Detailed(_rewardsTokens[i]).safeTransfer(
 				rewardsPoolBase,
@@ -105,25 +106,26 @@ contract LiquidityMiningCampaignFactory is AbstractPoolsFactory, StakeTransferEn
 	}
 
 	/** @dev Function that will extend the rewards period, but not change the reward rate, for a given staking contract.
-	 * @param _endBlock The new endblock for the rewards pool.
+	 * @param _endTimestamp The new endTimestamp for the rewards pool.
 	 * @param _rewardsPerBlock Rewards per block .
 	 * @param _rewardsPoolAddress The address of the RewardsPoolBase contract.
 	 */
 	function extendRewardPool(
-		uint256 _endBlock,
+		uint256 _endTimestamp,
 		uint256[] calldata _rewardsPerBlock,
 		address _rewardsPoolAddress
 	) external onlyOwner {
 
 		RewardsPoolBase pool = RewardsPoolBase(_rewardsPoolAddress);
-		uint256 currentEndBlock = pool.endBlock();
+		uint256 currentEndTimestamp = pool.endTimestamp();
+		uint256 virtualBlockTime = pool.virtualBlockTime();
 		uint256[] memory currentRemainingRewards = new uint256[](_rewardsPerBlock.length);
 		uint256[] memory newRemainingRewards = new uint256[](_rewardsPerBlock.length);
 
 		for (uint256 i = 0; i < _rewardsPerBlock.length; i++) {
 
-			currentRemainingRewards[i] = calculateRewardsAmount(block.number, currentEndBlock, pool.rewardPerBlock(i));
-			newRemainingRewards[i] = calculateRewardsAmount(block.number, _endBlock, _rewardsPerBlock[i]);
+			currentRemainingRewards[i] = calculateRewardsAmount(block.timestamp, currentEndTimestamp, pool.rewardPerBlock(i), virtualBlockTime);
+			newRemainingRewards[i] = calculateRewardsAmount(block.timestamp, _endTimestamp, _rewardsPerBlock[i], virtualBlockTime);
 
 			address rewardsToken = RewardsPoolBase(_rewardsPoolAddress).rewardsTokens(i);
 
@@ -134,7 +136,7 @@ contract LiquidityMiningCampaignFactory is AbstractPoolsFactory, StakeTransferEn
 		}
 
 		RewardsPoolBase(_rewardsPoolAddress).extend(
-			_endBlock,
+			_endTimestamp,
 			_rewardsPerBlock,
 			currentRemainingRewards,
 			newRemainingRewards

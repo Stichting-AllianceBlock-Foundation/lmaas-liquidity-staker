@@ -139,7 +139,7 @@ describe('LimitedAutoStake', () => {
 			const userOwedToken = await OneStakerRewardsPoolInstance.getUserOwedTokens(AutoStakingInstance.contractAddress, 0);
 			const userBalance = await AutoStakingInstance.balanceOf(staker.signer.address);
 			const userShares = await AutoStakingInstance.share(staker.signer.address);
-			console.log(userInfo.firstStakedBlockNumber.toString())
+
 			assert(totalStakedAmount.eq(standardStakingAmount), "The stake was not successful")
 			assert(userInfo.amountStaked.eq(standardStakingAmount), "User's staked amount is not correct")
 			assert(userInfo.firstStakedBlockNumber.eq(startBlock + 1), "User's first block is not correct")
@@ -176,7 +176,6 @@ describe('LimitedAutoStake', () => {
 					const userBalanceAfter = await AutoStakingInstance.balanceOf(staker.signer.address);
 					const userExitInfo = await AutoStakingInstance.exitInfo(staker.signer.address)
 
-					console.log(userExitInfo.exitStake.toString())
 					
 					assert(userExitInfo.exitStake.eq(standardStakingAmount.add(bOne.mul(11))), "User exit amount is not updated properly");
 					assert(userBalanceAfter.eq(0), "User balance is not updated properly");
@@ -192,7 +191,7 @@ describe('LimitedAutoStake', () => {
 
 					const userBalanceAfter = await AutoStakingInstance.balanceOf(staker.signer.address);
 					const userExitInfo = await AutoStakingInstance.exitInfo(staker.signer.address)
-					console.log(userExitInfo.exitStake.toString())
+					
 					assert(userExitInfo.exitStake.eq(standardStakingAmount.add(bOne.mul(11))), "User exit amount is not updated properly");
 					assert(userBalanceAfter.eq(0), "User balance is not updated properly");
 				})

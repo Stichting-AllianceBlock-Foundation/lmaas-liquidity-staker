@@ -99,7 +99,8 @@ contract NonCompoundingRewardsPoolFactory is AbstractPoolsFactory, StakeTransfer
 				calculateRewardsAmount(
 					_startTimestamp,
 					_endTimestamp,
-					_rewardPerBlock[i]
+					_rewardPerBlock[i],
+					_virtualBlockTime
 				);
 			IERC20Detailed(_rewardsTokens[i]).safeTransfer(
 				rewardPool,

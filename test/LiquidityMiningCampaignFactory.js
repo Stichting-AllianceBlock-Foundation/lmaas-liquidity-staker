@@ -36,6 +36,11 @@ describe('LMC Factory', () => { // These tests must be skipped for coverage as c
 	const bTen = ethers.utils.parseEther("10")
 	const bonusPercet = 10000 // In thousands
     const contractStakeLimit = amount
+
+    let startTimestmap;
+	let endTimestamp;
+	const virtualBlocksTime = 10 // 10s == 10000ms
+	const oneMinute = 60
     
 
 	const setupRewardsPoolParameters = async (deployer) => {
@@ -55,10 +60,12 @@ describe('LMC Factory', () => { // These tests must be skipped for coverage as c
         }
 
 		const currentBlock = await deployer.provider.getBlock('latest');
-		startBlock = currentBlock.number + 15;
-		endBlock = startBlock + 20;
-		rampUpBlock =  20;
-		lockBlock =  30;
+		startTimestmap = currentBlock.timestamp + oneMinute ;
+		endTimestamp = startTimestmap + oneMinute*2;
+		startBlock = Math.trunc(startTimestmap/virtualBlocksTime)
+		endBlock = Math.trunc(endTimestamp/virtualBlocksTime)
+        rampUpBlock = startBlock + 20;
+		lockBlock = endBlock + 30;
 	}
 
     beforeEach(async () => {
@@ -84,7 +91,7 @@ describe('LMC Factory', () => { // These tests must be skipped for coverage as c
         it('Should deploy the lmc successfully', async () => {
             await stakingTokenInstance.mint(LMCFactoryInstance.contractAddress, amount);
 			await rewardTokensInstances[0].mint(LMCFactoryInstance.contractAddress, amount)
-            await LMCFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock, rewardTokensAddresses, rewardPerBlock,rewardTokensAddresses[0], stakeLimit, contractStakeLimit);
+            await LMCFactoryInstance.deploy(stakingTokenAddress, startTimestmap, endTimestamp, rewardTokensAddresses, rewardPerBlock,rewardTokensAddresses[0], stakeLimit, contractStakeLimit, virtualBlocksTime);
 
             const lmcContract = await LMCFactoryInstance.rewardsPools(0);
 			const LMCInstance = await etherlime.ContractAt(LMC, lmcContract);
@@ -95,34 +102,34 @@ describe('LMC Factory', () => { // These tests must be skipped for coverage as c
         });
 
         it('Should fail on deploying not from owner', async () => {
-            await assert.revert(LMCFactoryInstance.from(bobAccount).deploy(stakingTokenAddress, startBlock, endBlock, rewardTokensAddresses, rewardPerBlock,rewardTokensAddresses[0], stakeLimit, contractStakeLimit));
+            await assert.revert(LMCFactoryInstance.from(bobAccount).deploy(stakingTokenAddress, startTimestmap, endTimestamp, rewardTokensAddresses, rewardPerBlock,rewardTokensAddresses[0], stakeLimit, contractStakeLimit, virtualBlocksTime));
         });
 
         it('Should fail on deploying with zero address as staking token', async () => {
-            await assert.revertWith(LMCFactoryInstance.deploy(ethers.constants.AddressZero, startBlock, endBlock, rewardTokensAddresses, rewardPerBlock,rewardTokensAddresses[0], stakeLimit, contractStakeLimit), "LiquidityMiningCampaignFactory::deploy: Staking token address can't be zero address");
+            await assert.revertWith(LMCFactoryInstance.deploy(ethers.constants.AddressZero, startTimestmap, endTimestamp, rewardTokensAddresses, rewardPerBlock,rewardTokensAddresses[0], stakeLimit, contractStakeLimit, virtualBlocksTime), "LiquidityMiningCampaignFactory::deploy: Staking token address can't be zero address");
         });
      
         it('Should fail on zero stake limit', async () => {
-            await assert.revertWith(LMCFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock, rewardTokensAddresses, rewardPerBlock,rewardTokensAddresses[0], 0, contractStakeLimit), "LiquidityMiningCampaignFactory::deploy: Stake limit must be more than 0");
+            await assert.revertWith(LMCFactoryInstance.deploy(stakingTokenAddress, startTimestmap, endTimestamp, rewardTokensAddresses, rewardPerBlock,rewardTokensAddresses[0], 0, contractStakeLimit, virtualBlocksTime), "LiquidityMiningCampaignFactory::deploy: Stake limit must be more than 0");
         });
 
         it('Should fail the rewards pool array is empty', async () => {
-            await assert.revertWith(LMCFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock, [], rewardPerBlock,rewardTokensAddresses[0], stakeLimit, contractStakeLimit), "LiquidityMiningCampaignFactory::deploy: RewardsTokens array could not be empty");
+            await assert.revertWith(LMCFactoryInstance.deploy(stakingTokenAddress, startTimestmap, endTimestamp, [], rewardPerBlock,rewardTokensAddresses[0], stakeLimit, contractStakeLimit, virtualBlocksTime), "LiquidityMiningCampaignFactory::deploy: RewardsTokens array could not be empty");
         });
 		it('Should fail the rewards pool array and rewards amount arrays are with diffferent length ', async () => {
 			rewardPerBlock.push(bOne)
-            await assert.revertWith(LMCFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock, rewardTokensAddresses, rewardPerBlock,rewardTokensAddresses[0], stakeLimit, contractStakeLimit), "LiquidityMiningCampaignFactory::deploy: RewardsTokens and RewardPerBlock should have a matching sizes");
+            await assert.revertWith(LMCFactoryInstance.deploy(stakingTokenAddress, startTimestmap, endTimestamp, rewardTokensAddresses, rewardPerBlock,rewardTokensAddresses[0], stakeLimit, contractStakeLimit, virtualBlocksTime), "LiquidityMiningCampaignFactory::deploy: RewardsTokens and RewardPerBlock should have a matching sizes");
         });
 		it('Should fail the rewards has 0 in the array ', async () => {
 			let rewardZero = [0]
-            await assert.revertWith(LMCFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock, rewardTokensAddresses, rewardZero,rewardTokensAddresses[0], stakeLimit, contractStakeLimit), "LiquidityMiningCampaignFactory::deploy: Reward per block must be greater than zero");
+            await assert.revertWith(LMCFactoryInstance.deploy(stakingTokenAddress, startTimestmap, endTimestamp, rewardTokensAddresses, rewardZero,rewardTokensAddresses[0], stakeLimit, contractStakeLimit, virtualBlocksTime), "LiquidityMiningCampaignFactory::deploy: Reward per block must be greater than zero");
         });
 
         describe('Whitelisting', async function () {
 
             beforeEach(async () => {
 				await rewardTokensInstances[0].mint(LMCFactoryInstance.contractAddress, amount)
-                await LMCFactoryInstance.deploy(stakingTokenInstance.contractAddress, startBlock, endBlock, rewardTokensAddresses, rewardPerBlock, rewardTokensAddresses[0], stakeLimit, contractStakeLimit)
+                await LMCFactoryInstance.deploy(stakingTokenInstance.contractAddress, startTimestmap, endTimestamp, rewardTokensAddresses, rewardPerBlock, rewardTokensAddresses[0], stakeLimit, contractStakeLimit, virtualBlocksTime)
 				
 				const percentageCalculator = await deployer.deploy(PercentageCalculator);
 				libraries = {
@@ -134,7 +141,7 @@ describe('LMC Factory', () => { // These tests must be skipped for coverage as c
                 lmcInstance = await etherlime.ContractAt(LMC, lmcAddress);
 
 				let lockScheme = []
-				LockSchemeInstance = await deployer.deploy(LockScheme, libraries, lockBlock, rampUpBlock, bonusPercet, lmcInstance.contractAddress);
+				LockSchemeInstance = await deployer.deploy(LockScheme, libraries, lockBlock, rampUpBlock, bonusPercet, lmcInstance.contractAddress, virtualBlocksTime   );
 				lockScheme.push(LockSchemeInstance.contractAddress);
 				
 				
@@ -151,22 +158,21 @@ describe('LMC Factory', () => { // These tests must be skipped for coverage as c
 					NonCompoundingRewardsPool,
 					{},
 					rewardTokensAddresses[0],
-					startBlock+5,
-					endBlock+10,
+					startTimestmap+5,
+					endTimestamp+10,
 					rewardTokensAddresses,
 					rewardPerBlock,
 					stakeLimit,
 					throttleRoundBlocks,
 					throttleRoundCap,
-					treasury.signer.address,
-					externalRewardsTokenAddress, 
-                    contractStakeLimit
+                    contractStakeLimit,
+                    virtualBlocksTime
 				);
 
 				await stakingTokenInstance.approve(LockSchemeInstance.contractAddress, amount);
 				await stakingTokenInstance.approve(lmcInstance.contractAddress, amount);
 				await stakingTokenInstance.approve(LMCFactoryInstance.contractAddress, amount);
-
+                await utils.timeTravel(deployer.provider, 70);
 				await lmcInstance.from(aliceAccount.signer.address).stakeAndLock(bTen,LockSchemeInstance.contractAddress);
 				let staked = await lmcInstance.totalStaked();
 			});
@@ -177,13 +183,8 @@ describe('LMC Factory', () => { // These tests must be skipped for coverage as c
 
             it('Should successfully exit and transfer if receiver whitelisted', async () => {
 				
-				currentBlock = await deployer.provider.getBlock('latest');
-				const blocksDelta2 = (endBlock-currentBlock.number);
-
-				for (let i=0; i<blocksDelta2; i++) {
-					await mineBlock(deployer.provider);
-				}
-
+		
+                await utils.timeTravel(deployer.provider, 70);
                 await LMCFactoryInstance.enableReceivers(lmcInstance.contractAddress, [NonCompoundingRewardsPoolInstance.contractAddress]);
                 await lmcInstance.from(aliceAccount.signer.address).exitAndStake(NonCompoundingRewardsPoolInstance.contractAddress);
 
@@ -206,12 +207,13 @@ describe('LMC Factory', () => { // These tests must be skipped for coverage as c
                 for (i = 0; i < rewardTokensAddresses.length; i++) {
                     await rewardTokensInstances[i].transfer(LMCFactoryInstance.contractAddress, amountToTransfer);
                 }
-                await LMCFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock, rewardTokensAddresses,rewardPerBlock, rewardTokensAddresses[0], stakeLimit, contractStakeLimit);
+                await LMCFactoryInstance.deploy(stakingTokenAddress, startTimestmap, endTimestamp, rewardTokensAddresses,rewardPerBlock, rewardTokensAddresses[0], stakeLimit, contractStakeLimit, virtualBlocksTime);
             });
 
-            const calculateRewardsAmount = async (startBlock, endBlock, rewardsPerBlock) => {
-                let rewardsPeriod = endBlock - startBlock;
-                let rewardsAmount = rewardsPerBlock*(rewardsPeriod)
+            const calculateRewardsAmount = async (startTime, endTimestamp, rewardsPerBlock) => {
+                let rewardsPeriod = endTimestamp - startTime;
+                let rewardsBlockPeriod = Math.trunc(rewardsPeriod/virtualBlocksTime)
+                let rewardsAmount = rewardsPerBlock*(rewardsBlockPeriod)
                 let amount = await ethers.utils.bigNumberify(rewardsAmount.toString());
                 return amount
              }
@@ -223,30 +225,26 @@ describe('LMC Factory', () => { // These tests must be skipped for coverage as c
                     const rewardTokenInstance = rewardTokensInstances[0];
                     let rewardsBalanceInitial = await rewardTokenInstance.balanceOf(LmcContract.contractAddress)
 
-                    let currentBlock = await deployer.provider.getBlock('latest');
-                    let blocksDelta = (endBlock-currentBlock.number);
 
-                    while (blocksDelta > 10) {
-                        await mineBlock(deployer.provider);
-                        currentBlock = await deployer.provider.getBlock('latest');
-                        blocksDelta = (endBlock-currentBlock.number);
-                    }
-                    let initialEndBlock = await LmcContract.endBlock();
-                    let blockExtension = 20
-                    let newEndBlock = initialEndBlock.add(blockExtension)
+                    await utils.timeTravel(deployer.provider, 110);
+
+                    let initialEndTime = await LmcContract.endTimestamp();
+                    let newEndTimestamp = initialEndTime.add(oneMinute)
+                    let extentionInBlocks = Math.trunc((newEndTimestamp.sub(initialEndTime)).div(virtualBlocksTime))
+
                     for (i = 0; i < rewardTokensCount; i++) {
-                        let amount = rewardPerBlock[i].mul(blockExtension)
+                        let amount = rewardPerBlock[i].mul(extentionInBlocks)
                         await rewardTokensInstances[i].transfer(LMCFactoryInstance.contractAddress, amount);
                     }
                     currentBlock = await deployer.provider.getBlock('latest');
-                    await LMCFactoryInstance.extendRewardPool(newEndBlock, rewardPerBlock, lmcAddress);
+                    await LMCFactoryInstance.extendRewardPool(newEndTimestamp, rewardPerBlock, lmcAddress);
 				   
                     let rewardsBalanceFinal = await rewardTokenInstance.balanceOf(LmcContract.contractAddress)
-                    let finalEndBlock = await LmcContract.endBlock();
+                    let finalEndTime = await LmcContract.endTimestamp();
                     let finalRewardPerBlock = await LmcContract.rewardPerBlock(0);
-                    let amountToTransfer = rewardPerBlock[0].mul(blockExtension)
+                    let amountToTransfer = rewardPerBlock[0].mul(extentionInBlocks)
 
-                    assert(finalEndBlock.eq(newEndBlock), "The endblock is different");
+                    assert(finalEndTime.eq(newEndTimestamp), "The endtime is different");
                     assert(finalRewardPerBlock.eq(rewardPerBlock[0]), "The rewards amount is not correct");
                     assert(rewardsBalanceFinal.eq((rewardsBalanceInitial.add(amountToTransfer))), "The transfered amount is not correct")
 
@@ -260,19 +258,12 @@ describe('LMC Factory', () => { // These tests must be skipped for coverage as c
                     const rewardTokenInstance = rewardTokensInstances[0];
                     let rewardsBalanceInitial = await rewardTokenInstance.balanceOf(LmcContract.contractAddress)
 
-                    let currentBlock = await deployer.provider.getBlock('latest');
-                    let blocksDelta = (endBlock-currentBlock.number);
+               
 
-                    while (blocksDelta > 11) {
-                        await mineBlock(deployer.provider);
-                        currentBlock = await deployer.provider.getBlock('latest');
-                        blocksDelta = (endBlock-currentBlock.number);
-                    }
-                    let initialEndBlock = await LmcContract.endBlock();
-                    let blockExtension = 10
-                    let newEndBlock = initialEndBlock.add(blockExtension)
-                    currentBlock = await deployer.provider.getBlock('latest');
-
+                    await utils.timeTravel(deployer.provider, 110);
+                    let initialEndTimestamp = await LmcContract.endTimestamp();
+                    let newEndTimestamp = initialEndTimestamp.add(oneMinute)
+                    let extentionInBlocks = Math.trunc((newEndTimestamp.sub(initialEndTimestamp)).div(virtualBlocksTime))
 
                     let newRewardPerBlock = []
                     for (i = 0; i < rewardTokensCount; i++) {
@@ -280,13 +271,13 @@ describe('LMC Factory', () => { // These tests must be skipped for coverage as c
                         newRewardPerBlock.push(newSingleReward)
           
                     }
-                    await LMCFactoryInstance.extendRewardPool(newEndBlock, newRewardPerBlock, lmcAddress);
+                    await LMCFactoryInstance.extendRewardPool(newEndTimestamp, newRewardPerBlock, lmcAddress);
 
                     let rewardsBalanceFinal = await rewardTokenInstance.balanceOf(LmcContract.contractAddress)
-                    let finalEndBlock = await LmcContract.endBlock();
+                    let finalEndTime = await LmcContract.endTimestamp();
                     let finalRewardPerBlock = await LmcContract.rewardPerBlock(0);
 
-                    assert(finalEndBlock.eq(newEndBlock), "The endblock is different");
+                    assert(finalEndTime.eq(newEndTimestamp), "The endblock is different");
                     assert(finalRewardPerBlock.eq(newRewardPerBlock[0]), "The rewards amount is not correct");
                     assert(rewardsBalanceFinal.eq((rewardsBalanceInitial)), "The transfered amount is not correct")
 
@@ -302,36 +293,29 @@ describe('LMC Factory', () => { // These tests must be skipped for coverage as c
                     let rewardsBalanceInitial = await rewardTokenInstance.balanceOf(LMCInstance.contractAddress)
                     let factoryBalanceInitial = await rewardTokenInstance.balanceOf(LMCFactoryInstance.contractAddress)
 
-                    let currentBlock = await deployer.provider.getBlock('latest');
-                    let blocksDelta = (endBlock-currentBlock.number);
 
-                    while (blocksDelta > 11) {
-                        await mineBlock(deployer.provider);
-                        currentBlock = await deployer.provider.getBlock('latest');
-                        blocksDelta = (endBlock-currentBlock.number);
-                    }
-                    let initialEndBlock = await LMCInstance.endBlock();
-                    let blockExtension = 10
-                    let newEndBlock = initialEndBlock.add(blockExtension)
-                    currentBlock = await deployer.provider.getBlock('latest');
+                    await utils.timeTravel(deployer.provider, 110);
+                    let initialEndTimestamp = await LMCInstance.endTimestamp();
+                    let newEndTimestamp = initialEndTimestamp.add(oneMinute)
+                    let extentionInBlocks = Math.trunc((newEndTimestamp.sub(initialEndTimestamp)).div(virtualBlocksTime))
                     let amountToTransfer = []
                     let newRewardPerBlock = []
+                    const currentBlock = await deployer.provider.getBlock('latest');
 
                     for (i = 0; i < rewardTokensCount; i++) {
                         let newSingleReward = rewardPerBlock[i].div(5)
                         newRewardPerBlock.push(newSingleReward)
-                        let currentRemainingReward = await calculateRewardsAmount((currentBlock.number +1),endBlock.toString(),rewardPerBlock[i].toString())
-                        let newRemainingReward = await calculateRewardsAmount((currentBlock.number+1) ,newEndBlock.toString(),newSingleReward.toString())
-
+                        let currentRemainingReward = await calculateRewardsAmount((currentBlock.timestamp),initialEndTimestamp.toString(),rewardPerBlock[i].toString())
+                        let newRemainingReward = await calculateRewardsAmount((currentBlock.timestamp) ,newEndTimestamp.toString(),newSingleReward.toString())
                         amountToTransfer.push(currentRemainingReward.sub(newRemainingReward))
                     }
-                    await LMCFactoryInstance.extendRewardPool(newEndBlock, newRewardPerBlock, lmcAddress);
+                    await LMCFactoryInstance.extendRewardPool(newEndTimestamp, newRewardPerBlock, lmcAddress);
                     let rewardsBalanceFinal = await rewardTokenInstance.balanceOf(lmcAddress)
                     let factoryBalanceFinal = await rewardTokenInstance.balanceOf(LMCFactoryInstance.contractAddress)
-                    let finalEndBlock = await LMCInstance.endBlock();
+                    let finalEndTimestamp = await LMCInstance.endTimestamp();
                     let finalRewardPerBlock = await LMCInstance.rewardPerBlock(0);
                     
-                    assert(finalEndBlock.eq(newEndBlock), "The endblock is different");
+                    assert(finalEndTimestamp.eq(newEndTimestamp), "The endblock is different");
                     assert(finalRewardPerBlock.eq(newRewardPerBlock[0]), "The rewards amount is not correct");
                     assert(rewardsBalanceFinal.eq((rewardsBalanceInitial.sub(amountToTransfer[0]))), "The transfered amount is not correct")
                     assert(factoryBalanceFinal.eq((factoryBalanceInitial.add(amountToTransfer[0]))), "The amount is not transferred to the factory")
@@ -350,7 +334,7 @@ describe('LMC Factory', () => { // These tests must be skipped for coverage as c
                     for (i = 0; i < rewardTokensAddresses.length; i++) {
                         await rewardTokensInstances[i].transfer(LMCFactoryInstance.contractAddress, amountToTransfer);
                     }
-                    await LMCFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock, rewardTokensAddresses,rewardPerBlock, rewardTokensAddresses[0], stakeLimit, contractStakeLimit);
+                    await LMCFactoryInstance.deploy(stakingTokenAddress, startTimestmap, endTimestamp, rewardTokensAddresses,rewardPerBlock, rewardTokensAddresses[0], stakeLimit, contractStakeLimit,virtualBlocksTime);
                 });
             
 
@@ -366,13 +350,12 @@ describe('LMC Factory', () => { // These tests must be skipped for coverage as c
                 lmcInstance = await etherlime.ContractAt(LMC, lmcAddress);
 
 				let lockScheme = []
-				LockSchemeInstance = await deployer.deploy(LockScheme, libraries, lockBlock, rampUpBlock, bonusPercet, lmcInstance.contractAddress);
+				LockSchemeInstance = await deployer.deploy(LockScheme, libraries, lockBlock, rampUpBlock, bonusPercet, lmcInstance.contractAddress,virtualBlocksTime);
 				lockScheme.push(LockSchemeInstance.contractAddress);
 				
 				await LMCFactoryInstance.setLockSchemesToLMC(lockScheme,lmcInstance.contractAddress);
                 let isLockSchemeSet = await lmcInstance.lockSchemesExist(LockSchemeInstance.contractAddress)
                 let lockSchemeContractAddress = await lmcInstance.lockSchemes(0);
-                console.log()
                 assert.strictEqual(lockSchemeContractAddress.toLowerCase(), LockSchemeInstance.contractAddress.toLowerCase(), "The LockScheme addresses are not the same");
                 assert.isTrue(isLockSchemeSet, "LockScheme Contract not set properly")
             })
@@ -389,7 +372,7 @@ describe('LMC Factory', () => { // These tests must be skipped for coverage as c
                 lmcInstance = await etherlime.ContractAt(LMC, lmcAddress);
 
 				let lockScheme = []
-				LockSchemeInstance = await deployer.deploy(LockScheme, libraries, lockBlock, rampUpBlock, bonusPercet, lmcInstance.contractAddress);
+				LockSchemeInstance = await deployer.deploy(LockScheme, libraries, lockBlock, rampUpBlock, bonusPercet, lmcInstance.contractAddress,virtualBlocksTime);
 				lockScheme.push(LockSchemeInstance.contractAddress);
 				
 				await LMCFactoryInstance.setLockSchemesToLMC(lockScheme,lmcInstance.contractAddress);
@@ -417,8 +400,8 @@ describe('LMC Factory', () => { // These tests must be skipped for coverage as c
 				let lockScheme = []
                 let lockSchemeSecond = []
 
-				LockSchemeInstance = await deployer.deploy(LockScheme, libraries, lockBlock, rampUpBlock, bonusPercet, lmcInstance.contractAddress);
-                LockSchemeInstanceSecond = await deployer.deploy(LockScheme, libraries, lockBlock, rampUpBlock, bonusPercet, lmcInstance.contractAddress);
+				LockSchemeInstance = await deployer.deploy(LockScheme, libraries, lockBlock, rampUpBlock, bonusPercet, lmcInstance.contractAddress,virtualBlocksTime);
+                LockSchemeInstanceSecond = await deployer.deploy(LockScheme, libraries, lockBlock, rampUpBlock, bonusPercet, lmcInstance.contractAddress,virtualBlocksTime);
 				lockScheme.push(LockSchemeInstance.contractAddress);
                 lockSchemeSecond.push(LockSchemeInstanceSecond.contractAddress);
                 

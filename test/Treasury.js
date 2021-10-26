@@ -99,7 +99,7 @@ describe('Treasury', () => {
 
 	}
 
-	describe("Interaction Mechanics", async function () {
+	xdescribe("Interaction Mechanics", async function () {
 
 		let instanceOne;
 		let instanceTwo;

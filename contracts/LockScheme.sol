@@ -18,6 +18,7 @@ contract LockScheme is ReentrancyGuard {
 	uint256 public immutable bonusPercent; // saved in thousands = ex 3% = 3000
 	address public immutable lmcContract; // The address of the lmc contract
 	uint256 public forfeitedBonuses;
+	uint256 public immutable virtualBlockTime;
 
 	struct UserInfo {
 		uint256 balance; // IOU Balance for this lock contract
@@ -42,15 +43,18 @@ contract LockScheme is ReentrancyGuard {
 		uint256 _lockPeriod,
 		uint256 _rampUpPeriod,
 		uint256 _bonusPercent,
-		address _lmcContract
+		address _lmcContract,
+		uint256 _virtualBLockTime
 	) public {
 
 		require(_lmcContract != address(0x0), "constructor:: Invalid LMC address");
 		require(_rampUpPeriod <= _lockPeriod, "constructor:: Periods are not properly set");
+		require(_virtualBLockTime != 0, "constructor::VirtualBlockTime should be greater than zero");
 		lockPeriod = _lockPeriod;
 		rampUpPeriod = _rampUpPeriod;
 		bonusPercent = _bonusPercent;
 		lmcContract = _lmcContract;
+		virtualBlockTime = _virtualBLockTime;
 	}
 
 	/** @dev Locks the tokens into the current scheme, and updates user information
@@ -62,12 +66,12 @@ contract LockScheme is ReentrancyGuard {
 		UserInfo storage user = userInfo[_userAddress];
 
 		if(user.lockInitialStakeBlock == 0) {
-			user.lockInitialStakeBlock = block.number;
+			user.lockInitialStakeBlock = _getBlock();
 		}
 		
 		uint256 userLockStartBlock = user.lockInitialStakeBlock + rampUpPeriod;
 
-		require(userLockStartBlock > block.number , "lock::The ramp up period has finished");
+		require(userLockStartBlock > _getBlock() , "lock::The ramp up period has finished");
 
 		user.balance = user.balance.add(_amountToLock);
 
@@ -89,7 +93,7 @@ contract LockScheme is ReentrancyGuard {
 		bonus = PercentageCalculator.percentageCalc(user.accruedReward,bonusPercent);
 		uint256 userLockEnd = user.lockInitialStakeBlock.add(lockPeriod);
 
-		if(block.number < userLockEnd) {
+		if(_getBlock() < userLockEnd) {
 			forfeitedBonuses = forfeitedBonuses.add(bonus);
 			bonus = 0;
 			isBonusForfeited = true;
@@ -120,7 +124,7 @@ contract LockScheme is ReentrancyGuard {
 		UserInfo storage user = userInfo[_userAddress];
 		uint256 userLockEnd = user.lockInitialStakeBlock.add(lockPeriod);
 
-		if(block.number < userLockEnd) {
+		if(_getBlock() < userLockEnd) {
 			return 0;
 		}
 
@@ -144,7 +148,11 @@ contract LockScheme is ReentrancyGuard {
 	function hasUserRampUpEnded(address _userAddress) public view returns(bool) {
 		UserInfo storage user = userInfo[_userAddress];
 		uint256 userLockStartBlock = user.lockInitialStakeBlock + rampUpPeriod;
-		return userLockStartBlock < block.number;
+		return userLockStartBlock < _getBlock();
+	}
+
+	function _getBlock() public view virtual returns (uint256) {
+		return (block.timestamp.div(virtualBlockTime));
 	}
 
 }

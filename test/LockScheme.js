@@ -28,6 +28,11 @@ describe('LockScheme', () => {
 	const standardStakingAmount = ethers.utils.parseEther('5') // 5 tokens
 	const additionalRewards = bTen
 
+	let startTimestmap;
+	let endTimestamp;
+	const virtualBlocksTime = 10 // 10s == 10000ms
+	const oneMinute = 60
+
 
 	const setupRewardsPoolParameters = async (deployer) => {
 		const currentBlock = await deployer.provider.getBlock('latest');
@@ -54,7 +59,7 @@ describe('LockScheme', () => {
 			PercentageCalculator: percentageCalculator.contractAddress
 		}
 
-		LockSchemeInstance = await deployer.deploy(LockScheme, libraries, lockEndPeriod, rampUpBlock, bonusPercet, aliceAccount.signer.address);
+		LockSchemeInstance = await deployer.deploy(LockScheme, libraries, lockEndPeriod, rampUpBlock, bonusPercet, aliceAccount.signer.address,virtualBlocksTime);
 
 	});
 
@@ -73,10 +78,10 @@ describe('LockScheme', () => {
 				let userInfo = await LockSchemeInstance.userInfo(aliceAccount.signer.address);
 				let userBonuses = await LockSchemeInstance.getUserBonus(aliceAccount.signer.address);
 				let userAccruedRewards = await LockSchemeInstance.getUserAccruedReward(aliceAccount.signer.address);
-				const currentBlock = await deployer.provider.getBlock('latest');
+				const currentBlock = await LockSchemeInstance._getBlock();
 
 				assert(userInfo.balance.eq(bOne), "The transferred amount is not corrent");
-				assert(userInfo.lockInitialStakeBlock.eq(currentBlock.number), "The lock block is not set properly");
+				assert(userInfo.lockInitialStakeBlock.eq(currentBlock), "The lock block is not set properly");
 				assert(userAccruedRewards.eq(0), "The rewards were not set properly");
 				assert(userBonuses.eq(0), "The rewards were not set properly");
 			})
@@ -85,13 +90,13 @@ describe('LockScheme', () => {
 
 				await stakingTokenInstance.approve(LockSchemeInstance.contractAddress, amount);
 				await LockSchemeInstance.lock(aliceAccount.signer.address,bOne);
-				const currentBlock = await deployer.provider.getBlock('latest');
+				const currentBlock = await LockSchemeInstance._getBlock();
 				await LockSchemeInstance.lock(aliceAccount.signer.address,bOne);
 
 				let userInfo = await LockSchemeInstance.userInfo(aliceAccount.signer.address);
 
 				assert(userInfo.balance.eq(bOne.add(bOne)), "The transferred amount is not corrent");
-				assert(userInfo.lockInitialStakeBlock.eq(currentBlock.number), "The lock block is not set properly");
+				assert(userInfo.lockInitialStakeBlock.eq(currentBlock), "The lock block is not set properly");
 			})
 
 			it("Should update the user accrued rewards successfully", async() => {
@@ -121,11 +126,7 @@ describe('LockScheme', () => {
 				const currentBlock = await deployer.provider.getBlock('latest');
 				const userInfo = await LockSchemeInstance.userInfo(aliceAccount.signer.address)
 				const userInitialLockEndperiod = userInfo.lockInitialStakeBlock
-				const blockDelta = (userInitialLockEndperiod.add(rampUpBlock).sub(currentBlock.number));
-
-				for (let i = 0; i <= blockDelta.toString(); i++) {
-					await mineBlock(deployer.provider);
-				}	
+				await utils.timeTravel(deployer.provider, 200);
 				await stakingTokenInstance.approve(LockSchemeInstance.contractAddress, amount);
 				await assert.revertWith(LockSchemeInstance.lock(aliceAccount.signer.address,bOne), "lock::The ramp up period has finished")
 			})
@@ -143,11 +144,8 @@ describe('LockScheme', () => {
 				await LockSchemeInstance.lock(aliceAccount.signer.address,bOne);
 
 				const currentBlock = await deployer.provider.getBlock('latest');
-				const blockDelta = (lockEndPeriod - currentBlock.number);
 
-				for (let i = 0; i <= blockDelta; i++) {
-					await mineBlock(deployer.provider);
-				}	
+				await utils.timeTravel(deployer.provider,180);
 				await LockSchemeInstance.exit(aliceAccount.signer.address);
 				let userInfo = await LockSchemeInstance.userInfo(aliceAccount.signer.address);
 				let userAccruedRewards = await LockSchemeInstance.getUserAccruedReward(aliceAccount.signer.address);
@@ -202,9 +200,7 @@ describe('LockScheme', () => {
 				const currentBlock = await deployer.provider.getBlock('latest');
 				const blockDelta = (rampUpBlock - currentBlock.number);
 
-				for (let i = 0; i <= blockDelta; i++) {
-					await mineBlock(deployer.provider);
-				}	
+				await utils.timeTravel(deployer.provider, 120);
 
 				let hasRampUpEnded = await LockSchemeInstance.hasUserRampUpEnded(aliceAccount.signer.address)
 				assert.isTrue(hasRampUpEnded, "Returned ramp up check is not correct")
@@ -218,11 +214,10 @@ describe('LockScheme', () => {
 
 			it("Should return the user bonus if the end period has passed", async() => {
 				await LockSchemeInstance.lock(aliceAccount.signer.address,bOne);
+				await utils.timeTravel(deployer.provider, 10);
 				await LockSchemeInstance.updateUserAccruedRewards(aliceAccount.signer.address, bTen)
 
-				for (let i = 0; i <= 40; i++) {
-					await mineBlock(deployer.provider);
-				}	
+				await utils.timeTravel(deployer.provider, 550);
 				let userBonus =  await LockSchemeInstance.getUserBonus(aliceAccount.signer.address)
 				assert(userBonus.eq(bOne), "User's bonuses are not calculated properly");
 			})
