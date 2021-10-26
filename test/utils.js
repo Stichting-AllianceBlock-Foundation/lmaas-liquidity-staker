@@ -1,5 +1,9 @@
 const mineBlock = async (provider) => {
-	await provider.send('evm_mine');
-}
+  await provider.send("evm_mine");
+};
 
-module.exports = { mineBlock }
+const increaseTime = async (provider, time) => {
+  await provider.send("evm_increasetime", [time]);
+};
+
+module.exports = { mineBlock };
