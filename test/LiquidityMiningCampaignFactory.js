@@ -606,6 +606,8 @@ describe("LMC Factory", () => {
           LmcContract.contractAddress
         );
 
+        console.log("[BalanceInitial]:", String(rewardsBalanceInitial));
+
         let initialEndTime = await LmcContract.endTimestamp();
         let newEndTimestamp = initialEndTime.add(oneMinute * 10);
         let extentionInBlocks = Math.trunc(
@@ -619,6 +621,8 @@ describe("LMC Factory", () => {
             amount
           );
         }
+
+        console.log("[RewardsPerBlock]: ", String(rewardPerBlock[0]));
 
         await LMCFactoryInstance.extendRewardPool(
           newEndTimestamp,

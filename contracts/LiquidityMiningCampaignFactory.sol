@@ -98,7 +98,6 @@ contract LiquidityMiningCampaignFactory is AbstractPoolsFactory, StakeTransferEn
     ) external onlyOwner {
         RewardsPoolBase pool = RewardsPoolBase(_rewardsPoolAddress);
         uint256 poolEndTimestamp = pool.endTimestamp();
-        uint256 poolStartTimestamp = pool.startTimestamp();
         uint256 virtualBlockTime = pool.virtualBlockTime();
         uint256[] memory currentRemainingRewards = new uint256[](_rewardsPerBlock.length);
         uint256[] memory newRemainingRewards = new uint256[](_rewardsPerBlock.length);
@@ -113,13 +112,12 @@ contract LiquidityMiningCampaignFactory is AbstractPoolsFactory, StakeTransferEn
                 );
             } else {
                 /** 
-                  @notice We only do this for the expired campaigns, so
-                  we will always count the remainingRewards from the start
-                  point.
+                  @notice We are calculating the same rewards amount for both
+                  remaining and new rewards. 
                 **/
                 currentRemainingRewards[i] = calculateRewardsAmount(
-                    poolStartTimestamp,
-                    poolEndTimestamp,
+                    block.timestamp,
+                    _endTimestamp,
                     pool.rewardPerBlock(i),
                     virtualBlockTime
                 );
