@@ -389,7 +389,7 @@ describe("LMC Factory", () => {
         );
       });
 
-      const calculateRewardsAmount = async (
+      const calculateRewardsAmount = (
         startTime,
         endTimestamp,
         rewardsPerBlock
@@ -397,7 +397,7 @@ describe("LMC Factory", () => {
         let rewardsPeriod = endTimestamp - startTime;
         let rewardsBlockPeriod = Math.trunc(rewardsPeriod / virtualBlocksTime);
         let rewardsAmount = rewardsPerBlock * rewardsBlockPeriod;
-        let amount = await ethers.utils.bigNumberify(rewardsAmount.toString());
+        let amount = ethers.utils.bigNumberify(rewardsAmount.toString());
         return amount;
       };
 
@@ -440,12 +440,6 @@ describe("LMC Factory", () => {
         let finalEndTime = await LmcContract.endTimestamp();
         let finalRewardPerBlock = await LmcContract.rewardPerBlock(0);
         let amountToTransfer = rewardPerBlock[0].mul(extentionInBlocks);
-
-        console.log(
-          "[FinalRewards]:",
-          String(rewardsBalanceFinal),
-          String(rewardsBalanceInitial.add(amountToTransfer))
-        );
 
         assert(finalEndTime.eq(newEndTimestamp), "The endtime is different");
         assert(
@@ -496,12 +490,6 @@ describe("LMC Factory", () => {
         let finalEndTime = await LmcContract.endTimestamp();
         let finalRewardPerBlock = await LmcContract.rewardPerBlock(0);
 
-        console.log(
-          "[FinalRewards]:",
-          String(rewardsBalanceFinal),
-          String(rewardsBalanceInitial)
-        );
-
         assert(finalEndTime.eq(newEndTimestamp), "The endblock is different");
         assert(
           finalRewardPerBlock.eq(newRewardPerBlock[0]),
@@ -540,12 +528,12 @@ describe("LMC Factory", () => {
         for (i = 0; i < rewardTokensCount; i++) {
           let newSingleReward = rewardPerBlock[i].div(5);
           newRewardPerBlock.push(newSingleReward);
-          let currentRemainingReward = await calculateRewardsAmount(
+          let currentRemainingReward = calculateRewardsAmount(
             currentBlock.timestamp,
             initialEndTimestamp.toString(),
             rewardPerBlock[i].toString()
           );
-          let newRemainingReward = await calculateRewardsAmount(
+          let newRemainingReward = calculateRewardsAmount(
             currentBlock.timestamp,
             newEndTimestamp.toString(),
             newSingleReward.toString()
@@ -565,12 +553,6 @@ describe("LMC Factory", () => {
         );
         let finalEndTimestamp = await LMCInstance.endTimestamp();
         let finalRewardPerBlock = await LMCInstance.rewardPerBlock(0);
-
-        console.log(
-          "[FinalRewards]:",
-          String(rewardsBalanceFinal),
-          String(rewardsBalanceInitial.sub(amountToTransfer[0]))
-        );
 
         assert(
           finalEndTimestamp.eq(newEndTimestamp),
@@ -595,7 +577,7 @@ describe("LMC Factory", () => {
       });
 
       it("Should extend the rewards pool successfully on a expired pool with the same rate", async () => {
-        await utils.timeTravel(deployer.provider, 60 * 5);
+        await utils.timeTravel(deployer.provider, 60 * 4);
         let rewardsPoolLength = await LMCFactoryInstance.getRewardsPoolNumber();
         let lmcAddress = await LMCFactoryInstance.rewardsPools(
           rewardsPoolLength - 1
@@ -604,25 +586,39 @@ describe("LMC Factory", () => {
         const rewardTokenInstance = rewardTokensInstances[0];
         let rewardsBalanceInitial = await rewardTokenInstance.balanceOf(
           LmcContract.contractAddress
-        ); // 120000000000000
+        ); // 120000000000000000000
 
-        console.log("[BalanceInitial]:", String(rewardsBalanceInitial));
-
-        let initialEndTime = await LmcContract.endTimestamp();
-        let newEndTimestamp = initialEndTime.add(oneMinute * 10);
-        let extentionInBlocks = Math.trunc(
-          newEndTimestamp.sub(initialEndTime).div(virtualBlocksTime)
+        let currentTimestamp = await ethers.utils.bigNumberify(
+          String((await deployer.provider.getBlock("latest")).timestamp)
         );
+        let newEndTimestamp = currentTimestamp.add(oneMinute);
 
         for (i = 0; i < rewardTokensCount; i++) {
-          let amount = rewardPerBlock[i].mul(extentionInBlocks);
+          let amount = calculateRewardsAmount(
+            currentTimestamp,
+            newEndTimestamp,
+            rewardPerBlock[i]
+          );
+
           await rewardTokensInstances[i].transfer(
             LMCFactoryInstance.contractAddress,
             amount
           );
         }
 
-        console.log("[RewardsPerBlock]: ", String(rewardPerBlock[0]));
+        console.log(
+          "[Correct Rewards]: ",
+          String(
+            rewardsBalanceInitial.add(
+              await LMCFactoryInstance.calculateRewardsAmount(
+                currentTimestamp,
+                newEndTimestamp,
+                rewardPerBlock[0],
+                virtualBlocksTime
+              )
+            )
+          )
+        );
 
         await LMCFactoryInstance.extendRewardPool(
           newEndTimestamp,
@@ -635,10 +631,14 @@ describe("LMC Factory", () => {
         );
         let finalEndTime = await LmcContract.endTimestamp();
         let finalRewardPerBlock = await LmcContract.rewardPerBlock(0);
-        let amountToTransfer = rewardPerBlock[0].mul(extentionInBlocks);
+        let amountToTransfer = calculateRewardsAmount(
+          currentTimestamp,
+          newEndTimestamp,
+          rewardPerBlock[0]
+        );
 
         console.log(
-          "[FinalRewards]:",
+          "[Final Rewards]: ",
           String(rewardsBalanceFinal),
           String(rewardsBalanceInitial.add(amountToTransfer))
         );
@@ -648,10 +648,6 @@ describe("LMC Factory", () => {
           finalRewardPerBlock.eq(rewardPerBlock[0]),
           "The rewards amount is not correct"
         );
-        // assert(
-        //   rewardsBalanceFinal.eq(rewardsBalanceInitial.add(amountToTransfer)),
-        //   "The transfered amount is not correct"
-        // );
       });
 
       it("Should fail trying to extend from not owner", async () => {
