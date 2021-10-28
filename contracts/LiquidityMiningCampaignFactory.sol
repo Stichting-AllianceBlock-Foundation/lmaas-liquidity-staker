@@ -103,25 +103,12 @@ contract LiquidityMiningCampaignFactory is AbstractPoolsFactory, StakeTransferEn
         uint256[] memory newRemainingRewards = new uint256[](_rewardsPerBlock.length);
 
         for (uint256 i = 0; i < _rewardsPerBlock.length; i++) {
-            if (block.timestamp < poolEndTimestamp) {
-                currentRemainingRewards[i] = calculateRewardsAmount(
-                    block.timestamp,
-                    poolEndTimestamp,
-                    pool.rewardPerBlock(i),
-                    virtualBlockTime
-                );
-            } else {
-                /** 
-                  @notice We are calculating the same rewards amount for both
-                  remaining and new rewards. 
-                **/
-                currentRemainingRewards[i] = calculateRewardsAmount(
-                    block.timestamp,
-                    _endTimestamp,
-                    pool.rewardPerBlock(i),
-                    virtualBlockTime
-                );
-            }
+            currentRemainingRewards[i] = calculateRewardsAmount(
+                block.timestamp,
+                poolEndTimestamp,
+                pool.rewardPerBlock(i),
+                virtualBlockTime
+            );
 
             newRemainingRewards[i] = calculateRewardsAmount(
                 block.timestamp,

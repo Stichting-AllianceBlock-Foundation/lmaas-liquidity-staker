@@ -58,10 +58,23 @@ abstract contract AbstractPoolsFactory {
     ) public pure returns (uint256) {
         require(_rewardPerBlock > 0, "calculateRewardsAmount:: Rewards per block must be greater than zero");
 
-        uint256 rewardsPeriodSeconds = _endTimestamp.sub(_startTimestamp);
-        uint256 rewardsPeriodBlocks = rewardsPeriodSeconds.div(_virtualBlockTime);
+        if (_startTimestamp < _endTimestamp) {
+            /**
+              @dev If the _startTimestamp is lower than _endTimestamp,
+              then we calculate all the rewards regarding to the
+              rewardsPeriodBlocks.
+            **/
+            uint256 rewardsPeriodSeconds = _endTimestamp.sub(_startTimestamp);
+            uint256 rewardsPeriodBlocks = rewardsPeriodSeconds.div(_virtualBlockTime);
 
-        return _rewardPerBlock.mul(rewardsPeriodBlocks);
+            return _rewardPerBlock.mul(rewardsPeriodBlocks);
+        }
+
+        /**
+          @dev If the _startTimestamp is greater than the _endTimestamp
+          we will return 0.
+        **/
+        return 0;
     }
 
     /** @dev Triggers the withdrawal of LP rewards from the rewards pool contract to the given recipient address

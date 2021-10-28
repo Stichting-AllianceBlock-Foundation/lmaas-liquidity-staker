@@ -604,7 +604,7 @@ describe("LMC Factory", () => {
         const rewardTokenInstance = rewardTokensInstances[0];
         let rewardsBalanceInitial = await rewardTokenInstance.balanceOf(
           LmcContract.contractAddress
-        );
+        ); // 120000000000000
 
         console.log("[BalanceInitial]:", String(rewardsBalanceInitial));
 
