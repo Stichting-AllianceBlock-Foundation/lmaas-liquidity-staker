@@ -606,6 +606,32 @@ describe("LMC Factory", () => {
           );
         }
 
+        console.log("[InitialBalance]: ", String(rewardsBalanceInitial));
+
+        console.log(
+          "[RemainingRewards]: ",
+          String(
+            await LMCFactoryInstance.calculateRewardsAmount(
+              currentTimestamp,
+              currentTimestamp.sub(oneMinute),
+              await LmcContract.rewardPerBlock(0),
+              virtualBlocksTime
+            )
+          )
+        );
+
+        console.log(
+          "[CurrentRewards]: ",
+          String(
+            await LMCFactoryInstance.calculateRewardsAmount(
+              currentTimestamp,
+              newEndTimestamp,
+              rewardPerBlock[0],
+              virtualBlocksTime
+            )
+          )
+        );
+
         console.log(
           "[Correct Rewards]: ",
           String(
