@@ -94,7 +94,8 @@ contract LiquidityMiningCampaignFactory is AbstractPoolsFactory, StakeTransferEn
     function extendRewardPool(
         uint256 _endTimestamp,
         uint256[] calldata _rewardsPerBlock,
-        address _rewardsPoolAddress
+        address _rewardsPoolAddress,
+        uint256 _currentTimestamp
     ) external onlyOwner {
         RewardsPoolBase pool = RewardsPoolBase(_rewardsPoolAddress);
         uint256 poolEndTimestamp = pool.endTimestamp();
@@ -103,15 +104,27 @@ contract LiquidityMiningCampaignFactory is AbstractPoolsFactory, StakeTransferEn
         uint256[] memory newRemainingRewards = new uint256[](_rewardsPerBlock.length);
 
         for (uint256 i = 0; i < _rewardsPerBlock.length; i++) {
+            /** 
+              If the block.timestamp is not the same or less,
+              then we should pass the _currentTimestamp through
+              the parameters of the function.
+            **/
+
+            uint256 currentTimestamp = block.timestamp;
+
+            if (poolEndTimestamp < currentTimestamp) {
+                currentTimestamp = currentTimestamp <= _currentTimestamp ? currentTimestamp : _currentTimestamp;
+            }
+
             currentRemainingRewards[i] = calculateRewardsAmount(
-                block.timestamp,
+                currentTimestamp,
                 poolEndTimestamp,
                 pool.rewardPerBlock(i),
                 virtualBlockTime
             );
 
             newRemainingRewards[i] = calculateRewardsAmount(
-                block.timestamp,
+                currentTimestamp,
                 _endTimestamp,
                 _rewardsPerBlock[i],
                 virtualBlockTime
