@@ -395,24 +395,23 @@ describe('RewardsPoolBase', () => {
 
 
 
-		const calculateRewardsAmount = async (startTimestamp, endTimestamp, rewardsPerBlock) => {
-			let currentBLock = startTimestamp/virtualBlockTime
-			let rewardsPeriod = endTimestamp - currentBLock;
-			// let blocks = rewardsPeriod/ virtualBlockTime
-			let amount = rewardsPerBlock*(rewardsPeriod)
-			let rewardsAmount = await ethers.utils.parseEther(amount.toString())
-			return rewardsAmount
-		 }
+		const calculateRewardsAmount = async (startTime, endTimestamp, rewardsPerBlock) => {
+			let rewardsPeriod = endTimestamp - startTime;
+			let rewardsBlockPeriod = Math.trunc(rewardsPeriod/virtualBlockTime)
+			let rewardsAmount = rewardsPerBlock*(rewardsBlockPeriod)
+			let amount = await ethers.utils.bigNumberify(rewardsAmount.toString());
+			return amount
+		 }	
 
 		it("Should extend the periods and update the reward per block", async() => {
 			await utils.timeTravel(deployer.provider, 10);
 
-			let currentEndBlock = await RewardsPoolBaseInstance.endBlock()
+			let currentEndTimestamp = await RewardsPoolBaseInstance.endTimestamp()
 			let currentRewardPerBlock = await RewardsPoolBaseInstance.rewardPerBlock(0);
 			let newRewardsPerBlock = []
 
-			const oneMinuteBig = ethers.utils.bigNumberify(20);
-			const newEndBlock = currentEndBlock.add(oneMinuteBig);
+			// const oneMinuteBig = ethers.utils.bigNumberify(60);
+			const newEndTimestamp = currentEndTimestamp.add(oneMinute);
 			let currentRemainingRewards = []
 			let newRemainingReward = []
 			const currentBlock = await deployer.provider.getBlock('latest');
@@ -424,13 +423,13 @@ describe('RewardsPoolBase', () => {
 				let currentRewardsPerBlock = await RewardsPoolBaseInstance.rewardPerBlock(i)
 				
 
-				currentRemainingRewards.push(await calculateRewardsAmount(currentBlock.timestamp, currentEndBlock.toString(), currentRewardsPerBlock.toString()));
-            	newRemainingReward.push(await calculateRewardsAmount(currentBlock.timestamp, newEndBlock.toString(), newRewardsPerBlock[i].toString()));
+				currentRemainingRewards.push(await calculateRewardsAmount(currentBlock.timestamp, currentEndTimestamp.toString(), currentRewardsPerBlock.toString()));
+            	newRemainingReward.push(await calculateRewardsAmount(currentBlock.timestamp, newEndTimestamp.toString(), newRewardsPerBlock[i].toString()));
 			}
-			await RewardsPoolBaseInstance.extend(newEndBlock,newRewardsPerBlock,currentRemainingRewards,newRemainingReward);
-			let endTimestamp = await RewardsPoolBaseInstance.endBlock()
+			await RewardsPoolBaseInstance.extend(newEndTimestamp,newRewardsPerBlock,currentRemainingRewards,newRemainingReward);
+			let endTimestamp = await RewardsPoolBaseInstance.endTimestamp()
 			let rewardPerBlock = await RewardsPoolBaseInstance.rewardPerBlock(0);
-			assert(endTimestamp.eq(currentEndBlock.add(oneMinuteBig)), "Extending the end block was not successfull")
+			assert(endTimestamp.eq(currentEndTimestamp.add(oneMinute)), "Extending the end block was not successfull")
 			assert(rewardPerBlock.eq(currentRewardPerBlock.add(bOne)), "Extending the reward per block was not successfull")
 		})
 
@@ -441,7 +440,7 @@ describe('RewardsPoolBase', () => {
 		})
 
 		it("Should fail extentind the rewards pool if the end block is not greater than the previous", async() => {
-			let currentEndBlock = await RewardsPoolBaseInstance.endBlock()
+			let currentEndBlock = await RewardsPoolBaseInstance.endTimestamp()
 			let newEndBlock = currentEndBlock.sub(1)
 			let currentRemainingRewards = []
 			let newRemainingReward = []

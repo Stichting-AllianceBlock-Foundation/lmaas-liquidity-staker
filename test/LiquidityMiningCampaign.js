@@ -221,7 +221,7 @@ describe('LMC', () => {
 			it("Should fail staking and locking if the ramp up period has finished", async() => {
 
 				await LmcInstance.stakeAndLock(bTen,LockSchemeInstance6.contractAddress);
-				await utils.timeTravel(deployer.provider, 180);
+				await utils.timeTravel(deployer.provider, 50);
 				
 				await assert.revertWith(LmcInstance.stakeAndLock(bTen,LockSchemeInstance6.contractAddress), "lock::The ramp up period has finished");
 			})
@@ -237,9 +237,9 @@ describe('LMC', () => {
 				const blocksDelta1 = (startBlock-currentBlock.number);
 				await utils.timeTravel(deployer.provider, 70);
 				await LmcInstance.stakeAndLock(bTen,LockSchemeInstance6.contractAddress );
-			
+				await utils.timeTravel(deployer.provider, 80);
 				await LmcInstance.stakeAndLock(bTwenty,LockSchemeInstance3.contractAddress);
-				await utils.timeTravel(deployer.provider, 120);
+				// await utils.timeTravel(deployer.provider, 10);
  			});
 			
 			xit("Should withdraw and exit sucessfully", async() => {
