@@ -368,7 +368,7 @@ describe("LMC Factory", () => {
       });
     });
 
-    describe("Extending Rewards", async function () {
+    describe.only("Extending Rewards", async function () {
       beforeEach(async () => {
         for (i = 0; i < rewardTokensAddresses.length; i++) {
           await rewardTokensInstances[i].transfer(
@@ -413,9 +413,7 @@ describe("LMC Factory", () => {
         );
 
         await utils.timeTravel(deployer.provider, 110);
-        let currentTimestamp = await ethers.utils.bigNumberify(
-          String((await deployer.provider.getBlock("latest")).timestamp)
-        );
+
         let initialEndTime = await LmcContract.endTimestamp();
         let newEndTimestamp = initialEndTime.add(oneMinute);
         let extentionInBlocks = Math.trunc(
@@ -433,8 +431,7 @@ describe("LMC Factory", () => {
         await LMCFactoryInstance.extendRewardPool(
           newEndTimestamp,
           rewardPerBlock,
-          lmcAddress,
-          currentTimestamp
+          lmcAddress
         );
 
         let rewardsBalanceFinal = await rewardTokenInstance.balanceOf(
@@ -470,9 +467,7 @@ describe("LMC Factory", () => {
         );
 
         await utils.timeTravel(deployer.provider, 110);
-        let currentTimestamp = await ethers.utils.bigNumberify(
-          String((await deployer.provider.getBlock("latest")).timestamp)
-        );
+
         let initialEndTimestamp = await LmcContract.endTimestamp();
         let newEndTimestamp = initialEndTimestamp.add(oneMinute);
         let extentionInBlocks = Math.trunc(
@@ -487,8 +482,7 @@ describe("LMC Factory", () => {
         await LMCFactoryInstance.extendRewardPool(
           newEndTimestamp,
           newRewardPerBlock,
-          lmcAddress,
-          currentTimestamp
+          lmcAddress
         );
 
         let rewardsBalanceFinal = await rewardTokenInstance.balanceOf(
@@ -523,9 +517,7 @@ describe("LMC Factory", () => {
         );
 
         await utils.timeTravel(deployer.provider, 110);
-        let currentTimestamp = await ethers.utils.bigNumberify(
-          String((await deployer.provider.getBlock("latest")).timestamp)
-        );
+
         let initialEndTimestamp = await LMCInstance.endTimestamp();
         let newEndTimestamp = initialEndTimestamp.add(oneMinute);
         let extentionInBlocks = Math.trunc(
@@ -553,8 +545,7 @@ describe("LMC Factory", () => {
         await LMCFactoryInstance.extendRewardPool(
           newEndTimestamp,
           newRewardPerBlock,
-          lmcAddress,
-          currentTimestamp
+          lmcAddress
         );
         let rewardsBalanceFinal = await rewardTokenInstance.balanceOf(
           lmcAddress
@@ -620,8 +611,7 @@ describe("LMC Factory", () => {
         await LMCFactoryInstance.extendRewardPool(
           newEndTimestamp,
           rewardPerBlock,
-          lmcAddress,
-          currentTimestamp
+          lmcAddress
         );
 
         let rewardsBalanceFinal = await rewardTokenInstance.balanceOf(
@@ -640,23 +630,16 @@ describe("LMC Factory", () => {
           finalRewardPerBlock.eq(rewardPerBlock[0]),
           "The rewards amount is not correct"
         );
-        assert(
-          rewardsBalanceFinal.eq(rewardsBalanceInitial.add(amountToTransfer))
-        );
       });
 
       it("Should fail trying to extend from not owner", async () => {
         let rewardsPoolAddress = await LMCFactoryInstance.rewardsPools(0);
-        let currentTimestamp = await ethers.utils.bigNumberify(
-          String((await deployer.provider.getBlock("latest")).timestamp)
-        );
         let newEndBlock = endBlock + 10;
         await assert.revertWith(
           LMCFactoryInstance.from(bobAccount.signer.address).extendRewardPool(
             newEndBlock,
             rewardPerBlock,
-            rewardsPoolAddress,
-            currentTimestamp
+            rewardsPoolAddress
           ),
           "onlyOwner:: The caller is not the owner"
         );
