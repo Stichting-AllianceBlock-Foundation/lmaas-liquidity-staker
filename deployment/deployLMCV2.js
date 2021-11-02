@@ -5,7 +5,6 @@ const { parseEther, formatEther } = ethers.utils;
 
 const TestERC20 = require("../build/TestERC20.json");
 const LMCFactory = require("../build/LiquidityMiningCampaignFactory.json");
-const LMC = require("../build/LiquidityMiningCampaign.json");
 const LockScheme = require("../build/LockScheme.json");
 const PercentageCalculator = require("../build/PercentageCalculator.json");
 
@@ -16,20 +15,13 @@ const BLOCKS_PER_DAY = {
   avalanche: 4320,
 };
 
+const BLOCKS_PER_MINUTE = 5;
+const BLOCKS_PER_HOUR = 276;
+
 // Addresses
 const rewardAddresses = {
-  kovan: {
-    ALBT: "0xD21913390c484d490D24F046Da5329F1d778b75b",
-    ALBT1: "0xaa62E614c4E9E498259f820A90c18EF0B59c32b0",
-    ALBT2: "0xAF157961B523F242c4A83F0bCC43091fA206160A",
-    USDT: "0x06b4cedF8c7b6A490B1032F99373FFF5b7685408",
-  },
   rinkeby: {
-    ALBT: "0x1DFD95eb75A7486945D366a0bC0b937F0AAa526F",
-    ALBT1: "0x1461e433BD25a13c2453B285C1F6753FcF623331",
-    ALBT2: "0xf2A5748568351d4949D240B8a3EC20A38361Cb43",
-    USDT: "0x39F16Dd4980Ce05Ff538CaF92d808688A15b7058",
-    WETH: "0x39F16Dd4980Ce05Ff538CaF92d808688A15b7058",
+    TALBT: "0x1DFD95eb75A7486945D366a0bC0b937F0AAa526F",
   },
   bsc: {
     bALBT: "0x666e672B2Ada59979Fc4dB7AF9A4710E0E4D51E6",
@@ -46,23 +38,10 @@ const rewardAddresses = {
 };
 
 const poolAddresses = {
-  kovan: {
-    uniswap: {
-      "ETH-ALBT1": "0x4697038B031F78A9cd3D1A7C42c501543E723C1F",
-      "ALBT2-USDT": "0x41F5C832F6F14a4BA973231fF4dF06Fd5Ae2c271",
-      "ALBT-USDT": "0xa5efc1af5dbd006ab4098ee704fea171061bce62",
-    },
-    balancer: {
-      "ETH-ALBT-USDT": "0x729e628ed77cc6d764cfbe00fa2b73665661cee1",
-      "ETH-ALBT1-USDT": "0x0084f8f6ae73b28874a92754aa21a21d71fcac49",
-    },
-  },
   rinkeby: {
     uniswap: {
-      "ETH-ALBT": "0x0Bd2f8af9f5E5BE43B0DA90FE00A817e538B9306",
-      "ETH-ALBT1": "0x41F5C832F6F14a4BA973231fF4dF06Fd5Ae2c271",
-      "ETH-ALBT2": "0xA24F79A7A0668CBCCf5833548054344c9372090d",
-      "ALBT-USDT": "0x48A133a810E1aBB714414f89100d47689bD20D27",
+      "ETH-TALBT": "0x0Bd2f8af9f5E5BE43B0DA90FE00A817e538B9306",
+      "ALBT-USDT": "0x91f4ee172CA9f66A91F9111182Ac31DfDB65851F",
     },
     balancer: {
       "ETH-ALBT": "0x5e9E09D7b756A821144c85397607ca4B0a02D1CE",
@@ -110,28 +89,16 @@ const logTx = async tx => {
 };
 
 const deploy = async (network, secret, etherscanApiKey) => {
-  // const deployer = new etherlime.InfuraPrivateKeyDeployer(
-  //   secret,
-  //   network,
-  //   infuraApiKey
-  // );
+  const deployer = new etherlime.InfuraPrivateKeyDeployer(secret, network, infuraApiKey);
 
-  const deployer = new etherlime.JSONRPCPrivateKeyDeployer(
-    secret,
-    // "https://speedy-nodes-nyc.moralis.io/25884d3cc1f62a257ca0f169/polygon/mainnet",
-    "https://api.avax-test.network/ext/bc/C/rpc",
-  );
   const wallet = new ethers.Wallet(secret, deployer.provider);
 
   // Set addresses by network
-  const rewardTokensAddresses = [
-    rewardAddresses[network]["TWETH"],
-    // rewardAddresses[network]["ALBT1"],
-  ];
+  const rewardTokensAddresses = [rewardAddresses[network]["TALBT"]];
 
   // Set reward rate
-  const rewardsPerBlock = rewardTokensAddresses.map(el => parseEther("1"));
-  const amountReward = parseEther("3000000");
+  const rewardsPerBlock = rewardTokensAddresses.map(el => parseEther("0.1"));
+  const amountReward = parseEther("3000000000");
 
   const gasPrice = { gasPrice: 20000000000 };
 
@@ -174,12 +141,12 @@ const deploy = async (network, secret, etherscanApiKey) => {
   }
 
   // LMC settings
-  const protocol = "pangolin";
-  const pair = "USDT-WETH";
+  const protocol = "uniswap";
+  const pair = "ETH-TALBT";
 
   const poolAddress = poolAddresses[network][protocol][pair];
   const currentBlock = await deployer.provider.getBlock("latest");
-  const startBlock = currentBlock.number + 10;
+  const startBlock = currentBlock.number + BLOCKS_PER_MINUTE * 3;
   const endBlock = startBlock + BLOCKS_PER_DAY[network] * 30;
 
   const stakeLimit = parseEther("100000");
@@ -219,30 +186,6 @@ const deploy = async (network, secret, etherscanApiKey) => {
       lockBlock: BLOCKS_PER_DAY[network] * 30,
       rampUpBlock: BLOCKS_PER_DAY[network] * 30 - 1,
     },
-    // {
-    //   title: "0M",
-    //   bonusPermile: 0,
-    //   lockBlock: BLOCKS_PER_MINUTE * 10,
-    //   rampUpBlock: 1,
-    // },
-    // {
-    //   title: "3M",
-    //   bonusPermile: 10000,
-    //   lockBlock: BLOCKS_PER_MINUTE * 30,
-    //   rampUpBlock: BLOCKS_PER_MINUTE * 10,
-    // },
-    // {
-    //   title: "6M",
-    //   bonusPermile: 20000,
-    //   lockBlock: BLOCKS_PER_HOUR * 1,
-    //   rampUpBlock: BLOCKS_PER_MINUTE * 30,
-    // },
-    // {
-    //   title: "12M",
-    //   bonusPermile: 50000,
-    //   lockBlock: BLOCKS_PER_HOUR * 2,
-    //   rampUpBlock: BLOCKS_PER_HOUR * 1,
-    // },
   ];
 
   // Deploy Lock Schemes
