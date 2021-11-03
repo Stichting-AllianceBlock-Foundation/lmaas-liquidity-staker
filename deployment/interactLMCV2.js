@@ -5,6 +5,7 @@ const { parseEther, formatEther } = ethers.utils;
 
 const TestERC20 = require("../build/TestERC20.json");
 const LMCFactory = require("../build/LiquidityMiningCampaignFactory.json");
+const LMC = require("../build/LiquidityMiningCampaign.json");
 const LockScheme = require("../build/LockScheme.json");
 const PercentageCalculator = require("../build/PercentageCalculator.json");
 
@@ -74,7 +75,7 @@ const percentageCalculatorAddress = {
 
 // Set this address for wrapping
 const LMCFactoryAddress = "0xfAeE7c202B99303Ac6E7C2b52163544A8de864b2";
-const LMCAddress = "0x2ca240069D9405262fCe98F426166469B7C49178";
+const LMCAddress = "0x32ab0833fd97594a31dd811f259929e9ed4ab474";
 const infuraApiKey = "40c2813049e44ec79cb4d7e0d18de173";
 
 const logTx = async tx => {
@@ -95,34 +96,49 @@ const deploy = async (network, secret, etherscanApiKey) => {
   const wallet = new ethers.Wallet(secret, deployer.provider);
 
   // Set addresses by network
-  const rewardTokensAddresses = [rewardAddresses[network]["TALBT"]];
+  // const rewardTokensAddresses = [rewardAddresses[network]["TALBT"]];
 
   // Set reward rate
-  const rewardsPerBlock = rewardTokensAddresses.map(el => parseEther("0.1"));
-  const amountReward = parseEther("3000000000");
+  // const rewardsPerBlock = rewardTokensAddresses.map(el => parseEther("0.1"));
+  // const amountReward = parseEther("3000000000");
 
   const gasPrice = { gasPrice: 20000000000 };
 
   // Deploy LMC Factory
   let LMCFactoryInstance;
+  let LMCInstance;
 
   // Check for deployed Factory
-  if (LMCFactoryAddress !== "") {
-    LMCFactoryInstance = deployer.wrapDeployedContract(LMCFactory, LMCFactoryAddress, wallet);
+  // if (LMCFactoryAddress !== "") {
+  //   LMCFactoryInstance = deployer.wrapDeployedContract(LMCFactory, LMCFactoryAddress, wallet);
+  // } else {
+  //   LMCFactoryInstance = await deployer.deploy(LMCFactory, {});
+  // }
+
+  // Check for deployed LMC
+  if (LMCAddress !== "") {
+    LMCInstance = deployer.wrapDeployedContract(LMC, LMCAddress, wallet);
   } else {
-    LMCFactoryInstance = await deployer.deploy(LMCFactory, {});
+    LMCInstance = await deployer.deploy(LMCFactory, {});
   }
 
-  const currentBlock = await deployer.provider.getBlock("latest");
-  const endBlock = currentBlock.number + BLOCKS_PER_DAY[network] * 50;
+  console.log(LMCInstance);
 
-  console.log("endBlock", endBlock);
-  console.log("rewardsPerBlock", rewardsPerBlock);
+  // const currentBlock = await deployer.provider.getBlock("latest");
+  // const endBlock = currentBlock.number + BLOCKS_PER_DAY[network] * 50;
+
+  // console.log("endBlock", endBlock);
+  // console.log("rewardsPerBlock", rewardsPerBlock);
+
+  // console.log(``);
+  // console.log(`Extend LMC`);
+  // let mint = await LMCFactoryInstance.extendRewardPool(endBlock, rewardsPerBlock, LMCAddress);
+  // await logTx(mint);
 
   console.log(``);
-  console.log(`Extend LMC`);
-  let mint = await LMCFactoryInstance.extendRewardPool(endBlock, rewardsPerBlock, LMCAddress);
-  await logTx(mint);
+  console.log(`See Lockshemes`);
+  let mint = await LMCInstance.lockSchemes(0);
+  console.log(mint);
 };
 
 module.exports = {
