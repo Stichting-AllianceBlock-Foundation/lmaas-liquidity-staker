@@ -368,7 +368,7 @@ describe("LMC Factory", () => {
       });
     });
 
-    describe.only("Extending Rewards", async function () {
+    describe("Extending Rewards", async function () {
       beforeEach(async () => {
         for (i = 0; i < rewardTokensAddresses.length; i++) {
           await rewardTokensInstances[i].transfer(

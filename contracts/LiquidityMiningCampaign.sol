@@ -85,7 +85,7 @@ contract LiquidityMiningCampaign is StakeTransferer, OnlyExitFeature  {
 	@param _userAddress the address of the staker
 	 */
 	function _exitAndUnlock(address _userAddress) internal {
-			UserInfo storage user = userInfo[_userAddress];
+		UserInfo storage user = userInfo[_userAddress];
 
 		if (user.amountStaked == 0) {
 			return;

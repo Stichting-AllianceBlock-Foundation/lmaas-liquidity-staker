@@ -64,7 +64,7 @@ contract LiquidityMiningCampaignNoLock is StakeTransferer, OnlyExitFeature  {
 		updateRewardMultipliers();
 		updateUserAccruedReward(_userAddress);
 
-		uint256 finalRewards = user.tokensOwed[0]
+		uint256 finalRewards = user.tokensOwed[0];
 
 		_withdraw(user.amountStaked, _userAddress);
 		user.tokensOwed[0] = 0;
