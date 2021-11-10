@@ -23,6 +23,11 @@ describe('CompoundingRewardsPoolStaker', () => {
 
 	let startBlock;
 	let endBlock;
+	let startTimestmap;
+	let endTimestamp;
+
+	const virtualBlocksTime = 10 // 10s == 10000ms
+	const oneMinute = 60
 
 
     let throttleRoundBlocks = 20
@@ -36,8 +41,9 @@ describe('CompoundingRewardsPoolStaker', () => {
 
 	const setupRewardsPoolParameters = async (deployer) => {
 		const currentBlock = await deployer.provider.getBlock('latest');
-		startBlock = currentBlock.number + 15;
-		endBlock = startBlock + 30;
+		startTimestmap = currentBlock.timestamp + oneMinute ;
+		endTimestamp = startTimestmap + oneMinute*2;
+		endBlock = Math.trunc(endTimestamp/virtualBlocksTime)
 
 	}
 
@@ -55,41 +61,35 @@ describe('CompoundingRewardsPoolStaker', () => {
 
         await setupRewardsPoolParameters(deployer)
 
-		StakeTransfererAutoStakeInstance = await deployer.deploy(StakeTransfererAutoStake, {}, stakingTokenAddress, throttleRoundBlocks, bOne, endBlock, standardStakingAmount.mul(2));
+		StakeTransfererAutoStakeInstance = await deployer.deploy(StakeTransfererAutoStake, {}, stakingTokenAddress, throttleRoundBlocks, bOne, endTimestamp, standardStakingAmount.mul(2),virtualBlocksTime);
 
 		CompoundingRewardsPoolInstance = await deployer.deploy(
 			CompoundingRewardsPool,
 			{},
 			stakingTokenAddress,
-			startBlock,
-			endBlock,
 			[stakingTokenAddress],
-			[bOne],
-			ethers.constants.MaxUint256,
 			StakeTransfererAutoStakeInstance.contractAddress, 
-			treasury.signer.address, 
-			externalRewardsTokenAddress,
-			contractStakeLimit
+			startTimestmap,
+			endTimestamp,
+			[bOne],
+			virtualBlocksTime
 		);
 
 		await StakeTransfererAutoStakeInstance.setPool(CompoundingRewardsPoolInstance.contractAddress);
 		await stakingTokenInstance.mint(CompoundingRewardsPoolInstance.contractAddress,amount);
 
-		StakeReceiverAutoStakeInstance = await deployer.deploy(StakeReceiverAutoStake, {}, stakingTokenAddress, throttleRoundBlocks, bOne, endBlock+1, standardStakingAmount);
+		StakeReceiverAutoStakeInstance = await deployer.deploy(StakeReceiverAutoStake, {}, stakingTokenAddress, throttleRoundBlocks, bOne, endTimestamp+oneMinute, standardStakingAmount,virtualBlocksTime);
 
 		CompoundingRewardsPoolInstance = await deployer.deploy(
 			CompoundingRewardsPool,
 			{},
 			stakingTokenAddress,
-			startBlock,
-			endBlock+1,
 			[stakingTokenAddress],
+			StakeReceiverAutoStakeInstance.contractAddress, 
+			startTimestmap,
+			endTimestamp +oneMinute,
 			[bOne],
-			ethers.constants.MaxUint256,
-			StakeReceiverAutoStakeInstance.contractAddress,
-			treasury.signer.address, 
-			externalRewardsTokenAddress,
-			contractStakeLimit
+			virtualBlocksTime
 		);
 
 		await StakeReceiverAutoStakeInstance.setPool(CompoundingRewardsPoolInstance.contractAddress);
@@ -103,22 +103,14 @@ describe('CompoundingRewardsPoolStaker', () => {
 		await stakingTokenInstance.approve(StakeTransfererAutoStakeInstance.contractAddress, standardStakingAmount);
 		await stakingTokenInstance.from(bobAccount.signer).approve(StakeTransfererAutoStakeInstance.contractAddress, standardStakingAmount);
 		const currentBlock = await deployer.provider.getBlock('latest');
-		const blocksDelta = (startBlock-currentBlock.number);
 
-		for (let i=0; i<blocksDelta; i++) {
-			await mineBlock(deployer.provider);
-		}
+		await utils.timeTravel(deployer.provider, 70);
 		await StakeTransfererAutoStakeInstance.stake(standardStakingAmount);
 	});
 
 	it("Should exit correctly", async() => {
 		await StakeTransfererAutoStakeInstance.from(bobAccount.signer).stake(standardStakingAmount.div(10));
-		const currentBlock = await deployer.provider.getBlock('latest');
-		const blocksDelta = (endBlock-currentBlock.number);
-
-		for (let i=0; i<blocksDelta; i++) {
-			await mineBlock(deployer.provider);
-		}
+		await utils.timeTravel(deployer.provider, 130);
 
 		const userBalance = await StakeTransfererAutoStakeInstance.balanceOf(bobAccount.signer.address);
 		const userShares = await StakeTransfererAutoStakeInstance.share(bobAccount.signer.address);
@@ -133,12 +125,7 @@ describe('CompoundingRewardsPoolStaker', () => {
 	it("Should not exit to non whitelisted contract", async() => {
 		await stakingTokenInstance.approve(StakeTransfererAutoStakeInstance.contractAddress, standardStakingAmount);
 		await StakeTransfererAutoStakeInstance.stake(standardStakingAmount);
-		const currentBlock = await deployer.provider.getBlock('latest');
-		const blocksDelta = (endBlock-currentBlock.number);
-
-		for (let i=0; i<blocksDelta; i++) {
-			await mineBlock(deployer.provider);
-		}
+		await utils.timeTravel(deployer.provider, 130);
 
 		await assert.revertWith(StakeTransfererAutoStakeInstance.exitAndTransfer(bobAccount.signer.address), "exitAndTransfer::receiver is not whitelisted");
 		
@@ -149,12 +136,7 @@ describe('CompoundingRewardsPoolStaker', () => {
 
 		await stakingTokenInstance.approve(StakeTransfererAutoStakeInstance.contractAddress, standardStakingAmount);
 		await StakeTransfererAutoStakeInstance.stake(standardStakingAmount);
-		const currentBlock = await deployer.provider.getBlock('latest');
-		const blocksDelta = (endBlock-currentBlock.number);
-
-		for (let i=0; i<blocksDelta; i++) {
-			await mineBlock(deployer.provider);
-		}
+		await utils.timeTravel(deployer.provider, 130);
 
 		await assert.revertWith(StakeTransfererAutoStakeInstance.exitAndTransfer(StakeReceiverAutoStakeInstance.contractAddress), "onlyUnderStakeLimit::Stake limit reached");
 		

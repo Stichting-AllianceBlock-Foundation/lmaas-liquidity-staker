@@ -22,6 +22,11 @@ describe('AutoStakeTransfer', () => {
 
 	let startBlock;
 	let endBlock;
+	let startTimestmap;
+	let endTimestamp;
+
+	const virtualBlocksTime = 10 // 10s == 10000ms
+	const oneMinute = 60
 
 
     let throttleRoundBlocks = 20
@@ -35,9 +40,9 @@ describe('AutoStakeTransfer', () => {
 
 	const setupRewardsPoolParameters = async (deployer) => {
 		const currentBlock = await deployer.provider.getBlock('latest');
-		startBlock = currentBlock.number + 15;
-		endBlock = startBlock + 30;
-
+		startTimestmap = currentBlock.timestamp + oneMinute ;
+		endTimestamp = startTimestmap + oneMinute*2;
+		endBlock = Math.trunc(endTimestamp/virtualBlocksTime)
 	}
 
     beforeEach(async () => {
@@ -50,37 +55,39 @@ describe('AutoStakeTransfer', () => {
 
         await setupRewardsPoolParameters(deployer)
 
-		StakeTransfererAutoStakeInstance = await deployer.deploy(StakeTransfererAutoStake, {}, stakingTokenAddress, throttleRoundBlocks, bOne, endBlock);
+		StakeTransfererAutoStakeInstance = await deployer.deploy(StakeTransfererAutoStake, {}, stakingTokenAddress, throttleRoundBlocks, bOne, endTimestamp, virtualBlocksTime);
 
 		OneStakerRewardsPoolInstance = await deployer.deploy(
 			OneStakerRewardsPool,
 			{},
 			stakingTokenAddress,
-			startBlock,
-			endBlock,
+			startTimestmap,
+			endTimestamp,
 			[stakingTokenAddress],
 			[bOne],
 			ethers.constants.MaxUint256,
 			StakeTransfererAutoStakeInstance.contractAddress,
-			contractStakeLimit
+			contractStakeLimit,
+			virtualBlocksTime
 		);
 
 		await StakeTransfererAutoStakeInstance.setPool(OneStakerRewardsPoolInstance.contractAddress);
 		await stakingTokenInstance.mint(OneStakerRewardsPoolInstance.contractAddress,amount);
 
-		StakeReceiverAutoStakeInstance = await deployer.deploy(StakeReceiverAutoStake, {}, stakingTokenAddress, throttleRoundBlocks, bOne, endBlock+1);
+		StakeReceiverAutoStakeInstance = await deployer.deploy(StakeReceiverAutoStake, {}, stakingTokenAddress, throttleRoundBlocks, bOne, endTimestamp+oneMinute, virtualBlocksTime);
 
 		OneStakerRewardsPoolInstance = await deployer.deploy(
 			OneStakerRewardsPool,
 			{},
 			stakingTokenAddress,
-			startBlock,
-			endBlock+1,
+			startTimestmap,
+			endTimestamp+oneMinute,
 			[stakingTokenAddress],
 			[bOne],
 			ethers.constants.MaxUint256,
 			StakeReceiverAutoStakeInstance.contractAddress,
-			contractStakeLimit
+			contractStakeLimit,
+			virtualBlocksTime
 		);
 
 		await StakeReceiverAutoStakeInstance.setPool(OneStakerRewardsPoolInstance.contractAddress);
@@ -96,19 +103,14 @@ describe('AutoStakeTransfer', () => {
 		const currentBlock = await deployer.provider.getBlock('latest');
 		const blocksDelta = (startBlock-currentBlock.number);
 
-		for (let i=0; i<blocksDelta; i++) {
-			await mineBlock(deployer.provider);
-		}
+		await utils.timeTravel(deployer.provider, 70);
 		await StakeTransfererAutoStakeInstance.stake(standardStakingAmount);
 	});
 
 	it("Should exit to another contract", async() => {
 		const currentBlock = await deployer.provider.getBlock('latest');
-		const blocksDelta = (endBlock-currentBlock.number);
-
-		for (let i=0; i<blocksDelta; i++) {
-			await mineBlock(deployer.provider);
-		}
+		
+		await utils.timeTravel(deployer.provider, 130);
 
 		const userBalance = await StakeTransfererAutoStakeInstance.balanceOf(aliceAccount.signer.address);
 		const userShares = await StakeTransfererAutoStakeInstance.share(aliceAccount.signer.address);

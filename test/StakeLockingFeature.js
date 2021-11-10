@@ -31,6 +31,10 @@ describe('StakeLockingFeature', () => {
 	const standardStakingAmount = ethers.utils.parseEther('5') // 5 tokens
 	const contractStakeLimit = ethers.utils.parseEther('10') // 10 tokens
 
+	let startTimestmap;
+	let endTimestamp;
+	const virtualBlocksTime = 10 // 10s == 10000ms
+	const oneMinute = 60
 
 	const setupRewardsPoolParameters = async (deployer) => {
 		rewardTokensInstances = [];
@@ -49,8 +53,10 @@ describe('StakeLockingFeature', () => {
         }
 
 		const currentBlock = await deployer.provider.getBlock('latest');
-		startBlock = currentBlock.number + 5;
-		endBlock = startBlock + 20;
+		startTimestmap = currentBlock.timestamp + oneMinute ;
+		endTimestamp = startTimestmap + oneMinute*2;
+		startBlock = Math.trunc(startTimestmap/virtualBlocksTime)
+		endBlock = Math.trunc(endTimestamp/virtualBlocksTime)
 
 	}
 
@@ -71,12 +77,13 @@ describe('StakeLockingFeature', () => {
             StakeLockingFeature,
             {},
             stakingTokenAddress,
-			startBlock,
-			endBlock,
+			startTimestmap,
+			endTimestamp,
             rewardTokensAddresses,
             rewardPerBlock,
 			stakeLimit,
-			contractStakeLimit
+			contractStakeLimit,
+			virtualBlocksTime
 		);
 
 		await rewardTokensInstances[0].mint(StakeLockingFeatureInstance.contractAddress,amount);
@@ -86,15 +93,12 @@ describe('StakeLockingFeature', () => {
 		const currentBlock = await deployer.provider.getBlock('latest');
 		const blocksDelta = (startBlock-currentBlock.number);
 
-		for (let i=0; i<blocksDelta; i++) {
-			await mineBlock(deployer.provider);
-		}
+		await utils.timeTravel(deployer.provider, 70);
 		await StakeLockingFeatureInstance.stake(standardStakingAmount);
 	});
 
 	it("Should not claim or withdraw", async() => {
 
-		await mineBlock(deployer.provider);
 		const userInitialBalance = await rewardTokensInstances[0].balanceOf(aliceAccount.signer.address);
 		const userRewards = await StakeLockingFeatureInstance.getUserAccumulatedReward(aliceAccount.signer.address, 0);
 
@@ -111,9 +115,7 @@ describe('StakeLockingFeature', () => {
 		const currentBlock = await deployer.provider.getBlock('latest');
 		const blocksDelta = (endBlock-currentBlock.number);
 
-		for (let i=0; i<blocksDelta; i++) {
-			await mineBlock(deployer.provider);
-		}
+		await utils.timeTravel(deployer.provider, 130);
 
 		const userInitialBalanceStaking = await stakingTokenInstance.balanceOf(aliceAccount.signer.address);
 		const userInfoInitial = await StakeLockingFeatureInstance.userInfo(aliceAccount.signer.address);

@@ -14,8 +14,9 @@ contract OneStakerRewardsPoolMock is RewardsPoolBase, OneStakerFeature {
         uint256[] memory _rewardPerBlock,
 		uint256 _stakeLimit,
 		address _staker,
-		uint256 _contractStakeLimit
-    ) public RewardsPoolBase(_stakingToken, _startBlock, _endBlock, _rewardsTokens, _rewardPerBlock, _stakeLimit,_contractStakeLimit) OneStakerFeature(_staker) {
+		uint256 _contractStakeLimit,
+		uint256 _virtualBlockTime
+    ) public RewardsPoolBase(_stakingToken, _startBlock, _endBlock, _rewardsTokens, _rewardPerBlock, _stakeLimit,_contractStakeLimit, _virtualBlockTime) OneStakerFeature(_staker) {
 	}
 
 	function stake(uint256 _tokenAmount) public override(RewardsPoolBase, OneStakerFeature) {

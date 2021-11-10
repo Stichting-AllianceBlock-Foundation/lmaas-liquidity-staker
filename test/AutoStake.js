@@ -16,10 +16,13 @@ describe('AutoStake', () => {
 	let AutoStakingInstance;
     let stakingTokenAddress;
 
-	let startBlock;
-	let endBlock;
+	let startTimestmap;
+	let endTimestamp;
+	let endBlock
 
 	let throttleRoundBlocks = 20
+	const virtualBlocksTime = 10 // 10s == 10000ms
+	const oneMinute = 60
 
 
     const day = 60 * 24 * 60;
@@ -31,9 +34,9 @@ describe('AutoStake', () => {
 
 	const setupRewardsPoolParameters = async (deployer) => {
 		const currentBlock = await deployer.provider.getBlock('latest');
-		startBlock = currentBlock.number + 15;
-		endBlock = startBlock + 30;
-
+		startTimestmap = currentBlock.timestamp + oneMinute ;
+		endTimestamp = startTimestmap + oneMinute*2;
+		endBlock = Math.trunc(endTimestamp/virtualBlocksTime)
 	}
 
 	describe("Deploy and connect", async function() {
@@ -45,19 +48,20 @@ describe('AutoStake', () => {
 
 			await setupRewardsPoolParameters(deployer)
 
-			AutoStakingInstance = await deployer.deploy(AutoStake, {}, stakingTokenAddress, throttleRoundBlocks, bOne, endBlock);
+			AutoStakingInstance = await deployer.deploy(AutoStake, {}, stakingTokenAddress, throttleRoundBlocks, bOne, endTimestamp , virtualBlocksTime);
 
 			OneStakerRewardsPoolInstance = await deployer.deploy(
 				OneStakerRewardsPool,
 				{},
 				stakingTokenAddress,
-				startBlock,
-				endBlock,
+				startTimestmap,
+				endTimestamp,
 				[stakingTokenAddress],
 				[bOne],
 				ethers.constants.MaxUint256,
 				AutoStakingInstance.contractAddress,
-				contractStakeLimit
+				contractStakeLimit,
+				virtualBlocksTime
 				
 			);
 
@@ -72,18 +76,19 @@ describe('AutoStake', () => {
 
 		it("Should fail setting the pool from not owner", async() => {
 
-			let AutoStakingInstanceNew = await deployer.deploy(AutoStake, {}, stakingTokenAddress, throttleRoundBlocks, bOne, endBlock);
+			let AutoStakingInstanceNew = await deployer.deploy(AutoStake, {}, stakingTokenAddress, throttleRoundBlocks, bOne, endTimestamp, virtualBlocksTime);
 			let OneStakerRewardsPoolInstanceNew = await deployer.deploy(
 				OneStakerRewardsPool,
 				{},
 				stakingTokenAddress,
-				startBlock,
-				endBlock,
+				startTimestmap,
+				endTimestamp,
 				[stakingTokenAddress],
 				[bOne],
 				ethers.constants.MaxUint256,
 				AutoStakingInstance.contractAddress,
-				contractStakeLimit
+				contractStakeLimit,
+				virtualBlocksTime
 			);
 
 			await assert.revertWith(AutoStakingInstance.from(bobAccount.signer.address).setPool(OneStakerRewardsPoolInstance.contractAddress),"Ownable: caller is not the owner")
@@ -98,20 +103,20 @@ describe('AutoStake', () => {
 			stakingTokenAddress = stakingTokenInstance.contractAddress;
 
 			await setupRewardsPoolParameters(deployer)
-
-			AutoStakingInstance = await deployer.deploy(AutoStake, {}, stakingTokenAddress, throttleRoundBlocks, bOne, endBlock);
+			AutoStakingInstance = await deployer.deploy(AutoStake, {}, stakingTokenAddress, throttleRoundBlocks, bOne, endTimestamp, virtualBlocksTime);
 
 			OneStakerRewardsPoolInstance = await deployer.deploy(
 				OneStakerRewardsPool,
 				{},
 				stakingTokenAddress,
-				startBlock,
-				endBlock,
+				startTimestmap,
+				endTimestamp,
 				[stakingTokenAddress],
 				[bOne],
 				ethers.constants.MaxUint256,
 				AutoStakingInstance.contractAddress,
-				contractStakeLimit
+				contractStakeLimit,
+				virtualBlocksTime
 			);
 
 			await AutoStakingInstance.setPool(OneStakerRewardsPoolInstance.contractAddress);
@@ -122,16 +127,13 @@ describe('AutoStake', () => {
 
 			await stakingTokenInstance.approve(AutoStakingInstance.contractAddress, standardStakingAmount);
 			await stakingTokenInstance.from(bobAccount.signer).approve(AutoStakingInstance.contractAddress, standardStakingAmount);
-			const currentBlock = await deployer.provider.getBlock('latest');
-			const blocksDelta = (startBlock-currentBlock.number);
-
-			for (let i=0; i<blocksDelta; i++) {
-				await mineBlock(deployer.provider);
-			}
+			await utils.timeTravel(deployer.provider, 70);
 		});
 
 		it("Should successfully stake", async() => {
-				
+			
+			let startBlock = Math.trunc(startTimestmap/virtualBlocksTime)
+
 			await AutoStakingInstance.from(staker.signer).stake(standardStakingAmount);
 			const totalStakedAmount = await OneStakerRewardsPoolInstance.totalStaked();
 			const userInfo = await OneStakerRewardsPoolInstance.userInfo(AutoStakingInstance.contractAddress)
@@ -154,15 +156,15 @@ describe('AutoStake', () => {
 				
 			await AutoStakingInstance.from(staker.signer).stake(standardStakingAmount);
 
-			await mineBlock(deployer.provider);
+			await utils.timeTravel(deployer.provider, 10);
 			const accumulatedReward = await OneStakerRewardsPoolInstance.getUserAccumulatedReward(AutoStakingInstance.contractAddress, 0);
 			assert(accumulatedReward.eq(bOne), "The reward accrued was not 1 token");
 
+			await utils.timeTravel(deployer.provider, 10);
 			await AutoStakingInstance.refreshAutoStake();
 
 			const userBalance = await AutoStakingInstance.balanceOf(staker.signer.address);
 			const userShares = await AutoStakingInstance.share(staker.signer.address);
-
 			assert(userBalance.eq(standardStakingAmount.add(bOne.mul(2))), "The user balance was not correct")
 			assert(userShares.eq(standardStakingAmount), "The user share balance was not correct")
 		})
@@ -170,8 +172,11 @@ describe('AutoStake', () => {
 		it("Should accumulate with two stakers", async() => {
 				
 			await AutoStakingInstance.from(staker.signer).stake(standardStakingAmount);
+			await utils.timeTravel(deployer.provider, 10);
 			await AutoStakingInstance.from(bobAccount.signer).stake(standardStakingAmount);
+			await utils.timeTravel(deployer.provider, 10);
 
+			await utils.timeTravel(deployer.provider, 10);
 			await AutoStakingInstance.refreshAutoStake();
 
 			const userBalance = await AutoStakingInstance.balanceOf(staker.signer.address);
@@ -192,44 +197,53 @@ describe('AutoStake', () => {
 			describe("Interaction Mechanics", async function() {
 
 				beforeEach(async () => {
+					
 					await AutoStakingInstance.from(staker.signer).stake(standardStakingAmount);
 				});
 
 				it("Should not exit before end of campaign", async() => {
+					await utils.timeTravel(deployer.provider, 10);
 					await assert.revertWith(AutoStakingInstance.exit(), "onlyUnlocked::cannot perform this action until the end of the lock");
 				})
 
 
 				it("Should request exit successfully", async() => {
-					const currentBlock = await deployer.provider.getBlock('latest');
-					const blocksDelta = (endBlock-currentBlock.number);
-					for (let i=0; i<blocksDelta; i++) {
-						await mineBlock(deployer.provider);
-					}
+					await utils.timeTravel(deployer.provider, 190);
+
+					// const startBlock = await OneStakerRewardsPoolInstance.startBlock();
+					// const endBlock = await OneStakerRewardsPoolInstance.endBlock();
+					// const stakedBlock = await OneStakerRewardsPoolInstance.userInfo(AutoStakingInstance.contractAddress);
+					// console.log(startBlock.toString(), "Start1")
+					// console.log(endBlock.toString(), "ENd1")
+					// console.log(stakedBlock.toString(), "Stainitialrt1")
 					await AutoStakingInstance.exit();
 					const userBalanceAfter = await AutoStakingInstance.balanceOf(staker.signer.address);
 					const userExitInfo = await AutoStakingInstance.exitInfo(staker.signer.address)
-
-					assert(userExitInfo.exitStake.eq(standardStakingAmount.add(bOne.mul(29))), "User exit amount is not updated properly");
+					assert(userExitInfo.exitStake.eq(standardStakingAmount.add(bOne.mul(11))), "User exit amount is not updated properly");
 					assert(userBalanceAfter.eq(0), "User balance is not updated properly");
 					
 				})
 
 				it("Should not get twice reward on exit twice", async() => {
-					const currentBlock = await deployer.provider.getBlock('latest');
-					const blocksDelta = (endBlock-currentBlock.number);
+					await utils.timeTravel(deployer.provider, 190);
 
-					for (let i=0; i<blocksDelta; i++) {
-						await mineBlock(deployer.provider);
-					}
+
+					// const startBlock = await OneStakerRewardsPoolInstance.startBlock();
+					// const endBlock = await OneStakerRewardsPoolInstance.endBlock();
+					// const stakedBlock = await OneStakerRewardsPoolInstance.userInfo(AutoStakingInstance.contractAddress);
+					// console.log(startBlock.toString(), "Start")
+					// console.log(endBlock.toString(), "ENd")
+					// console.log(stakedBlock.toString(), "Stainitialrt")
 
 					await AutoStakingInstance.exit();
 					await AutoStakingInstance.exit();
+
+					
 
 					const userBalanceAfter = await AutoStakingInstance.balanceOf(staker.signer.address);
-					const userExitInfo = await AutoStakingInstance.exitInfo(staker.signer.address)
+					const userExitInfo = await AutoStakingInstance.exitInfo(staker.signer.address);
 
-					assert(userExitInfo.exitStake.eq(standardStakingAmount.add(bOne.mul(29))), "User exit amount is not updated properly");
+					assert(userExitInfo.exitStake.eq(standardStakingAmount.add(bOne.mul(11))), "User exit amount is not updated properly");
 					assert(userBalanceAfter.eq(0), "User balance is not updated properly");
 				})
 			})
@@ -241,31 +255,17 @@ describe('AutoStake', () => {
 				});
 
 				it("Should not complete early", async() => {
-					const currentBlock = await deployer.provider.getBlock('latest');
-					const blocksDelta = (endBlock-currentBlock.number);
-
-					for (let i=0; i<blocksDelta; i++) {
-						await mineBlock(deployer.provider);
-					}
-
+					await utils.timeTravel(deployer.provider, 190);
 					await AutoStakingInstance.exit();
 					
 					await assert.revertWith(AutoStakingInstance.completeExit(), "finalizeExit::Trying to exit too early");
 				})
 
 				it("Should complete succesfully", async() => {
-					const currentBlock = await deployer.provider.getBlock('latest');
-					const blocksDelta = (endBlock-currentBlock.number);
-
-					for (let i=0; i<blocksDelta; i++) {
-						await mineBlock(deployer.provider);
-					}
-
+					await utils.timeTravel(deployer.provider, 190);
 					await AutoStakingInstance.exit();
 
-					for (let i=0; i<throttleRoundBlocks; i++) {
-						await mineBlock(deployer.provider);
-					}
+					await utils.timeTravel(deployer.provider, 300);
 
 					const userBalanceBefore = await stakingTokenInstance.balanceOf(staker.signer.address);
 					const contractBalance = await stakingTokenInstance.balanceOf(AutoStakingInstance.contractAddress);
@@ -278,7 +278,7 @@ describe('AutoStake', () => {
 					const userExitInfo = await AutoStakingInstance.exitInfo(staker.signer.address)
 
 					assert(userExitInfo.exitStake.eq(0), "User exit amount is not updated properly");
-					assert(userBalanceAfter.eq(userBalanceBefore.add(standardStakingAmount.add(bOne.mul(29)))), "User balance is not updated properly");
+					assert(userBalanceAfter.eq(userBalanceBefore.add(standardStakingAmount.add(bOne.mul(11)))), "User balance is not updated properly");
 				})
 
 			})

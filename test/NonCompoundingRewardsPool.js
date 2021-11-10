@@ -37,6 +37,11 @@ describe('NonCompoundingRewardsPool', () => {
 	const standardStakingAmount = ethers.utils.parseEther('5') // 5 tokens
 	const contractStakeLimit = ethers.utils.parseEther('10') // 10 tokens
 
+	let startTimestmap;
+	let endTimestamp;
+	const virtualBlocksTime = 10 // 10s == 10000ms
+	const oneMinute = 60
+
 
 
 	const setupRewardsPoolParameters = async (deployer) => {
@@ -56,8 +61,10 @@ describe('NonCompoundingRewardsPool', () => {
 		}
 
 		const currentBlock = await deployer.provider.getBlock('latest');
-		startBlock = currentBlock.number + 5;
-		endBlock = startBlock + 20;
+		startTimestmap = currentBlock.timestamp + oneMinute ;
+		endTimestamp = startTimestmap + oneMinute*2;
+		startBlock = Math.trunc(startTimestmap/virtualBlocksTime)
+		endBlock = Math.trunc(endTimestamp/virtualBlocksTime)
 
 	}
 
@@ -66,16 +73,15 @@ describe('NonCompoundingRewardsPool', () => {
 			NonCompoundingRewardsPool,
 			{},
 			stakingTokenAddress,
-			startBlock,
-			endBlock,
+			startTimestmap,
+			endTimestamp,
 			rewardTokensAddresses,
 			rewardPerBlock,
 			stakeLimit,
 			_throttleRoundBlocks,
 			_throttleRoundCap,
-			treasury.signer.address,
-			externalRewardsTokenAddress,
-			contractStakeLimit
+			contractStakeLimit,
+			virtualBlocksTime
 		);
 
 		const reward = rewardPerBlock[0].mul(endBlock-startBlock);
@@ -84,12 +90,8 @@ describe('NonCompoundingRewardsPool', () => {
 
 		await stakingTokenInstance.approve(NonCompoundingRewardsPoolInstance.contractAddress, standardStakingAmount);
 		await stakingTokenInstance.from(bobAccount.signer).approve(NonCompoundingRewardsPoolInstance.contractAddress, standardStakingAmount);
-		let currentBlock = await deployer.provider.getBlock('latest');
-		let blocksDelta = (startBlock - currentBlock.number);
-
-		for (let i = 0; i < blocksDelta; i++) {
-			await mineBlock(deployer.provider);
-		}
+		
+		await utils.timeTravel(deployer.provider, 70);
 		await NonCompoundingRewardsPoolInstance.stake(standardStakingAmount);
 
 
@@ -118,7 +120,6 @@ describe('NonCompoundingRewardsPool', () => {
 
 		it("Should not claim or withdraw", async () => {
 
-			await mineBlock(deployer.provider);
 			const userInitialBalance = await rewardTokensInstances[0].balanceOf(aliceAccount.signer.address);
 			const userRewards = await NonCompoundingRewardsPoolInstance.getUserAccumulatedReward(aliceAccount.signer.address, 0);
 
@@ -131,13 +132,9 @@ describe('NonCompoundingRewardsPool', () => {
 		})
 
 		it("Should request exit successfully", async () => {
-			const currentBlock = await deployer.provider.getBlock('latest');
-			const blocksDelta = (endBlock - currentBlock.number);
 
-			for (let i = 0; i < blocksDelta; i++) {
-				await mineBlock(deployer.provider);
-			}
-
+			await utils.timeTravel(deployer.provider, 130);
+		
 			const userInitialBalanceStaking = await stakingTokenInstance.balanceOf(aliceAccount.signer.address);
 			const userInfoInitial = await NonCompoundingRewardsPoolInstance.userInfo(aliceAccount.signer.address);
 			const initialTotalStakedAmount = await NonCompoundingRewardsPoolInstance.totalStaked();
@@ -167,12 +164,7 @@ describe('NonCompoundingRewardsPool', () => {
 		})
 
 		it("Should not get twice reward on exit twice", async () => {
-			const currentBlock = await deployer.provider.getBlock('latest');
-			const blocksDelta = (endBlock - currentBlock.number);
-
-			for (let i = 0; i < blocksDelta; i++) {
-				await mineBlock(deployer.provider);
-			}
+			await utils.timeTravel(deployer.provider, 130);
 
 			const userInitialBalanceStaking = await stakingTokenInstance.balanceOf(aliceAccount.signer.address);
 			const userInfoInitial = await NonCompoundingRewardsPoolInstance.userInfo(aliceAccount.signer.address);
@@ -216,12 +208,9 @@ describe('NonCompoundingRewardsPool', () => {
 
 			stakingTokenAddress = stakingTokenInstance.contractAddress;
 
-			externalRewardsTokenInstance = await deployer.deploy(TestERC20, {}, amount);
-			await externalRewardsTokenInstance.mint(treasury.signer.address, amount);
-
-			externalRewardsTokenAddress = externalRewardsTokenInstance.contractAddress;
 
 			await setupRewardsPoolParameters(deployer)
+			
 
 		});
 
@@ -231,13 +220,7 @@ describe('NonCompoundingRewardsPool', () => {
 			const _throttleRoundCap = standardStakingAmount.mul(2);
 
 			await stake(_throttleRoundBlocks, _throttleRoundCap)
-
-			const currentBlock = await deployer.provider.getBlock('latest');
-			const blocksDelta = (endBlock - currentBlock.number);
-
-			for (let i = 0; i < blocksDelta; i++) {
-				await mineBlock(deployer.provider);
-			}
+			await utils.timeTravel(deployer.provider, 190);
 
 			await NonCompoundingRewardsPoolInstance.exit();
 
@@ -257,19 +240,18 @@ describe('NonCompoundingRewardsPool', () => {
 			const _throttleRoundCap = standardStakingAmount.mul(2);
 
 			await stake(_throttleRoundBlocks, _throttleRoundCap)
-
+			await utils.timeTravel(deployer.provider, 70);
 			await NonCompoundingRewardsPoolInstance.from(bobAccount.signer).stake(standardStakingAmount);
 
 			const currentBlock = await deployer.provider.getBlock('latest');
 			const blocksDelta = (endBlock - currentBlock.number);
 
-			for (let i = 0; i < blocksDelta; i++) {
-				await mineBlock(deployer.provider);
-			}
+			await utils.timeTravel(deployer.provider, 70);
 
 			await NonCompoundingRewardsPoolInstance.exit();
+			await utils.timeTravel(deployer.provider, 10);
 			await NonCompoundingRewardsPoolInstance.from(bobAccount.signer).exit();
-
+		
 			const nextBlock = await NonCompoundingRewardsPoolInstance.nextAvailableExitBlock();
 			assert(nextBlock.eq(endBlock + (throttleRoundBlocks * 2)), "End block has changed incorrectly");
 
@@ -292,14 +274,13 @@ describe('NonCompoundingRewardsPool', () => {
 			const currentBlock = await deployer.provider.getBlock('latest');
 			const blocksDelta = (endBlock - currentBlock.number);
 
-			for (let i = 0; i < blocksDelta + _throttleRoundBlocks; i++) {
-				await mineBlock(deployer.provider);
-			}
+			await utils.timeTravel(deployer.provider, 120);
 
 			await NonCompoundingRewardsPoolInstance.exit();
 
 			const nextBlock = await NonCompoundingRewardsPoolInstance.nextAvailableExitBlock();
-			assert(nextBlock.eq(endBlock + (throttleRoundBlocks * 2)), "End block has changed incorrectly");
+			
+			assert(nextBlock.eq(endBlock + (throttleRoundBlocks )), "End block has changed incorrectly");
 
 			const volume = await NonCompoundingRewardsPoolInstance.nextAvailableRoundExitVolume();
 			assert(volume.eq(standardStakingAmount), "Exit volume was incorrect");
@@ -327,30 +308,19 @@ describe('NonCompoundingRewardsPool', () => {
 			externalRewardsTokenAddress = externalRewardsTokenInstance.contractAddress;
 
 			await setupRewardsPoolParameters(deployer)
-
+			
 			await stake(throttleRoundBlocks, throttleRoundCap);
 		});
 
 		it("Should not complete early", async () => {
-			const currentBlock = await deployer.provider.getBlock('latest');
-			const blocksDelta = (endBlock - currentBlock.number);
-
-			for (let i = 0; i < blocksDelta; i++) {
-				await mineBlock(deployer.provider);
-			}
-
+			await utils.timeTravel(deployer.provider, 130);
 			await NonCompoundingRewardsPoolInstance.exit();
 
 			await assert.revertWith(NonCompoundingRewardsPoolInstance.completeExit(), "finalizeExit::Trying to exit too early");
 		})
 
 		it("Should complete succesfully", async () => {
-			const currentBlock = await deployer.provider.getBlock('latest');
-			const blocksDelta = (endBlock - currentBlock.number);
-
-			for (let i = 0; i < blocksDelta; i++) {
-				await mineBlock(deployer.provider);
-			}
+			await utils.timeTravel(deployer.provider, 190);
 
 			const userInitialBalanceStaking = await stakingTokenInstance.balanceOf(aliceAccount.signer.address);
 			const userInfoInitial = await NonCompoundingRewardsPoolInstance.userInfo(aliceAccount.signer.address);
@@ -359,10 +329,7 @@ describe('NonCompoundingRewardsPool', () => {
 			const userRewards = await NonCompoundingRewardsPoolInstance.getUserAccumulatedReward(aliceAccount.signer.address, 0);
 
 			await NonCompoundingRewardsPoolInstance.exit();
-
-			for (let i = 0; i < throttleRoundBlocks; i++) {
-				await mineBlock(deployer.provider);
-			}
+			await utils.timeTravel(deployer.provider, 40);
 
 			await NonCompoundingRewardsPoolInstance.completeExit();
 
@@ -384,24 +351,21 @@ describe('NonCompoundingRewardsPool', () => {
 			assert(pendingReward.eq(0), "User exit rewards are not updated properly");
 		})
 
-		it("Should get external reward", async () => {
+		//Tresury was removed
+		xit("Should get external reward", async () => {
 			const currentBlock = await deployer.provider.getBlock('latest');
 			const blocksDelta = (endBlock - currentBlock.number);
 
 			await externalRewardsTokenInstance.from(treasury.signer.address).approve(NonCompoundingRewardsPoolInstance.contractAddress, bOne);
 			await NonCompoundingRewardsPoolInstance.from(treasury.signer.address).notifyExternalReward(bOne);
 
-			for (let i = 0; i < blocksDelta; i++) {
-				await mineBlock(deployer.provider);
-			}
+			await utils.timeTravel(deployer.provider, 190);
 
 			const userInitialExternalReward = await externalRewardsTokenInstance.balanceOf(aliceAccount.signer.address);
 
 			await NonCompoundingRewardsPoolInstance.exit();
 
-			for (let i = 0; i < throttleRoundBlocks; i++) {
-				await mineBlock(deployer.provider);
-			}
+			await utils.timeTravel(deployer.provider, 130);
 
 			await NonCompoundingRewardsPoolInstance.completeExit();
 
@@ -413,8 +377,8 @@ describe('NonCompoundingRewardsPool', () => {
 
 
 	})
-
-	describe("Treasury interactions", async function () {
+	//Treasury functionality was removed
+	xdescribe("Treasury interactions", async function () {
 
 		beforeEach(async () => {
 			deployer = new etherlime.EtherlimeGanacheDeployer(aliceAccount.secretKey);

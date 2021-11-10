@@ -34,6 +34,11 @@ describe('ThrottledExitFeature', () => {
 	const contractStakeLimit = ethers.utils.parseEther('10') // 10 tokens
 
 
+	let startTimestmap;
+	let endTimestamp;
+	const virtualBlocksTime = 10 // 10s == 10000ms
+	const oneMinute = 60
+
 	const setupRewardsPoolParameters = async (deployer) => {
 		rewardTokensInstances = [];
 		rewardTokensAddresses = [];
@@ -51,8 +56,10 @@ describe('ThrottledExitFeature', () => {
 		}
 
 		const currentBlock = await deployer.provider.getBlock('latest');
-		startBlock = currentBlock.number + 5;
-		endBlock = startBlock + 20;
+		startTimestmap = currentBlock.timestamp + oneMinute ;
+		endTimestamp = startTimestmap + oneMinute*2;
+		startBlock = Math.trunc(startTimestmap/virtualBlocksTime)
+		endBlock = Math.trunc(endTimestamp/virtualBlocksTime)
 
 	}
 
@@ -61,14 +68,15 @@ describe('ThrottledExitFeature', () => {
 			ThrottledExitFeature,
 			{},
 			stakingTokenAddress,
-			startBlock,
-			endBlock,
+			startTimestmap,
+			endTimestamp,
 			rewardTokensAddresses,
 			rewardPerBlock,
 			stakeLimit,
 			_throttleRoundBlocks,
 			_throttleRoundCap,
-			contractStakeLimit
+			contractStakeLimit,
+			virtualBlocksTime
 		);
 
 		await rewardTokensInstances[0].mint(ThrottledExitFeatureInstance.contractAddress, amount);
@@ -78,9 +86,7 @@ describe('ThrottledExitFeature', () => {
 		let currentBlock = await deployer.provider.getBlock('latest');
 		let blocksDelta = (startBlock - currentBlock.number);
 
-		for (let i = 0; i < blocksDelta; i++) {
-			await mineBlock(deployer.provider);
-		}
+		await utils.timeTravel(deployer.provider, 70);
 		await ThrottledExitFeatureInstance.stake(standardStakingAmount);
 
 
@@ -100,13 +106,12 @@ describe('ThrottledExitFeature', () => {
 			stakingTokenAddress = stakingTokenInstance.contractAddress;
 
 			await setupRewardsPoolParameters(deployer)
-
 			await stake(throttleRoundBlocks, throttleRoundCap);
 		});
 
 		it("Should not claim or withdraw", async () => {
 
-			await mineBlock(deployer.provider);
+			
 			const userInitialBalance = await rewardTokensInstances[0].balanceOf(aliceAccount.signer.address);
 			const userRewards = await ThrottledExitFeatureInstance.getUserAccumulatedReward(aliceAccount.signer.address, 0);
 
@@ -118,10 +123,7 @@ describe('ThrottledExitFeature', () => {
 			const currentBlock = await deployer.provider.getBlock('latest');
 			const blocksDelta = (endBlock - currentBlock.number);
 
-			for (let i = 0; i < blocksDelta; i++) {
-				await mineBlock(deployer.provider);
-			}
-
+			await utils.timeTravel(deployer.provider, 130);
 			const userInitialBalanceStaking = await stakingTokenInstance.balanceOf(aliceAccount.signer.address);
 			const userInfoInitial = await ThrottledExitFeatureInstance.userInfo(aliceAccount.signer.address);
 			const initialTotalStakedAmount = await ThrottledExitFeatureInstance.totalStaked();
@@ -152,11 +154,7 @@ describe('ThrottledExitFeature', () => {
 
 		it("Should not get twice reward on exit twice", async () => {
 			const currentBlock = await deployer.provider.getBlock('latest');
-			const blocksDelta = (endBlock - currentBlock.number);
-
-			for (let i = 0; i < blocksDelta; i++) {
-				await mineBlock(deployer.provider);
-			}
+			await utils.timeTravel(deployer.provider, 130);
 
 			const userInitialBalanceStaking = await stakingTokenInstance.balanceOf(aliceAccount.signer.address);
 			const userInfoInitial = await ThrottledExitFeatureInstance.userInfo(aliceAccount.signer.address);
@@ -209,15 +207,12 @@ describe('ThrottledExitFeature', () => {
 
 			const _throttleRoundBlocks = 10;
 			const _throttleRoundCap = standardStakingAmount.mul(2);
-
 			await stake(_throttleRoundBlocks, _throttleRoundCap)
 
 			const currentBlock = await deployer.provider.getBlock('latest');
 			const blocksDelta = (endBlock - currentBlock.number);
 
-			for (let i = 0; i < blocksDelta; i++) {
-				await mineBlock(deployer.provider);
-			}
+			await utils.timeTravel(deployer.provider, 130);
 
 			await ThrottledExitFeatureInstance.exit();
 
@@ -243,9 +238,7 @@ describe('ThrottledExitFeature', () => {
 			const currentBlock = await deployer.provider.getBlock('latest');
 			const blocksDelta = (endBlock - currentBlock.number);
 
-			for (let i = 0; i < blocksDelta; i++) {
-				await mineBlock(deployer.provider);
-			}
+			await utils.timeTravel(deployer.provider, 130);
 
 			await ThrottledExitFeatureInstance.exit();
 			await ThrottledExitFeatureInstance.from(bobAccount.signer).exit();
@@ -270,16 +263,13 @@ describe('ThrottledExitFeature', () => {
 			await ThrottledExitFeatureInstance.from(bobAccount.signer).stake(standardStakingAmount);
 
 			const currentBlock = await deployer.provider.getBlock('latest');
-			const blocksDelta = (endBlock - currentBlock.number);
 
-			for (let i = 0; i < blocksDelta + _throttleRoundBlocks; i++) {
-				await mineBlock(deployer.provider);
-			}
+			await utils.timeTravel(deployer.provider, 130);
 
 			await ThrottledExitFeatureInstance.exit();
 
 			const nextBlock = await ThrottledExitFeatureInstance.nextAvailableExitBlock();
-			assert(nextBlock.eq(endBlock + (throttleRoundBlocks * 2)), "End block has changed incorrectly");
+			assert(nextBlock.eq(endBlock + (throttleRoundBlocks)), "End block has changed incorrectly");
 
 			const volume = await ThrottledExitFeatureInstance.nextAvailableRoundExitVolume();
 			assert(volume.eq(standardStakingAmount), "Exit volume was incorrect");
@@ -311,9 +301,7 @@ describe('ThrottledExitFeature', () => {
 			const currentBlock = await deployer.provider.getBlock('latest');
 			const blocksDelta = (endBlock - currentBlock.number);
 
-			for (let i = 0; i < blocksDelta; i++) {
-				await mineBlock(deployer.provider);
-			}
+			await utils.timeTravel(deployer.provider, 130);
 
 			await ThrottledExitFeatureInstance.exit();
 
@@ -324,9 +312,7 @@ describe('ThrottledExitFeature', () => {
 			const currentBlock = await deployer.provider.getBlock('latest');
 			const blocksDelta = (endBlock - currentBlock.number);
 
-			for (let i = 0; i < blocksDelta; i++) {
-				await mineBlock(deployer.provider);
-			}
+			await utils.timeTravel(deployer.provider, 130);
 
 			const userInitialBalanceStaking = await stakingTokenInstance.balanceOf(aliceAccount.signer.address);
 			const userInfoInitial = await ThrottledExitFeatureInstance.userInfo(aliceAccount.signer.address);
@@ -336,9 +322,7 @@ describe('ThrottledExitFeature', () => {
 
 			await ThrottledExitFeatureInstance.exit();
 
-			for (let i = 0; i < throttleRoundBlocks; i++) {
-				await mineBlock(deployer.provider);
-			}
+			await utils.timeTravel(deployer.provider, 130);
 
 			await ThrottledExitFeatureInstance.completeExit();
 

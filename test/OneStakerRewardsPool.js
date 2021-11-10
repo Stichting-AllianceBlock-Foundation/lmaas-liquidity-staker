@@ -30,6 +30,11 @@ describe('OneStakerRewardsPool', () => {
 	const standardStakingAmount = ethers.utils.parseEther('5') // 5 tokens
 	const contractStakeLimit = ethers.utils.parseEther('10') // 10 tokens
 
+	let startTimestmap;
+	let endTimestamp;
+	const virtualBlocksTime = 10 // 10s == 10000ms
+	const oneMinute = 60
+
 
 	const setupRewardsPoolParameters = async (deployer) => {
 		rewardTokensInstances = [];
@@ -48,8 +53,10 @@ describe('OneStakerRewardsPool', () => {
         }
 
 		const currentBlock = await deployer.provider.getBlock('latest');
-		startBlock = currentBlock.number + 5;
-		endBlock = startBlock + 20;
+		startTimestmap = currentBlock.timestamp + oneMinute ;
+		endTimestamp = startTimestmap + oneMinute*2;
+		startBlock = Math.trunc(startTimestmap/virtualBlocksTime)
+		endBlock = Math.trunc(endTimestamp/virtualBlocksTime)
 
 	}
 
@@ -70,13 +77,14 @@ describe('OneStakerRewardsPool', () => {
             OneStakerRewardsPool,
             {},
             stakingTokenAddress,
-			startBlock,
-			endBlock,
+			startTimestmap,
+			endTimestamp,
             rewardTokensAddresses,
             rewardPerBlock,
 			stakeLimit,
 			staker.signer.address,
-			contractStakeLimit
+			contractStakeLimit,
+			virtualBlocksTime
 		);
 
 		await rewardTokensInstances[0].mint(OneStakerRewardsPoolInstance.contractAddress,amount);
@@ -98,9 +106,7 @@ describe('OneStakerRewardsPool', () => {
 			const currentBlock = await deployer.provider.getBlock('latest');
 			const blocksDelta = (startBlock-currentBlock.number);
 
-			for (let i=0; i<blocksDelta; i++) {
-				await mineBlock(deployer.provider);
-			}
+			await utils.timeTravel(deployer.provider, 70);
 		});
 
 		it("Should successfully stake and accumulate reward", async() => {
@@ -117,7 +123,7 @@ describe('OneStakerRewardsPool', () => {
 			assert(userRewardDebt.eq(0), "User's reward debt is not correct")
 			assert(userOwedToken.eq(0), "User's reward debt is not correct")
 
-			await mineBlock(deployer.provider);
+			await utils.timeTravel(deployer.provider, 10);
 
 			const accumulatedReward = await OneStakerRewardsPoolInstance.getUserAccumulatedReward(staker.signer.address, 0);
 			assert(accumulatedReward.eq(bOne), "The reward accrued was not 1 token");

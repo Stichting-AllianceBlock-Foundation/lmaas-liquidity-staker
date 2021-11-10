@@ -12,6 +12,7 @@ import "./AbstractPoolsFactory.sol";
 contract RewardsPoolFactory is AbstractPoolsFactory {
 	using SafeMath for uint256;
 	using SafeERC20Detailed for IERC20Detailed;
+	uint256 public rewardsAmount;
 
 	event RewardsPoolDeployed(
 		address indexed rewardsPoolAddress,
@@ -22,20 +23,21 @@ contract RewardsPoolFactory is AbstractPoolsFactory {
 
 	/** @dev Deploy a reward pool base contract for the staking token, with the given parameters.
 	 * @param _stakingToken The address of the token being staked
-	 * @param _startBlock The start block of the rewards pool
-	 * @param _endBlock The end block of the rewards pool
+	 * @param _startTimestamp The start block of the rewards pool
+	 * @param _endTimestamp The end block of the rewards pool
 	 * @param _rewardsTokens The addresses of the tokens the rewards will be paid in
 	 * @param _rewardPerBlock Rewards per block
 	 * @param _stakeLimit The stake limit per user
 	 */
 	function deploy(
 		address _stakingToken,
-		uint256 _startBlock,
-		uint256 _endBlock,
+		uint256 _startTimestamp,
+		uint256 _endTimestamp,
 		address[] calldata _rewardsTokens,
 		uint256[] calldata _rewardPerBlock,
 		uint256 _stakeLimit,
-		uint256 _contractStakeLimit
+		uint256 _contractStakeLimit,
+		uint256 _virtualBlockTime
 	) external onlyOwner {
 		require(
 			_stakingToken != address(0),
@@ -59,12 +61,13 @@ contract RewardsPoolFactory is AbstractPoolsFactory {
 			address(
 				new RewardsPoolBase(
 					IERC20Detailed(_stakingToken),
-					_startBlock,
-					_endBlock,
+					_startTimestamp,
+					_endTimestamp,
 					_rewardsTokens,
 					_rewardPerBlock,
 					_stakeLimit,
-					_contractStakeLimit
+					_contractStakeLimit,
+					_virtualBlockTime
 				)
 			);
 
@@ -78,11 +81,12 @@ contract RewardsPoolFactory is AbstractPoolsFactory {
 				"RewardsPoolFactory::deploy: Reward per block must be greater than zero"
 			);
 
-			uint256 rewardsAmount =
+			rewardsAmount =
 				calculateRewardsAmount(
-					_startBlock,
-					_endBlock,
-					_rewardPerBlock[i]
+					_startTimestamp,
+					_endTimestamp,
+					_rewardPerBlock[i],
+					_virtualBlockTime
 				);
 			IERC20Detailed(_rewardsTokens[i]).safeTransfer(
 				rewardsPoolBase,
@@ -95,25 +99,26 @@ contract RewardsPoolFactory is AbstractPoolsFactory {
 	}
 
 	/** @dev Function that will extend the rewards period, but not change the reward rate, for a given staking contract.
-	 * @param _endBlock The new endblock for the rewards pool.
+	 * @param _endTimestamp The new endblock for the rewards pool.
 	 * @param _rewardsPerBlock Rewards per block .
 	 * @param _rewardsPoolAddress The address of the RewardsPoolBase contract.
 	 */
 	function extendRewardPool(
-		uint256 _endBlock,
+		uint256 _endTimestamp,
 		uint256[] memory _rewardsPerBlock,
 		address _rewardsPoolAddress
 	) external onlyOwner {
 
 		RewardsPoolBase pool = RewardsPoolBase(_rewardsPoolAddress);
-		uint256 currentEndBlock = pool.endBlock();
+		uint256 currentEndtimestamp = pool.endTimestamp();
+		uint256 virtualBlockTime = pool.getBlockTime();
 		uint256[] memory currentRemainingRewards = new uint256[](_rewardsPerBlock.length);
 		uint256[] memory newRemainingRewards = new uint256[](_rewardsPerBlock.length);
 
 		for (uint256 i = 0; i < _rewardsPerBlock.length; i++) {
 
-			currentRemainingRewards[i] = calculateRewardsAmount(block.number, currentEndBlock, pool.rewardPerBlock(i));
-			newRemainingRewards[i] = calculateRewardsAmount(block.number, _endBlock, _rewardsPerBlock[i]);
+			currentRemainingRewards[i] = calculateRewardsAmount(block.timestamp, currentEndtimestamp, pool.rewardPerBlock(i), virtualBlockTime);
+			newRemainingRewards[i] = calculateRewardsAmount(block.timestamp, _endTimestamp, _rewardsPerBlock[i], virtualBlockTime);
 
 			address rewardsToken = RewardsPoolBase(_rewardsPoolAddress).rewardsTokens(i);
 
@@ -124,7 +129,7 @@ contract RewardsPoolFactory is AbstractPoolsFactory {
 		}
 
 		RewardsPoolBase(_rewardsPoolAddress).extend(
-			_endBlock,
+			_endTimestamp,
 			_rewardsPerBlock,
 			currentRemainingRewards,
 			newRemainingRewards

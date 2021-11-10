@@ -16,6 +16,8 @@ contract RewardsPoolBase is ReentrancyGuard {
 	uint256[] public rewardPerBlock;
 	address[] public rewardsTokens;
 	IERC20Detailed public stakingToken;
+	uint256 public startTimestamp;
+	uint256 public endTimestamp;
 	uint256 public startBlock;
 	uint256 public endBlock;
 	uint256 public lastRewardBlock;
@@ -23,6 +25,7 @@ contract RewardsPoolBase is ReentrancyGuard {
 	address public rewardsPoolFactory;
 	uint256 public stakeLimit;
 	uint256 public contractStakeLimit;
+	uint256 private virtualBlockTime;
 
 	struct UserInfo {
 		uint256 firstStakedBlockNumber;
@@ -42,20 +45,21 @@ contract RewardsPoolBase is ReentrancyGuard {
 
 	constructor(
 		IERC20Detailed _stakingToken,
-		uint256 _startBlock,
-		uint256 _endBlock,
+		uint256 _startTimestamp,
+		uint256 _endTimestamp,
 		address[] memory _rewardsTokens,
 		uint256[] memory _rewardPerBlock,
 		uint256 _stakeLimit,
-		uint256 _contractStakeLimit
+		uint256 _contractStakeLimit,
+		uint256 _virtualBlockTime
 	) public {
 		require(
-			_startBlock > _getBlock(),
-			"Constructor::The starting block must be in the future."
+			_startTimestamp > _getCurrentTime(),
+			"Constructor::The starting timestamp must be in the future."
 		);
 		require(
-			_endBlock > _getBlock(),
-			"Constructor::The end block must be in the future."
+			_endTimestamp > _startTimestamp,
+			"Constructor::The end timestamp must be in the future."
 		);
 		require(
 			_rewardPerBlock.length == _rewardsTokens.length,
@@ -63,19 +67,25 @@ contract RewardsPoolBase is ReentrancyGuard {
 		);
 		require(_stakeLimit != 0, "Constructor::Stake limit needs to be more than 0");
 		require(_contractStakeLimit != 0, "Constructor:: Contract Stake limit needs to be more than 0");
+		require(_virtualBlockTime !=0, "Constructor:: Virtual block time should be greater than 0");
 
 		stakingToken = _stakingToken;
 		rewardPerBlock = _rewardPerBlock;
-		startBlock = _startBlock;
-		endBlock = _endBlock;
+		startTimestamp = _startTimestamp;
+		endTimestamp = _endTimestamp;
 		rewardsTokens = _rewardsTokens;
 		lastRewardBlock = startBlock;
 		rewardsPoolFactory = msg.sender;
 		stakeLimit = _stakeLimit;
 		contractStakeLimit = _contractStakeLimit;
+		virtualBlockTime = _virtualBlockTime * 1 seconds;
+		startBlock = _calculateBlocks(startTimestamp);
+		endBlock = _calculateBlocks(endTimestamp);
 		for (uint256 i = 0; i < rewardsTokens.length; i++) {
 			accumulatedRewardMultiplier.push(0);
 		}
+
+		
 	}
 
 	modifier onlyInsideBlockBounds() {
@@ -375,12 +385,28 @@ contract RewardsPoolBase is ReentrancyGuard {
 		}
 	}
 
-	function _getBlock() internal view virtual returns (uint256) {
-		return block.number;
+	// function _getBlock() internal view virtual returns (uint256) {
+	// 	return block.number;
+	// }
+
+	function _getBlock() public view virtual returns (uint256) {
+		return (block.timestamp.div(virtualBlockTime));
+	}
+
+	function _getCurrentTime() internal view virtual returns (uint256) {
+		return block.timestamp;
+	}
+
+	function _calculateBlocks(uint256 _timeInSeconds) internal view virtual returns(uint256) {
+		return _timeInSeconds.div(virtualBlockTime);
 	}
 
 	function hasStakingStarted() public view returns (bool) {
 		return (_getBlock() >= startBlock);
+	}
+
+	function getBlockTime() public view returns (uint){
+		return virtualBlockTime;
 	}
 
 	function getUserRewardDebt(address _userAddress, uint256 _index)
@@ -471,20 +497,20 @@ contract RewardsPoolBase is ReentrancyGuard {
 
 	/**
 		@dev Extends the rewards period and updates the rates
-		@param _endBlock  new end block for the rewards
+		@param _endTimestamp  new end block for the rewards
 		@param _rewardsPerBlock array with new rewards per block for each token 
 	 */
-	function extend(uint256 _endBlock, uint256[] memory _rewardsPerBlock, uint256[] memory _currentRemainingRewards, uint256[] memory _newRemainingRewards)
+	function extend(uint256 _endTimestamp, uint256[] memory _rewardsPerBlock, uint256[] memory _currentRemainingRewards, uint256[] memory _newRemainingRewards)
 		external
 		virtual
 		onlyFactory
 	{
 		require(
-			_endBlock > _getBlock(),
+			_endTimestamp > _getCurrentTime(),
 			"Extend::End block must be in the future"
 		);
 		require(
-			_endBlock >= endBlock,
+			_endTimestamp >= endTimestamp,
 			"Extend::End block must be after the current end block"
 		);
 		require(
@@ -508,9 +534,9 @@ contract RewardsPoolBase is ReentrancyGuard {
 			rewardPerBlock[i] = _rewardsPerBlock[i];
 		}
 
-		endBlock = _endBlock;
+		endTimestamp = _endTimestamp;
 
-		emit Extended(_endBlock, _rewardsPerBlock);
+		emit Extended(_endTimestamp, _rewardsPerBlock);
 	}
 
 	/** @dev Withdrawing rewards acumulated from different pools for providing liquidity
@@ -546,18 +572,18 @@ contract RewardsPoolBase is ReentrancyGuard {
 	/** @dev Helper function to calculate how much tokens should be transffered to a rewards pool.
 	 */
 	function calculateRewardsAmount(
-		uint256 _startBlock,
-		uint256 _endBlock,
+		uint256 _startTimestamp,
+		uint256 _endTimestamp,
 		uint256 _rewardPerBlock
-	) internal pure returns (uint256) {
+	) internal view returns (uint256) {
 		require(
 			_rewardPerBlock > 0,
 			"RewardsPoolBase::calculateRewardsAmount: Rewards per block must be greater than zero"
 		);
+		uint256 rewardsPeriodSeconds = _endTimestamp.sub(_startTimestamp);
+		uint256 rewardsPeriodBlocks = rewardsPeriodSeconds.div(virtualBlockTime);
 
-		uint256 rewardsPeriod = _endBlock.sub(_startBlock);
-
-		return _rewardPerBlock.mul(rewardsPeriod);
+		return _rewardPerBlock.mul(rewardsPeriodBlocks);
 	}
 
 	/** @dev Helper function to get the reward tokens count.

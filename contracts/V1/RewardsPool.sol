@@ -25,6 +25,10 @@ contract RewardsPool is
     uint256 private _totalStakesAmount;
     mapping(address => uint256) private _balances;
 
+    uint256 public virtualBlockTime;
+    uint256 public startTime;
+    uint256 public endTime;
+
     // reward
     struct RewardInfo {
         uint256 rewardRate;
@@ -69,12 +73,14 @@ contract RewardsPool is
      * @param _rewardsAmounts The reward amounts for each reward token
      * @param _stakingToken The address of the token being staked
      * @param _rewardsDuration Rewards duration in seconds
+     * @param _virtualBlockTime The duration in seconds for the virtual blocks
      */
     constructor(
         address[] memory _rewardsTokens,
         uint256[] memory _rewardsAmounts,
         address _stakingToken,
-        uint256 _rewardsDuration
+        uint256 _rewardsDuration,
+        uint256 _virtualBlockTime
     ) public {
         for (uint256 i = 0; i < _rewardsTokens.length; i++) {
             rewardsTokensMap[_rewardsTokens[i]] = RewardInfo(
@@ -88,6 +94,7 @@ contract RewardsPool is
         rewardsTokensArr = _rewardsTokens;
         rewardsAmountsArr = _rewardsAmounts;
         stakingToken = IERC20Detailed(_stakingToken);
+        virtualBlockTime = _virtualBlockTime;
 
         rewardsDistributor = msg.sender;
     }

@@ -12,22 +12,6 @@ contract NonCompoundingRewardsPoolFactory is AbstractPoolsFactory, StakeTransfer
 	using SafeMath for uint256;
 	using SafeERC20Detailed for IERC20Detailed;
 
-	address public immutable treasury;
-	address public immutable externalRewardToken;
-
-	constructor(address _treasury, address _externalRewardToken) public {
-		require(
-			_treasury != address(0),
-			"NonCompoundingRewardsPoolFactory:: Treasury address can't be zero address"
-		);
-
-		require(
-			_externalRewardToken != address(0),
-			"NonCompoundingRewardsPoolFactory:: External reward address can't be zero address"
-		);
-		treasury = _treasury;
-		externalRewardToken = _externalRewardToken;
-	}
 
 	event RewardsPoolDeployed(
 		address indexed rewardsPoolAddress,
@@ -38,22 +22,23 @@ contract NonCompoundingRewardsPoolFactory is AbstractPoolsFactory, StakeTransfer
 
 	/** @dev Deploy a reward pool base contract for the staking token, with the given parameters.
 	 * @param _stakingToken The address of the token being staked
-	 * @param _startBlock The start block of the rewards pool
-	 * @param _endBlock The end block of the rewards pool
+	 * @param _startTimestamp The start block of the rewards pool
+	 * @param _endTimestamp The end block of the rewards pool
 	 * @param _rewardsTokens The addresses of the tokens the rewards will be paid in
 	 * @param _rewardPerBlock Rewards per block
 	 * @param _stakeLimit The stake limit per user
 	 */
 	function deploy(
 		address _stakingToken,
-		uint256 _startBlock,
-		uint256 _endBlock,
+		uint256 _startTimestamp,
+		uint256 _endTimestamp,
 		address[] calldata _rewardsTokens,
 		uint256[] calldata _rewardPerBlock,
 		uint256 _stakeLimit,
 		uint256 _throttleRoundBlocks,
 		uint256 _throttleRoundCap,
-		uint256 _contractStakeLimit
+		uint256 _contractStakeLimit,
+		uint256 _virtualBlockTime
 	) external onlyOwner {
 		require(
 			_stakingToken != address(0),
@@ -87,16 +72,15 @@ contract NonCompoundingRewardsPoolFactory is AbstractPoolsFactory, StakeTransfer
 			address(
 				new NonCompoundingRewardsPool(
 					IERC20Detailed(_stakingToken),
-					_startBlock,
-					_endBlock,
+					_startTimestamp,
+					_endTimestamp,
 					_rewardsTokens,
 					_rewardPerBlock,
 					_stakeLimit, 
 					_throttleRoundBlocks,
 					_throttleRoundCap,
-					treasury,
-					externalRewardToken,
-					_contractStakeLimit
+					_contractStakeLimit,
+					_virtualBlockTime
 				)
 			);
 
@@ -113,9 +97,10 @@ contract NonCompoundingRewardsPoolFactory is AbstractPoolsFactory, StakeTransfer
 
 			uint256 rewardsAmount =
 				calculateRewardsAmount(
-					_startBlock,
-					_endBlock,
-					_rewardPerBlock[i]
+					_startTimestamp,
+					_endTimestamp,
+					_rewardPerBlock[i],
+					_virtualBlockTime
 				);
 			IERC20Detailed(_rewardsTokens[i]).safeTransfer(
 				rewardPool,
