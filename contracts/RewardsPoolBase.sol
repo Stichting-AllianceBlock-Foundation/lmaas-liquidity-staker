@@ -25,7 +25,7 @@ contract RewardsPoolBase is ReentrancyGuard {
 	address public rewardsPoolFactory;
 	uint256 public stakeLimit;
 	uint256 public contractStakeLimit;
-	uint256 public virtualBlockTime;
+	uint256 private virtualBlockTime;
 
 	struct UserInfo {
 		uint256 firstStakedBlockNumber;
@@ -403,6 +403,10 @@ contract RewardsPoolBase is ReentrancyGuard {
 
 	function hasStakingStarted() public view returns (bool) {
 		return (_getBlock() >= startBlock);
+	}
+
+	function getBlockTime() public view returns (uint){
+		return virtualBlockTime;
 	}
 
 	function getUserRewardDebt(address _userAddress, uint256 _index)

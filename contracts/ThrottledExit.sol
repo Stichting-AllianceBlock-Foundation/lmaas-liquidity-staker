@@ -15,7 +15,7 @@ abstract contract ThrottledExit {
 	uint256 public nextAvailableRoundExitVolume;
 	uint256 public throttleRoundBlocks;
 	uint256 public throttleRoundCap;
-	uint256 public virtualBlockTime2;
+	uint256 private virtualBlockTime;
 	uint256 public campaignEndBlock;
 
 	struct ExitInfo {
@@ -36,7 +36,7 @@ abstract contract ThrottledExit {
 		require(throttleRoundBlocks == 0 && throttleRoundCap == 0, "setThrottle::throttle parameters were already set");
 		throttleRoundBlocks = _throttleRoundBlocks;
 		throttleRoundCap = _throttleRoundCap;
-		virtualBlockTime2 = _virtualBlockTime;
+		virtualBlockTime = _virtualBlockTime;
 		campaignEndBlock = _calculateBlock(throttleStart);
 		nextAvailableExitBlock = campaignEndBlock.add(throttleRoundBlocks);
 	}
@@ -114,11 +114,15 @@ abstract contract ThrottledExit {
 	}
 
 	function _getCurrentBlock() public view returns (uint256) {
-		return (block.timestamp.div(virtualBlockTime2));
+		return (block.timestamp.div(virtualBlockTime));
 	}
 
 	function _calculateBlock(uint256 _timeInSeconds) internal view returns(uint256) {
-		return _timeInSeconds.div(virtualBlockTime2);
+		return _timeInSeconds.div(virtualBlockTime);
+	}
+
+	function getVirtualBlockTime() public view returns (uint){
+		return virtualBlockTime;
 	}
 
 

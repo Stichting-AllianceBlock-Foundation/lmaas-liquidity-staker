@@ -111,7 +111,7 @@ contract RewardsPoolFactory is AbstractPoolsFactory {
 
 		RewardsPoolBase pool = RewardsPoolBase(_rewardsPoolAddress);
 		uint256 currentEndtimestamp = pool.endTimestamp();
-		uint256 virtualBlockTime = pool.virtualBlockTime();
+		uint256 virtualBlockTime = pool.getBlockTime();
 		uint256[] memory currentRemainingRewards = new uint256[](_rewardsPerBlock.length);
 		uint256[] memory newRemainingRewards = new uint256[](_rewardsPerBlock.length);
 
