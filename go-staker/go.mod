@@ -1,4 +1,4 @@
-module github.com/stichting-allianceblock-foundation/lmaas-liquidity-staker/go-staker
+module github.com/Stichting-AllianceBlock-Foundation/lmaas-liquidity-staker/go-staker
 
 go 1.17
 
