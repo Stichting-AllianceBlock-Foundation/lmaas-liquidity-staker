@@ -68,3 +68,23 @@ etherlime ganache
 # Run unit tests
 etherlime test
 ```
+
+## GO source code
+
+You need Linux and Docker to run this procedure.
+
+In order for other LMAAS back-end projects to call functions on the deployed contracts, Solidity code needs to be translated into the language of those projects.
+
+This can be done using the provided script: `./generate_go_pkg.sh`
+
+Run the following for help: 
+```shell
+bash ./generate_go_pkg.sh
+```
+
+Currently generated files:
+
+```shell
+bash ./generate_go_pkg.sh contracts LiquidityMiningCampaign staker staker
+bash ./generate_go_pkg.sh contracts LockScheme lock staker/lock
+```
