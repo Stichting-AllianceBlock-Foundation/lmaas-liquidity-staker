@@ -87,4 +87,5 @@ Currently generated files:
 ```shell
 bash ./generate_go_pkg.sh contracts LiquidityMiningCampaign staker staker
 bash ./generate_go_pkg.sh contracts LockScheme lock staker/lock
+bash ./generate_go_pkg.sh contracts/V2 NonCompoundingRewardsPool stakingcamp stakingcamp
 ```
