@@ -8,7 +8,8 @@ import "./OnlyExitFeature.sol";
 
 abstract contract StakeLockingFeature is OnlyExitFeature, StakeLock {
 
-	function exit() public virtual override(RewardsPoolBase) onlyUnlocked {
+	function exit() public virtual override(RewardsPoolBase)  {
+		onlyUnlocked();
 		RewardsPoolBase.exit();
 	}
 

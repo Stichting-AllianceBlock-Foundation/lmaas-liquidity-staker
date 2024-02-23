@@ -7,6 +7,7 @@ import "./../../interfaces/IERC20Detailed.sol";
 import "./../../SafeERC20Detailed.sol";
 import "./../NonCompoundingRewardsPool.sol";
 import "./StakeTransferEnabledFactory.sol";
+import "./../libraries/Calculator.sol";
 
 contract NonCompoundingRewardsPoolFactory is AbstractPoolsFactory, StakeTransferEnabledFactory {
 	using SafeMath for uint256;
@@ -54,7 +55,8 @@ contract NonCompoundingRewardsPoolFactory is AbstractPoolsFactory, StakeTransfer
 		uint256 _throttleRoundBlocks,
 		uint256 _throttleRoundCap,
 		uint256 _contractStakeLimit
-	) external onlyOwner {
+	) external  {
+		onlyOwner(msg.sender);
 		require(
 			_stakingToken != address(0),
 			"NonCompoundingRewardsPoolFactory::deploy: Staking token address can't be zero address"
@@ -112,7 +114,7 @@ contract NonCompoundingRewardsPoolFactory is AbstractPoolsFactory, StakeTransfer
 			);
 
 			uint256 rewardsAmount =
-				calculateRewardsAmount(
+				Calculator.calculateRewardsAmount(
 					_startBlock,
 					_endBlock,
 					_rewardPerBlock[i]

@@ -3,6 +3,7 @@ const etherlime = require('etherlime-lib');
 const CompoundingRewardsPoolStaker = require('../build/CompoundingRewardsPoolStaker.json');
 const CompoundingRewardsPool = require('../build/CompoundingRewardsPool.json');
 const CompoundingRewardsPoolFactory = require('../build/CompoundingRewardsPoolFactory.json');
+const Calculator = require('../build/Calculator.json');
 const TestERC20 = require('../build/TestERC20.json');
 const RewardsPoolBase = require('../build/RewardsPoolBase.json');
 const { mineBlock } = require('./utils')
@@ -11,9 +12,10 @@ describe('CompoundingRewardsPoolFactory', () => { // These tests must be skipped
     let aliceAccount = accounts[3];
     let bobAccount = accounts[4];
     let carolAccount = accounts[5];
-    let treasury = accounts[8];
     let deployer;
     let CompoundingRewardsPoolFactoryInstance;
+    let CalculatorInstance;
+	let calculatorLibraryAddress;
     let stakingTokenInstance;
     let stakingTokenAddress;
     let rewardPerBlock;
@@ -28,6 +30,9 @@ describe('CompoundingRewardsPoolFactory', () => { // These tests must be skipped
     const amountToTransfer = ethers.utils.parseEther("10000");
     const bOne = ethers.utils.parseEther("1");
 	const standardStakingAmount = ethers.utils.parseEther('5') // 5 tokens
+    const hugeStakingLimit = ethers.utils.parseEther("20000000") // 20 mil tokens
+    const hugeContractStakingLimit = ethers.utils.parseEther("20000000") //20mil tokens
+    const hugeStakingAmount = ethers.utils.parseEther("10000") //100k
     
 
 	const setupRewardsPoolParameters = async (deployer) => {
@@ -47,9 +52,15 @@ describe('CompoundingRewardsPoolFactory', () => { // These tests must be skipped
 
         externalRewardsTokenInstance = await deployer.deploy(TestERC20, {}, ethers.utils.parseEther("300000"));
         externalRewardsTokenAddress = externalRewardsTokenInstance.contractAddress;
+        CalculatorInstance = await deployer.deploy(Calculator);
+
+		calculatorLibraryAddress = CalculatorInstance.contractAddress
+		const libraries = {
+			Calculator:calculatorLibraryAddress
+		  };
     
         await setupRewardsPoolParameters(deployer)
-        CompoundingRewardsPoolFactoryInstance = await deployer.deploy(CompoundingRewardsPoolFactory, {}, treasury.signer.address, externalRewardsTokenAddress);
+        CompoundingRewardsPoolFactoryInstance = await deployer.deploy(CompoundingRewardsPoolFactory, libraries, externalRewardsTokenAddress);
     });
 
     it('should deploy valid rewards pool factory contract', async () => {
@@ -66,7 +77,7 @@ describe('CompoundingRewardsPoolFactory', () => { // These tests must be skipped
 
         it('Should deploy base rewards pool successfully', async () => {
             await stakingTokenInstance.mint(CompoundingRewardsPoolFactoryInstance.contractAddress, amount);
-            await CompoundingRewardsPoolFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock, bOne, standardStakingAmount, 20, standardStakingAmount, contractStakeLimit);
+            await CompoundingRewardsPoolFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock, bOne, standardStakingAmount, 20, standardStakingAmount, contractStakeLimit,bOne);
 
             const firstStakerContract = await CompoundingRewardsPoolFactoryInstance.rewardsPools(0);
 			const StakerContract = await etherlime.ContractAt(CompoundingRewardsPoolStaker, firstStakerContract);
@@ -80,31 +91,71 @@ describe('CompoundingRewardsPoolFactory', () => { // These tests must be skipped
             assert.strictEqual(staker, firstStakerContract, "The staker of the pool was not the staker contract");
         });
 
+
+
+        xit('Should stake more than 10 milion tokens', async () => {
+
+            await stakingTokenInstance.mint(CompoundingRewardsPoolFactoryInstance.contractAddress, hugeStakingLimit);
+            await CompoundingRewardsPoolFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock, bOne, hugeStakingLimit, 20, hugeStakingLimit, hugeContractStakingLimit,bOne);
+            
+            const firstStakerContract = await CompoundingRewardsPoolFactoryInstance.rewardsPools(0);
+			const StakerContract = await etherlime.ContractAt(CompoundingRewardsPoolStaker, firstStakerContract);
+            
+            const currentBlock = await deployer.provider.getBlock('latest');
+            const blocksDelta = (startBlock-currentBlock.number);
+
+                for (let i=0; i<blocksDelta; i++) {
+                    await mineBlock(deployer.provider);
+                }
+            
+            for (let i = 0; i < 19; i++) {
+
+                let randomWallet = new ethers.Wallet.createRandom();
+                let walletWithProvider = randomWallet.connect(deployer.provider)
+
+                const tx = await aliceAccount.signer.sendTransaction({
+                    to: walletWithProvider.address,
+                    value: ethers.utils.parseEther("2.0")
+                })
+                console.log(i)
+                await stakingTokenInstance.mint(walletWithProvider.address, hugeContractStakingLimit);
+                await stakingTokenInstance.from(walletWithProvider).approve(firstStakerContract, hugeContractStakingLimit)
+                console.log("test")
+                await StakerContract.from(walletWithProvider).stake(hugeStakingAmount);
+
+                let stakedAmount = await StakerContract.userStakedAmount(walletWithProvider.address);
+                console.log(stakedAmount.toString())
+
+            }
+            let totalStakedAmount = await StakerContract.totalAmountStaked();
+			console.log(totalStakedAmount.toString())
+        });
+
         it('Should fail on deploying not from owner', async () => {
-            await assert.revert(CompoundingRewardsPoolFactoryInstance.from(bobAccount).deploy(stakingTokenAddress, startBlock, endBlock,bOne, stakeLimit, 5, stakeLimit, contractStakeLimit));
+            await assert.revert(CompoundingRewardsPoolFactoryInstance.from(bobAccount).deploy(stakingTokenAddress, startBlock, endBlock,bOne, stakeLimit, 5, stakeLimit, contractStakeLimit,bOne));
         });
 
         it('Should fail on deploying with zero address as staking token', async () => {
-            await assert.revertWith(CompoundingRewardsPoolFactoryInstance.deploy(ethers.constants.AddressZero, startBlock, endBlock,bOne, stakeLimit, 5, stakeLimit, contractStakeLimit), "CompoundingRewardsPoolFactory::deploy: Staking token address can't be zero address");
+            await assert.revertWith(CompoundingRewardsPoolFactoryInstance.deploy(ethers.constants.AddressZero, startBlock, endBlock,bOne, stakeLimit, 5, stakeLimit, contractStakeLimit,bOne), "CRPF::Err02");
         });
      
         it('Should fail if the reward amount is not greater than zero', async () => {
-            const errorString = "CompoundingRewardsPoolFactory::deploy: Reward per block must be more than 0"
-            await assert.revertWith(CompoundingRewardsPoolFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock, 0, standardStakingAmount, 20, standardStakingAmount, contractStakeLimit), errorString);
+            const errorString = "CRPF::Err03"
+            await assert.revertWith(CompoundingRewardsPoolFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock, 0, standardStakingAmount, 20, standardStakingAmount, contractStakeLimit,bOne), errorString);
         });
 
         it('Should fail on zero stake limit', async () => {
-            await assert.revertWith(CompoundingRewardsPoolFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock, bOne, 0, 20, standardStakingAmount, contractStakeLimit), "CompoundingRewardsPoolFactory::deploy: Stake limit must be more than 0");
+            await assert.revertWith(CompoundingRewardsPoolFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock, bOne, 0, 20, standardStakingAmount, contractStakeLimit,bOne), "CRPF::Err04");
         });
 
         it('Should fail on zero throttle rounds or cap', async () => {
-            await assert.revertWith(CompoundingRewardsPoolFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock, bOne, standardStakingAmount, 0, standardStakingAmount, contractStakeLimit), "CompoundingRewardsPoolFactory::deploy: Throttle round blocks must be more than 0");
-            await assert.revertWith(CompoundingRewardsPoolFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock, bOne, standardStakingAmount, 20, 0, contractStakeLimit), "CompoundingRewardsPoolFactory::deploy: Throttle round cap must be more than 0");
+            await assert.revertWith(CompoundingRewardsPoolFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock, bOne, standardStakingAmount, 0, standardStakingAmount, contractStakeLimit,bOne), "CRPF::Err05");
+            await assert.revertWith(CompoundingRewardsPoolFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock, bOne, standardStakingAmount, 20, 0, contractStakeLimit,bOne), "CRPF::Err06");
         });
 
         it('Should fail if not enough reward is sent', async () => {
             await stakingTokenInstance.mint(CompoundingRewardsPoolFactoryInstance.contractAddress, 1);
-            await assert.revertWith(CompoundingRewardsPoolFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock, bOne, standardStakingAmount, 20, standardStakingAmount, contractStakeLimit), "SafeERC20: low-level call failed");
+            await assert.revertWith(CompoundingRewardsPoolFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock, bOne, standardStakingAmount, 20, standardStakingAmount, contractStakeLimit,bOne), "SafeERC20: low-level call failed");
         });
 
         describe('Whitelisting', async function () {
@@ -113,8 +164,8 @@ describe('CompoundingRewardsPoolFactory', () => { // These tests must be skipped
             let receiver;
             beforeEach(async () => {
                 await stakingTokenInstance.mint(CompoundingRewardsPoolFactoryInstance.contractAddress, amount);
-                await CompoundingRewardsPoolFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock, bOne, standardStakingAmount, 20, standardStakingAmount, contractStakeLimit);
-                await CompoundingRewardsPoolFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock+10, bOne, standardStakingAmount, 20, standardStakingAmount, contractStakeLimit);
+                await CompoundingRewardsPoolFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock, bOne, standardStakingAmount, 20, standardStakingAmount, contractStakeLimit,bOne);
+                await CompoundingRewardsPoolFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock+10, bOne, standardStakingAmount, 20, standardStakingAmount, contractStakeLimit,bOne);
                 const transfererAddress = await CompoundingRewardsPoolFactoryInstance.rewardsPools(0);
                 const receiverAddress = await CompoundingRewardsPoolFactoryInstance.rewardsPools(1);
                 transferer = await etherlime.ContractAt(CompoundingRewardsPoolStaker, transfererAddress);
@@ -147,12 +198,12 @@ describe('CompoundingRewardsPoolFactory', () => { // These tests must be skipped
             });
 
             it('Should fail whitelisting if called with wrong params', async () => {
-                await assert.revertWith(CompoundingRewardsPoolFactoryInstance.enableReceivers(ethers.constants.AddressZero, [receiver.contractAddress]), "enableReceivers::Transferer cannot be 0");
-                await assert.revertWith(CompoundingRewardsPoolFactoryInstance.enableReceivers(transferer.contractAddress, [ethers.constants.AddressZero]), "enableReceivers::Receiver cannot be 0");
+                await assert.revertWith(CompoundingRewardsPoolFactoryInstance.enableReceivers(ethers.constants.AddressZero, [receiver.contractAddress]), "STEF:Err0");
+                await assert.revertWith(CompoundingRewardsPoolFactoryInstance.enableReceivers(transferer.contractAddress, [ethers.constants.AddressZero]), "STEF:Err02");
             });
 
             it('Should fail whitelisting if not called by the owner', async () => {
-                await assert.revertWith(CompoundingRewardsPoolFactoryInstance.from(bobAccount.signer).enableReceivers(transferer.contractAddress, [receiver.contractAddress]), "onlyOwner:: The caller is not the owner");
+                await assert.revertWith(CompoundingRewardsPoolFactoryInstance.from(bobAccount.signer).enableReceivers(transferer.contractAddress, [receiver.contractAddress]), "APF:Err01");
             });
         });
 

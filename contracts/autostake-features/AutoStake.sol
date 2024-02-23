@@ -26,27 +26,35 @@ contract AutoStake is ReentrancyGuard, StakeLock, ThrottledExit, Ownable {
 	uint256 public totalShares; 
 	uint256 public totalValue;
 	uint256 public exitStake;
+	uint256 public contractStakeLimit;
+	uint256 public totalAmountStaked;
 	mapping(address => uint256) public share;
+	mapping(address => uint256) public userStakedAmount;
 
 	event Staked(address indexed user, uint256 amount, uint256 sharesIssued, uint256 oldShareVaule, uint256 newShareValue, uint256 balanceOf);
 
-	constructor(address token, uint256 _throttleRoundBlocks, uint256 _throttleRoundCap, uint256 stakeEnd) StakeLock(stakeEnd) public {
+	constructor(address token, uint256 _throttleRoundBlocks, uint256 _throttleRoundCap, uint256 stakeEnd, uint256 _contractStakeLimit) StakeLock(stakeEnd) public {
 		factory = msg.sender;
 		stakingToken = IERC20Detailed(token);
+		contractStakeLimit = _contractStakeLimit;
 		setThrottleParams(_throttleRoundBlocks, _throttleRoundCap, stakeEnd);
 	}
 
 	function setPool(address pool) public onlyOwner {
-		require(address(rewardPool) == address(0x0), "Reward pool already set");
+		require(address(rewardPool) == address(0x0), "AS:Err01");
 		rewardPool = IRewardsPoolBase(pool);
 	}
 
-	modifier onlyFactory() {
+
+	function onlyFactory(address sender) public view {
 		require(
 			msg.sender == factory,
-			"Caller is not the Factory contract"
+			"AS:Err02"
 		);
-		_;
+	}
+
+	function onlyUnderContractStakeLimit(uint256 _stakeAmount) public {
+		require(totalAmountStaked.add(_stakeAmount) <= contractStakeLimit, "AS:Err03");
 	}
 
 	function refreshAutoStake() external {
@@ -55,7 +63,8 @@ contract AutoStake is ReentrancyGuard, StakeLock, ThrottledExit, Ownable {
 		restakeIntoRewardPool();
 	}
 
-	function stake(uint256 amount) public virtual {
+	function stake(uint256 amount)  public virtual {
+		onlyUnderContractStakeLimit(amount);
 		_stake(amount, msg.sender, true);
 	}
 
@@ -65,6 +74,8 @@ contract AutoStake is ReentrancyGuard, StakeLock, ThrottledExit, Ownable {
 
 		// now we can issue shares
 		stakingToken.safeTransferFrom(chargeStaker ? staker : msg.sender, address(this), amount);
+		userStakedAmount[staker] = userStakedAmount[staker].add(amount);
+		totalAmountStaked = totalAmountStaked.add(amount);
 		uint256 sharesToIssue = amount.mul(unit).div(valuePerShare);
 		totalShares = totalShares.add(sharesToIssue);
 		share[staker] = share[staker].add(sharesToIssue);
@@ -79,7 +90,8 @@ contract AutoStake is ReentrancyGuard, StakeLock, ThrottledExit, Ownable {
 		restakeIntoRewardPool();
 	}
 
-	function exit() public virtual onlyUnlocked nonReentrant {
+	function exit() public virtual nonReentrant {
+		onlyUnlocked();
 		exitRewardPool();
 		updateValuePerShare();
 
@@ -94,13 +106,16 @@ contract AutoStake is ReentrancyGuard, StakeLock, ThrottledExit, Ownable {
 		initiateExit(userStake, 0, new uint256[](0));
 
 		totalShares = totalShares.sub(share[msg.sender]);
+		totalAmountStaked = totalAmountStaked.sub(userStakedAmount[msg.sender]);
 		share[msg.sender] = 0;
+		userStakedAmount[msg.sender] = 0;
 		exitStake = exitStake.add(userStake);
 
 		updateValuePerShare();
 	}
 
-	function completeExit() virtual public onlyUnlocked nonReentrant {
+	function completeExit() virtual public  nonReentrant {
+		onlyUnlocked();
 		ExitInfo storage info = exitInfo[msg.sender];
 		exitStake = exitStake.sub(info.exitStake);
 
@@ -140,6 +155,15 @@ contract AutoStake is ReentrancyGuard, StakeLock, ThrottledExit, Ownable {
 			stakingToken.safeApprove(address(rewardPool), balanceToRestake);
 			rewardPool.stake(balanceToRestake);
 		}
+	}
+
+	function getUserAccumulatedRewards(address who) public view returns(uint256) {
+
+		uint256 balance = balanceOf(who);
+		if (userStakedAmount[who] > balance ) {
+			return 0;
+		}
+		return balance.sub(userStakedAmount[who]);
 	}
 
 }

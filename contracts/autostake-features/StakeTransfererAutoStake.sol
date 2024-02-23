@@ -12,14 +12,16 @@ import "./../StakeReceiver.sol";
 abstract contract StakeTransfererAutoStake is AutoStake, StakeTransferer  {
 	using SafeMath for uint256;
 
-	function setReceiverWhitelisted(address receiver, bool whitelisted) override(StakeTransferer) onlyFactory public {
+	function setReceiverWhitelisted(address receiver, bool whitelisted) override(StakeTransferer)  public {
+		onlyFactory(msg.sender);
 		StakeTransferer.setReceiverWhitelisted(receiver, whitelisted);
 	}
 
 	/** @dev exits the current campaign and trasnfers the stake to another whitelisted campaign
 		@param transferTo address of the receiver to transfer the stake to
 	 */
-	function exitAndTransfer(address transferTo) virtual public override onlyWhitelistedReceiver(transferTo) onlyUnlocked nonReentrant {
+	function exitAndTransfer(address transferTo) virtual public override onlyWhitelistedReceiver(transferTo) nonReentrant {
+		onlyUnlocked();
 		exitRewardPool();
 		updateValuePerShare();
 
@@ -30,6 +32,8 @@ abstract contract StakeTransfererAutoStake is AutoStake, StakeTransferer  {
 
 		totalShares = totalShares.sub(share[msg.sender]);
 		share[msg.sender] = 0;
+		totalAmountStaked = totalAmountStaked.sub(userStakedAmount[msg.sender]);
+		userStakedAmount[msg.sender] = 0;
 
 		stakingToken.safeApprove(transferTo, userStake);
 

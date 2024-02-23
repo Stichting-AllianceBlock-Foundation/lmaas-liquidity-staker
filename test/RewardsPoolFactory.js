@@ -3,6 +3,7 @@ const etherlime = require('etherlime-lib');
 const RewardsPoolFactory = require('../build/RewardsPoolFactory.json');
 const TestERC20 = require('../build/TestERC20.json');
 const RewardsPoolBase = require('../build/RewardsPoolBase.json');
+const Calculator = require('../build/Calculator.json');
 const { mineBlock } = require('./utils')
 
 describe('RewardsPoolFactory', () => {
@@ -51,7 +52,11 @@ describe('RewardsPoolFactory', () => {
         deployer = new etherlime.EtherlimeGanacheDeployer(aliceAccount.secretKey);
     
         await setupRewardsPoolParameters(deployer)
-        RewardsPoolFactoryInstance = await deployer.deploy(RewardsPoolFactory, {});
+        let CalculatorInstance = await deployer.deploy(Calculator);
+        let libraries = {
+            Calculator: CalculatorInstance.contractAddress 
+        }
+        RewardsPoolFactoryInstance = await deployer.deploy(RewardsPoolFactory, libraries);
     });
 
     it('should deploy valid rewards pool factory contract', async () => {
@@ -151,7 +156,7 @@ describe('RewardsPoolFactory', () => {
         });
 
         it('Should fail on deploying with zero contract stake limit', async () => {
-            await assert.revertWith(RewardsPoolFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock, rewardTokensAddresses,rewardPerBlock, stakeLimit, 0), "Constructor:: Contract Stake limit needs to be more than 0");
+            await assert.revertWith(RewardsPoolFactoryInstance.deploy(stakingTokenAddress, startBlock, endBlock, rewardTokensAddresses,rewardPerBlock, stakeLimit, 0), "C:: Contract Stake limit needs to be more than 0");
         });
 
         describe('Extending Rewards', async function () {
@@ -294,7 +299,7 @@ describe('RewardsPoolFactory', () => {
                 it("Should fail trying to extend from not owner", async() => {
                     let rewardsPoolAddress = await RewardsPoolFactoryInstance.rewardsPools(0)
                     let newEndBlock = endBlock + 10
-                    await assert.revertWith(RewardsPoolFactoryInstance.from(bobAccount.signer.address).extendRewardPool(newEndBlock, rewardPerBlock, rewardsPoolAddress),"onlyOwner:: The caller is not the owner")
+                    await assert.revertWith(RewardsPoolFactoryInstance.from(bobAccount.signer.address).extendRewardPool(newEndBlock, rewardPerBlock, rewardsPoolAddress),"APF:Err01")
                 })
 
            

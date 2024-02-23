@@ -8,6 +8,7 @@ import "./SafeERC20Detailed.sol";
 import "./AbstractPoolsFactory.sol";
 import "./V2/factories/StakeTransferEnabledFactory.sol";
 import "./LiquidityMiningCampaign.sol";
+import "./V2/libraries/Calculator.sol";
 
 
 contract LiquidityMiningCampaignFactory is AbstractPoolsFactory, StakeTransferEnabledFactory {
@@ -41,7 +42,8 @@ contract LiquidityMiningCampaignFactory is AbstractPoolsFactory, StakeTransferEn
 		address _albtAddress,
 		uint256 _stakeLimit,
 		uint256 _contractStakeLimit
-	) external onlyOwner {
+	) external  {
+		onlyOwner(msg.sender);
 		require(
 			_stakingToken != address(0),
 			"LiquidityMiningCampaignFactory::deploy: Staking token address can't be zero address"
@@ -86,7 +88,7 @@ contract LiquidityMiningCampaignFactory is AbstractPoolsFactory, StakeTransferEn
 			);
 
 			uint256 rewardsAmount =
-				calculateRewardsAmount(
+				Calculator.calculateRewardsAmount(
 					_startBlock,
 					_endBlock,
 					_rewardPerBlock[i]
@@ -110,8 +112,8 @@ contract LiquidityMiningCampaignFactory is AbstractPoolsFactory, StakeTransferEn
 		uint256 _endBlock,
 		uint256[] calldata _rewardsPerBlock,
 		address _rewardsPoolAddress
-	) external onlyOwner {
-
+	) external  {
+		onlyOwner(msg.sender);
 		RewardsPoolBase pool = RewardsPoolBase(_rewardsPoolAddress);
 		uint256 currentEndBlock = pool.endBlock();
 		uint256[] memory currentRemainingRewards = new uint256[](_rewardsPerBlock.length);
@@ -119,8 +121,8 @@ contract LiquidityMiningCampaignFactory is AbstractPoolsFactory, StakeTransferEn
 
 		for (uint256 i = 0; i < _rewardsPerBlock.length; i++) {
 
-			currentRemainingRewards[i] = calculateRewardsAmount(block.number, currentEndBlock, pool.rewardPerBlock(i));
-			newRemainingRewards[i] = calculateRewardsAmount(block.number, _endBlock, _rewardsPerBlock[i]);
+			currentRemainingRewards[i] = Calculator.calculateRewardsAmount(block.number, currentEndBlock, pool.rewardPerBlock(i));
+			newRemainingRewards[i] = Calculator.calculateRewardsAmount(block.number, _endBlock, _rewardsPerBlock[i]);
 
 			address rewardsToken = RewardsPoolBase(_rewardsPoolAddress).rewardsTokens(i);
 
@@ -139,7 +141,8 @@ contract LiquidityMiningCampaignFactory is AbstractPoolsFactory, StakeTransferEn
 
 	}
 
-	function setLockSchemesToLMC(address[] memory _lockSchemes, address _rewardsPoolAddress) external onlyOwner() {
+	function setLockSchemesToLMC(address[] memory _lockSchemes, address _rewardsPoolAddress) external  {
+		onlyOwner(msg.sender);
 		require(_rewardsPoolAddress != address(0x0), "setLockSchemesToLMC:: Invalid LMC address");
 		require(_lockSchemes.length != 0, "setLockSchemesToLMC:: LockSchemes array can't be empty");
 		LiquidityMiningCampaign pool = LiquidityMiningCampaign(_rewardsPoolAddress);

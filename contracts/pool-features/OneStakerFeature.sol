@@ -9,16 +9,17 @@ abstract contract OneStakerFeature is RewardsPoolBase {
 
 
 	constructor(address _staker) public {
-		require(_staker != address(0x0), "OneStakerFeature::setSconstructortaker new staker address can't be zero address");
+		require(_staker != address(0x0), "OSF::C new staker address can't 0x0");
 		staker = _staker;
 	}
 
-	modifier onlyStaker() {
+
+	function onlyStaker(address sender) public view {
 		require(msg.sender == staker, "onlyStaker::incorrect staker");
-		_;
 	}
 
-	function stake(uint256 _tokenAmount) public virtual override(RewardsPoolBase) onlyStaker {
+	function stake(uint256 _tokenAmount) public virtual override(RewardsPoolBase)  {
+		onlyStaker(msg.sender);
 		RewardsPoolBase.stake(_tokenAmount);
 	}
 

@@ -51,6 +51,49 @@ Contract that would serve as a role manger, creating, removing, granting and rev
 ## sdk directory
 *Please do not audit this one, not used in the project*
 
+## Smart Contracts Error Codes 
+### CompoundingRewardsPoolFactory
+
+- CRPF:Err01: External reward address can't be zero address
+- CRPF:Err02: deploy: Staking token address can't be zero address
+- CRPF:Err03:deploy: Reward per block must be more than 0
+- CRPF:Err04:deploy: Stake limit must be more than 0
+- CRPF:Err05:deploy: Throttle round blocks must be more than 0
+- CRPF:Err06:deploy: Throttle round cap must be more than 0
+
+### LimitedAutoStake
+
+LAS:Err01:constructor::stake limit should not be 0
+
+LAS:Errr02:onlyUnderStakeLimit::Stake limit reached
+
+### AutoStake
+
+- AS:Err01: Reward pool already set
+- AS:Err02: Caller is not the Factory contract
+- AS:Err03: AutoStake:OUCSL: Stake limit reached
+
+### Calculator Lib
+
+- CL:Err01:CRA:: Rewards must be > zero
+
+### AbstractPoolsFactory
+
+- APF:Err01:onlyOwner:: The caller is not the owner
+- APF:Err02:Cannot set owner to 0x0
+- APF:Err03:Sender != proposed owner
+- APF:Err04:WLPR:: not deployed
+
+### StakeTransferEnabledFactory
+
+- STEF:Err01:ER::Transferer cannot be 0"
+- STEF:Err02:ER::Receiver cannot be 0
+
+### StakeReceiverAutoStake
+
+- SRAS:Err01:delegateStake::No stake sent
+- SRAS:Err02:delegateStake::Invalid staker
+
 ## Usage
 ```
 # Requirements:

@@ -17,12 +17,14 @@ abstract contract TreasuryOperatedFeature is RewardsPoolBase, TreasuryOperated {
 		externalRewardToken = _externalRewardToken;
 	}
 
-	function withdrawStake(uint256 amount) virtual override(TreasuryOperated) public onlyTreasury {
+	function withdrawStake(uint256 amount) virtual override(TreasuryOperated) public  {
+		onlyTreasury(msg.sender);
 		stakingToken.safeTransfer(treasury, amount);
 		TreasuryOperated.withdrawStake(amount);
 	}
 
-	function notifyExternalReward(uint256 reward) virtual public onlyTreasury {
+	function notifyExternalReward(uint256 reward) virtual public  {
+		onlyTreasury(msg.sender);
 		TreasuryOperated.notifyExternalReward(externalRewardToken, reward);
 	}
 

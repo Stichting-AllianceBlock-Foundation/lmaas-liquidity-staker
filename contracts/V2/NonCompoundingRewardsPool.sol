@@ -46,7 +46,8 @@ contract NonCompoundingRewardsPool is RewardsPoolBase, OnlyExitFeature, Throttle
 		ThrottledExitFeature.completeExit();
 	}
 
-	function exitAndTransfer(address transferTo) virtual override(StakeTransfererFeature) public onlyUnlocked {
+	function exitAndTransfer(address transferTo) virtual override(StakeTransfererFeature) public {
+		onlyUnlocked();
 		StakeTransfererFeature.exitAndTransfer(transferTo);
 	}
 }

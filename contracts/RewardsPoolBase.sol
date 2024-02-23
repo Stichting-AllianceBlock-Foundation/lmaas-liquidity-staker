@@ -51,18 +51,18 @@ contract RewardsPoolBase is ReentrancyGuard {
 	) public {
 		require(
 			_startBlock > _getBlock(),
-			"Constructor::The starting block must be in the future."
+			"C::The starting block must be in the future."
 		);
 		require(
 			_endBlock > _getBlock(),
-			"Constructor::The end block must be in the future."
+			"C::The end block must be in the future."
 		);
 		require(
 			_rewardPerBlock.length == _rewardsTokens.length,
-			"Constructor::Rewards per block and rewards tokens must be with the same length."
+			"C::Rewards per block and rewards tokens must be with the same length."
 		);
-		require(_stakeLimit != 0, "Constructor::Stake limit needs to be more than 0");
-		require(_contractStakeLimit != 0, "Constructor:: Contract Stake limit needs to be more than 0");
+		require(_stakeLimit != 0, "C::Stake limit needs to be more than 0");
+		require(_contractStakeLimit != 0, "C:: Contract Stake limit needs to be more than 0");
 
 		stakingToken = _stakingToken;
 		rewardPerBlock = _rewardPerBlock;
@@ -78,29 +78,26 @@ contract RewardsPoolBase is ReentrancyGuard {
 		}
 	}
 
-	modifier onlyInsideBlockBounds() {
+	function onlyInsideBlockBounds() internal view {
 		uint256 currentBlock = _getBlock();
 		require(
 			currentBlock > startBlock,
-			"Stake::Staking has not yet started"
+			"S::Staking has not yet started"
 		);
 		require(currentBlock <= endBlock, "Stake::Staking has finished");
-		_;
 	}
 
-	modifier onlyFactory() {
+	function onlyFactory(address sender) public view {
 		require(
 			msg.sender == rewardsPoolFactory,
-			"Caller is not RewardsPoolFactory contract"
+			"Caller is not Factory contract"
 		);
-		_;
 	}
 
-	modifier onlyUnderStakeLimit(address staker, uint256 newStake) {
+	function onlyUnderStakeLimit(address staker, uint256 newStake) internal view {
 		UserInfo storage user = userInfo[staker];
-		require(user.amountStaked.add(newStake) <= stakeLimit, "onlyUnderStakeLimit::Stake limit reached");
-		require(totalStaked.add(newStake) <= contractStakeLimit, "onlyUnderStakeLimit::Contract Stake limit reached");
-		_;
+		require(user.amountStaked.add(newStake) <= stakeLimit, "oUSL::Stake limit reached");
+		require(totalStaked.add(newStake) <= contractStakeLimit, "oUSL::Contract Stake limit reached");
 	}
 
 	/** @dev Providing LP tokens to stake, update rewards.
@@ -117,10 +114,11 @@ contract RewardsPoolBase is ReentrancyGuard {
 	 */
 	function _stake(uint256 _tokenAmount, address staker, bool chargeStaker)
 		internal
-		onlyInsideBlockBounds
-		onlyUnderStakeLimit(staker, _tokenAmount)
+		
 	{
-		require(_tokenAmount > 0, "Stake::Cannot stake 0");
+		onlyInsideBlockBounds();
+		onlyUnderStakeLimit(staker, _tokenAmount);
+		require(_tokenAmount > 0, "S::Cannot stake 0");
 
 		UserInfo storage user = userInfo[staker];
 
@@ -185,7 +183,7 @@ contract RewardsPoolBase is ReentrancyGuard {
 	}
 
 	function _withdraw(uint256 _tokenAmount, address withdrawer) internal {
-		require(_tokenAmount > 0, "Withdraw::Cannot withdraw 0");
+		require(_tokenAmount > 0, "W::Cannot withdraw 0");
 
 		UserInfo storage user = userInfo[withdrawer];
 
@@ -390,7 +388,7 @@ contract RewardsPoolBase is ReentrancyGuard {
 	{
 		require(
 			_userAddress != address(0),
-			"GetUserRewardDebt::Invalid user address"
+			"GURD::Invalid user address"
 		);
 		UserInfo storage user = userInfo[_userAddress];
 		return user.rewardDebt[_index];
@@ -403,7 +401,7 @@ contract RewardsPoolBase is ReentrancyGuard {
 	{
 		require(
 			_userAddress != address(0),
-			"GetUserOwedTokens::Invalid user address"
+			"GUOT::Invalid user address"
 		);
 		UserInfo storage user = userInfo[_userAddress];
 		return user.tokensOwed[_index];
@@ -450,7 +448,7 @@ contract RewardsPoolBase is ReentrancyGuard {
 	{
 		require(
 			_userAddress != address(0),
-			"GetUserTokensOwedLength::Invalid user address"
+			"GUTOL::Invalid user address"
 		);
 		UserInfo storage user = userInfo[_userAddress];
 		return user.tokensOwed.length;
@@ -463,7 +461,7 @@ contract RewardsPoolBase is ReentrancyGuard {
 	{
 		require(
 			_userAddress != address(0),
-			"GetUserRewardDebtLength::Invalid user address"
+			"GURDL::Invalid user address"
 		);
 		UserInfo storage user = userInfo[_userAddress];
 		return user.rewardDebt.length;
@@ -477,19 +475,20 @@ contract RewardsPoolBase is ReentrancyGuard {
 	function extend(uint256 _endBlock, uint256[] memory _rewardsPerBlock, uint256[] memory _currentRemainingRewards, uint256[] memory _newRemainingRewards)
 		external
 		virtual
-		onlyFactory
+		
 	{
+		onlyFactory(msg.sender);
 		require(
 			_endBlock > _getBlock(),
-			"Extend::End block must be in the future"
+			"E::End block must be in the future"
 		);
 		require(
 			_endBlock >= endBlock,
-			"Extend::End block must be after the current end block"
+			"E::End block must be after the current end block"
 		);
 		require(
 			_rewardsPerBlock.length == rewardsTokens.length,
-			"Extend::Rewards amounts length is less than expected"
+			"E::Rewards amounts length is less than expected"
 		);
 		updateRewardMultipliers();
 
@@ -520,13 +519,14 @@ contract RewardsPoolBase is ReentrancyGuard {
 	function withdrawLPRewards(address recipient, address lpTokenContract)
 		external
 		nonReentrant
-		onlyFactory
+		
 	{
+		onlyFactory(msg.sender);
 		uint256 currentReward =
 			IERC20Detailed(lpTokenContract).balanceOf(address(this));
 		require(
 			currentReward > 0,
-			"WithdrawLPRewards::There are no rewards from liquidity pools"
+			"WLPR::There are no rewards from liquidity pools"
 		);
 
 		require(lpTokenContract != address(stakingToken), "WithdrawLPRewards:: cannot withdraw from the LP tokens");
@@ -536,29 +536,13 @@ contract RewardsPoolBase is ReentrancyGuard {
 		for (uint256 i = 0; i < rewardsTokensLength; i++) {
 			require(
 				lpTokenContract != rewardsTokens[i],
-				"WithdrawLPRewards::Cannot withdraw from token rewards"
+				"WRLP::Cannot withdraw from token rewards"
 			);
 		}
 		IERC20Detailed(lpTokenContract).safeTransfer(recipient, currentReward);
 		emit WithdrawLPRewards(currentReward, recipient);
 	}
 
-	/** @dev Helper function to calculate how much tokens should be transffered to a rewards pool.
-	 */
-	function calculateRewardsAmount(
-		uint256 _startBlock,
-		uint256 _endBlock,
-		uint256 _rewardPerBlock
-	) internal pure returns (uint256) {
-		require(
-			_rewardPerBlock > 0,
-			"RewardsPoolBase::calculateRewardsAmount: Rewards per block must be greater than zero"
-		);
-
-		uint256 rewardsPeriod = _endBlock.sub(_startBlock);
-
-		return _rewardPerBlock.mul(rewardsPeriod);
-	}
 
 	/** @dev Helper function to get the reward tokens count.
 	 */

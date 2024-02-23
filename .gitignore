@@ -2,6 +2,7 @@ node_modules
 build
 out
 .etherlime-store
+.idea
 coverage
 .DS_Store
 .prettierrc

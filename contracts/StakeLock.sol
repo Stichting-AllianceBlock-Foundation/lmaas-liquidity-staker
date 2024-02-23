@@ -11,11 +11,8 @@ abstract contract StakeLock {
 		lockEndBlock = _lockEndBlock;
 	}
 
-
-
-	modifier onlyUnlocked() {
+	function onlyUnlocked() public view {
 		require(block.number > lockEndBlock, "onlyUnlocked::cannot perform this action until the end of the lock");
-		_;
 	}
 
 }

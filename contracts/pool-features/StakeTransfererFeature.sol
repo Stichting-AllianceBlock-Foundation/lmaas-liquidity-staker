@@ -13,7 +13,8 @@ abstract contract StakeTransfererFeature is OnlyExitFeature, StakeTransferer {
 	using SafeMath for uint256;
 	using SafeERC20Detailed for IERC20Detailed;
 
-	function setReceiverWhitelisted(address receiver, bool whitelisted) override(StakeTransferer) onlyFactory public {
+	function setReceiverWhitelisted(address receiver, bool whitelisted) override(StakeTransferer) public {
+		onlyFactory(msg.sender);
 		StakeTransferer.setReceiverWhitelisted(receiver, whitelisted);
 	}
 

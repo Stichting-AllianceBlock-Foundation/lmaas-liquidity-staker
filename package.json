@@ -4,7 +4,8 @@
   "description": "This is the default package.json generated for your project",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "etherlime test --timeout=10000",
+    "ganache:init": "etherlime ganache --gasLimit 160000000"
   },
   "author": "",
   "license": "ISC",
@@ -21,6 +22,8 @@
     "solc": "^0.6.12"
   },
   "devDependencies": {
+    "hardhat": "^2.5.0",
+    "hardhat-contract-sizer": "^2.0.3",
     "prettier": "^2.2.1",
     "prettier-plugin-solidity": "^1.0.0-beta.5"
   }
